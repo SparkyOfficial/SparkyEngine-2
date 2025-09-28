@@ -4,9 +4,18 @@
 #include <vector>
 #include <iostream>
 #include <optional>
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
 #include "MeshRenderer.h"
 
 namespace Sparky {
+    // Uniform buffer object structure
+    struct UniformBufferObject {
+        glm::mat4 model;
+        glm::mat4 view;
+        glm::mat4 proj;
+    };
+
     struct QueueFamilyIndices {
         std::optional<uint32_t> graphicsFamily;
         std::optional<uint32_t> presentFamily;
@@ -72,6 +81,15 @@ namespace Sparky {
         // Descriptor set layout
         VkDescriptorSetLayout descriptorSetLayout;
         
+        // Uniform buffers
+        std::vector<VkBuffer> uniformBuffers;
+        std::vector<VkDeviceMemory> uniformBuffersMemory;
+        std::vector<void*> uniformBuffersMapped;
+        
+        // Descriptor pools and sets
+        VkDescriptorPool descriptorPool;
+        std::vector<VkDescriptorSet> descriptorSets;
+        
         // Depth resources
         VkImage depthImage;
         VkDeviceMemory depthImageMemory;
@@ -123,6 +141,17 @@ namespace Sparky {
         void recreateSwapChain();
         void recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex);
         
+        // Uniform buffer and descriptor methods
+        void createUniformBuffers();
+        void cleanupUniformBuffers();
+        void updateUniformBuffer(uint32_t currentImage);
+        void createDescriptorPool();
+        void createDescriptorSets();
+        
+        // Buffer helpers
+        void createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer& buffer, VkDeviceMemory& bufferMemory);
+        uint32_t findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties);
+        
         // Image helpers
         void createImage(uint32_t width, uint32_t height, VkFormat format, VkImageTiling tiling, 
                         VkImageUsageFlags usage, VkMemoryPropertyFlags properties, 
@@ -131,7 +160,6 @@ namespace Sparky {
         void transitionImageLayout(VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout);
         VkCommandBuffer beginSingleTimeCommands();
         void endSingleTimeCommands(VkCommandBuffer commandBuffer);
-        uint32_t findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties);
         VkFormat findSupportedFormat(const std::vector<VkFormat>& candidates, VkImageTiling tiling, VkFormatFeatureFlags features);
         VkFormat findDepthFormat();
         

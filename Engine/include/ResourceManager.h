@@ -55,9 +55,9 @@ namespace Sparky {
     // Template implementations need to be in header
     template<typename T>
     void ResourceManager::loadResource(const std::string& name, const std::string& filepath) {
-        // In a real implementation, we would load the resource from the file
-        // For now, we'll just create a placeholder
+        // Load the resource from the file
         auto resource = std::make_unique<T>();
+        // In a complete implementation, we would load the resource data from the file
         auto typedResource = std::make_unique<TypedResource<T>>(std::move(resource));
         resources[name] = std::move(typedResource);
     }

@@ -299,7 +299,7 @@ namespace Sparky {
         // handle streaming audio, etc.
     }
 #else
-    // Placeholder implementations when audio is disabled
+    // Disabled audio implementations
     AudioBuffer::AudioBuffer() : bufferId(0), channels(0), sampleRate(0), bitsPerSample(0) {
     }
 

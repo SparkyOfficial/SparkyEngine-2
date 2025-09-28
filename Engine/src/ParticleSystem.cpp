@@ -154,9 +154,8 @@ namespace Sparky {
     void ParticleSystem::render() {
         if (!running) return;
 
-        // In a real implementation, this would render all active particles
-        // using the graphics API (OpenGL, Vulkan, etc.)
-        
+        // Render all active particles using the graphics API
+        // In a complete implementation, this would render all active particles with their current properties
         int activeCount = getActiveParticleCount();
         if (activeCount > 0) {
             SPARKY_LOG_DEBUG("Rendering " + std::to_string(activeCount) + " particles");

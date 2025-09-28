@@ -84,6 +84,11 @@ namespace Sparky {
     }
 
     void MeshRenderer::renderMesh(const Mesh& mesh, VkCommandBuffer commandBuffer) {
+        // Only render if we have a valid command buffer
+        if (commandBuffer == VK_NULL_HANDLE) {
+            return;
+        }
+        
         // Bind vertex buffer
         VkBuffer vertexBuffers[] = {vertexBuffer};
         VkDeviceSize offsets[] = {0};

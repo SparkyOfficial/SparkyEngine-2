@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.20)
 project(SparkyEngine2)
 
 # Set C++ standard
-set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # Add Vulkan support
@@ -30,9 +30,11 @@ if(NOT glslang_FOUND)
     find_library(GLSLANG_LIBRARY glslang PATHS ${VULKAN_SDK}/Lib)
     find_library(SPIRV_LIBRARY SPIRV PATHS ${VULKAN_SDK}/Lib)
     find_library(GLSLANG_DEFAULT_RESOURCE_LIMITS_LIBRARY glslang-default-resource-limits PATHS ${VULKAN_SDK}/Lib)
+    find_library(SPIRV_TOOLS_LIBRARY SPIRV-Tools PATHS ${VULKAN_SDK}/Lib)
+    find_library(SPIRV_TOOLS_OPT_LIBRARY SPIRV-Tools-opt PATHS ${VULKAN_SDK}/Lib)
     
-    if(GLSLANG_LIBRARY AND SPIRV_LIBRARY AND GLSLANG_DEFAULT_RESOURCE_LIMITS_LIBRARY)
-        set(glslang_LIBRARIES ${GLSLANG_LIBRARY} ${SPIRV_LIBRARY} ${GLSLANG_DEFAULT_RESOURCE_LIMITS_LIBRARY})
+    if(GLSLANG_LIBRARY AND SPIRV_LIBRARY AND GLSLANG_DEFAULT_RESOURCE_LIMITS_LIBRARY AND SPIRV_TOOLS_LIBRARY AND SPIRV_TOOLS_OPT_LIBRARY)
+        set(glslang_LIBRARIES ${GLSLANG_LIBRARY} ${SPIRV_LIBRARY} ${GLSLANG_DEFAULT_RESOURCE_LIMITS_LIBRARY} ${SPIRV_TOOLS_LIBRARY} ${SPIRV_TOOLS_OPT_LIBRARY})
         message(STATUS "Found glslang libraries: ${glslang_LIBRARIES}")
     else()
         message(FATAL_ERROR "glslang libraries not found. Please install glslang development libraries.")

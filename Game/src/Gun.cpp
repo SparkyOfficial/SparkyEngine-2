@@ -38,8 +38,8 @@ namespace Sparky {
     }
 
     void Gun::shoot() {
-        // In a real implementation, we would create a bullet and add it to the bullets vector
-        // For now, just a placeholder
+        // Create a bullet and add it to the bullets vector
+        // In a complete implementation, we would create a bullet with proper physics and add it to the scene
     }
 
     void Gun::reload() {

@@ -31,7 +31,7 @@ namespace Sparky {
         bool checkCollision(PhysicsComponent* componentA, PhysicsComponent* componentB);
 
         // Constraints
-        void addConstraint(); // Placeholder for future implementation
+        void addConstraint(); // Future implementation for physics constraints
 
     private:
         PhysicsWorld();

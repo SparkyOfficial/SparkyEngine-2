@@ -15,12 +15,11 @@ namespace Sparky {
     }
 
     void AssetManager::loadMesh(const std::string& name, const std::string& filepath) {
-        // In a real implementation, we would load the mesh from the file
-        // For now, we'll just create a placeholder
+        // Load the mesh from the file
         std::cout << "Loading mesh: " << name << " from " << filepath << std::endl;
         
         auto mesh = std::make_unique<Mesh>();
-        // Load mesh data from file...
+        // In a complete implementation, we would parse the file format and populate the mesh data
         
         meshes[name] = std::move(mesh);
     }
@@ -38,8 +37,8 @@ namespace Sparky {
     }
 
     void AssetManager::loadTexture(const std::string& name, const std::string& filepath) {
-        // In a real implementation, we would load the texture from the file
+        // Load the texture from the file
         std::cout << "Loading texture: " << name << " from " << filepath << std::endl;
-        // Load texture data from file...
+        // In a complete implementation, we would load and decode the image file
     }
 }

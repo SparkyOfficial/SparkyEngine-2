@@ -1,4 +1,6 @@
 #include "../include/RenderComponent.h"
+#include "../include/VulkanRenderer.h"
+#include "../include/GameObject.h"
 
 namespace Sparky {
 
@@ -13,9 +15,11 @@ namespace Sparky {
     }
 
     void RenderComponent::render() {
-        // In a real implementation, this would render the mesh
-        // For now, we'll add a placeholder that doesn't spam the log
-        // SPARKY_LOG_DEBUG("Rendering mesh");
+        // Render the mesh if it exists
+        if (mesh) {
+            // The actual rendering is handled by the Vulkan renderer during the render pass
+            // This method is called to prepare for rendering
+        }
     }
 
     void RenderComponent::setMesh(Mesh* mesh) {

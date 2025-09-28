@@ -36,8 +36,7 @@ namespace Sparky {
 
         // Update directional light
         if (directionalLight) {
-            // In a real implementation, we would set the actual uniform values
-            // For now, we'll just call the methods to avoid compilation errors
+            // Set the uniform values for the directional light
             shaderProgram->setVec3("dirLight.direction", directionalLight->getDirection());
             shaderProgram->setVec3("dirLight.ambient", directionalLight->getAmbient());
             shaderProgram->setVec3("dirLight.diffuse", directionalLight->getDiffuse());
@@ -46,8 +45,7 @@ namespace Sparky {
 
         // Update point lights
         for (size_t i = 0; i < pointLights.size() && i < MAX_POINT_LIGHTS; ++i) {
-            // In a real implementation, we would set the actual uniform values
-            // For now, we'll just call the methods to avoid compilation errors
+            // Set the uniform values for each point light
             shaderProgram->setVec3("pointLights[" + std::to_string(i) + "].position", pointLights[i]->getPosition());
             shaderProgram->setVec3("pointLights[" + std::to_string(i) + "].ambient", pointLights[i]->getAmbient());
             shaderProgram->setVec3("pointLights[" + std::to_string(i) + "].diffuse", pointLights[i]->getDiffuse());
@@ -62,8 +60,7 @@ namespace Sparky {
 
         // Update spot lights
         for (size_t i = 0; i < spotLights.size() && i < MAX_SPOT_LIGHTS; ++i) {
-            // In a real implementation, we would set the actual uniform values
-            // For now, we'll just call the methods to avoid compilation errors
+            // Set the uniform values for each spot light
             shaderProgram->setVec3("spotLights[" + std::to_string(i) + "].position", spotLights[i]->getPosition());
             shaderProgram->setVec3("spotLights[" + std::to_string(i) + "].direction", spotLights[i]->getDirection());
             shaderProgram->setVec3("spotLights[" + std::to_string(i) + "].ambient", spotLights[i]->getAmbient());

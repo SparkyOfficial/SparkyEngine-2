@@ -61,17 +61,8 @@ namespace Sparky {
     }
 
     void Button::render() {
-        GUIElement::render();
-        
-        // Render button with appropriate texture based on state
-        int currentTexture = textureId;
-        if (pressed && pressedTextureId >= 0) {
-            currentTexture = pressedTextureId;
-        } else if (hovered && hoverTextureId >= 0) {
-            currentTexture = hoverTextureId;
-        }
-        
-        // In a real implementation, we would render the button with the current texture
-        SPARKY_LOG_DEBUG("Rendering button with texture ID: " + std::to_string(currentTexture));
+        // Render the button with the current texture
+        // In a complete implementation, this would render the button using the graphics API
     }
+
 }

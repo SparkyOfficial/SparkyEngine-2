@@ -143,7 +143,7 @@ namespace Sparky {
     }
 
     void PhysicsWorld::addConstraint() {
-        // Placeholder for future implementation
+        // Future implementation for physics constraints
         // Constraints could include joints, springs, etc.
     }
 }

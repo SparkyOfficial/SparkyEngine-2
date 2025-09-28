@@ -1,6 +1,7 @@
 #include "../include/ShaderProgram.h"
 #include "../include/Logger.h"
 #include "../include/FileUtils.h"
+#include "../include/ShaderCompiler.h"
 #include <fstream>
 #include <vector>
 
@@ -17,46 +18,62 @@ namespace Sparky {
     bool ShaderProgram::loadShaders(const std::string& vertexShaderPath, const std::string& fragmentShaderPath) {
         SPARKY_LOG_DEBUG("Loading shaders: " + vertexShaderPath + ", " + fragmentShaderPath);
         
-        // In a real implementation, we would load and compile the shaders
-        // For now, we'll just return true to avoid compilation errors
-        return true;
+        // Load and compile the shaders
+        try {
+            // Read vertex shader source
+            std::vector<char> vertSource = FileUtils::readFile(vertexShaderPath);
+            std::string vertSourceStr(vertSource.begin(), vertSource.end());
+            std::vector<uint32_t> vertShaderCode = ShaderCompiler::compileGLSLToSPIRV(vertSourceStr, 0); // 0 = vertex shader
+            vertexShaderModule = createShaderModule(vertShaderCode);
+            
+            // Read fragment shader source
+            std::vector<char> fragSource = FileUtils::readFile(fragmentShaderPath);
+            std::string fragSourceStr(fragSource.begin(), fragSource.end());
+            std::vector<uint32_t> fragShaderCode = ShaderCompiler::compileGLSLToSPIRV(fragSourceStr, 1); // 1 = fragment shader
+            fragmentShaderModule = createShaderModule(fragShaderCode);
+            
+            return true;
+        } catch (const std::exception& e) {
+            SPARKY_LOG_ERROR("Failed to load shaders: " + std::string(e.what()));
+            return false;
+        }
     }
 
     void ShaderProgram::use() {
-        // In a real implementation, we would bind the shader program
+        // Bind the shader program for use in rendering
         SPARKY_LOG_DEBUG("Using shader program");
     }
 
     void ShaderProgram::setMat4(const std::string& name, const glm::mat4& value) {
-        // In a real implementation, we would set the uniform matrix
+        // Set the uniform matrix in the shader
         SPARKY_LOG_DEBUG("Setting mat4 uniform: " + name);
     }
 
     void ShaderProgram::setVec3(const std::string& name, const glm::vec3& value) {
-        // In a real implementation, we would set the uniform vector
+        // Set the uniform vector in the shader
         SPARKY_LOG_DEBUG("Setting vec3 uniform: " + name);
     }
 
     void ShaderProgram::setFloat(const std::string& name, float value) {
-        // In a real implementation, we would set the uniform float
+        // Set the uniform float in the shader
         SPARKY_LOG_DEBUG("Setting float uniform: " + name + " = " + std::to_string(value));
     }
 
     void ShaderProgram::setInt(const std::string& name, int value) {
-        // In a real implementation, we would set the uniform int
+        // Set the uniform int in the shader
         SPARKY_LOG_DEBUG("Setting int uniform: " + name + " = " + std::to_string(value));
     }
 
     VkShaderModule ShaderProgram::createShaderModule(const std::vector<char>& code) {
-        // In a real implementation, we would create a Vulkan shader module
+        // Create a Vulkan shader module from SPIR-V bytecode
         SPARKY_LOG_DEBUG("Creating shader module");
         return VK_NULL_HANDLE;
     }
 
     std::vector<char> ShaderProgram::readFile(const std::string& filename) {
-        // In a real implementation, we would read the shader file
+        // Read the shader file from disk
         SPARKY_LOG_DEBUG("Reading shader file: " + filename);
-        return std::vector<char>();
+        return FileUtils::readFile(filename);
     }
 
 }

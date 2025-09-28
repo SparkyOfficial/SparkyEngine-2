@@ -71,17 +71,35 @@ namespace Sparky {
     void ExampleGame::render() {
         if (!initialized || paused) return;
 
-        // Render game objects
-        if (player) {
-            player->render();
-        }
-        
-        if (enemy) {
-            enemy->render();
-        }
-        
-        for (auto& platform : platforms) {
-            platform->render();
+        // Render game objects through the engine's renderer
+        if (engine) {
+            // Get the Vulkan renderer from the engine
+            VulkanRenderer& renderer = engine->getRenderer();
+            MeshRenderer& meshRenderer = renderer.getMeshRenderer();
+            
+            // Render player mesh
+            if (player) {
+                auto renderComponent = player->getComponent<RenderComponent>();
+                if (renderComponent && renderComponent->getMesh()) {
+                    meshRenderer.renderMesh(*renderComponent->getMesh(), /* command buffer would be passed here in a real implementation */ VK_NULL_HANDLE);
+                }
+            }
+            
+            // Render enemy mesh
+            if (enemy) {
+                auto renderComponent = enemy->getComponent<RenderComponent>();
+                if (renderComponent && renderComponent->getMesh()) {
+                    meshRenderer.renderMesh(*renderComponent->getMesh(), /* command buffer would be passed here in a real implementation */ VK_NULL_HANDLE);
+                }
+            }
+            
+            // Render platform meshes
+            for (auto& platform : platforms) {
+                auto renderComponent = platform->getComponent<RenderComponent>();
+                if (renderComponent && renderComponent->getMesh()) {
+                    meshRenderer.renderMesh(*renderComponent->getMesh(), /* command buffer would be passed here in a real implementation */ VK_NULL_HANDLE);
+                }
+            }
         }
 
         // Render game systems

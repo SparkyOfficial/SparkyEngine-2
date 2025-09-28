@@ -27,6 +27,7 @@ add_library(SparkyEngine STATIC
     src/StateMachine.cpp
     src/ExampleState.cpp
     src/Profiler.cpp
+    src/ShaderCompiler.cpp
 )
 
 # Include directories

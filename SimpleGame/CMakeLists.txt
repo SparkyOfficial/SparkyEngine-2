@@ -1,14 +1,14 @@
 cmake_minimum_required(VERSION 3.20)
-project(SparkyEngineSimple)
+project(SimpleGame)
 
 # Set C++ standard
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # Create a simple executable
-add_executable(SparkyGame SimpleGame.cpp)
+add_executable(SimpleGame SimpleGame.cpp)
 
 # Set output directory
-set_target_properties(SparkyGame PROPERTIES
+set_target_properties(SimpleGame PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin
 )

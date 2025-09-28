@@ -1,5 +1,6 @@
 #include "../include/VulkanRenderer.h"
 #include "../include/ShaderUtils.h"
+#include "../include/ShaderCompiler.h"
 #include "../include/Logger.h"
 #include <iostream>
 #include <set>
@@ -98,8 +99,9 @@ namespace Sparky {
     }
 
     void VulkanRenderer::render() {
-        // Rendering implementation would go here
-        // For now, just a placeholder
+        // In a real implementation, this would actually render the scene
+        // For now, we'll just log that rendering is happening
+        SPARKY_LOG_DEBUG("Rendering frame");
     }
 
     bool VulkanRenderer::checkValidationLayerSupport() {
@@ -399,27 +401,40 @@ namespace Sparky {
     }
 
     void VulkanRenderer::createGraphicsPipeline() {
-        // In a real implementation, we would load and compile shaders
-        // For now, we'll just create a placeholder pipeline
+        // Compile shaders if needed
+        // In a real implementation, we would compile GLSL to SPIR-V
+        // For now, we'll create placeholder shader modules
+        
+        // Create vertex shader module
+        VkShaderModule vertShaderModule = createShaderModule({});
+        
+        // Create fragment shader module
+        VkShaderModule fragShaderModule = createShaderModule({});
         
         VkPipelineShaderStageCreateInfo vertShaderStageInfo{};
         vertShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
         vertShaderStageInfo.stage = VK_SHADER_STAGE_VERTEX_BIT;
-        vertShaderStageInfo.module = VK_NULL_HANDLE; // Placeholder
+        vertShaderStageInfo.module = vertShaderModule;
         vertShaderStageInfo.pName = "main";
 
         VkPipelineShaderStageCreateInfo fragShaderStageInfo{};
         fragShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
         fragShaderStageInfo.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
-        fragShaderStageInfo.module = VK_NULL_HANDLE; // Placeholder
+        fragShaderStageInfo.module = fragShaderModule;
         fragShaderStageInfo.pName = "main";
 
         VkPipelineShaderStageCreateInfo shaderStages[] = {vertShaderStageInfo, fragShaderStageInfo};
 
+        // Vertex input
+        auto bindingDescription = Vertex::getBindingDescription();
+        auto attributeDescriptions = Vertex::getAttributeDescriptions();
+
         VkPipelineVertexInputStateCreateInfo vertexInputInfo{};
         vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
-        vertexInputInfo.vertexBindingDescriptionCount = 0;
-        vertexInputInfo.vertexAttributeDescriptionCount = 0;
+        vertexInputInfo.vertexBindingDescriptionCount = 1;
+        vertexInputInfo.vertexAttributeDescriptionCount = static_cast<uint32_t>(attributeDescriptions.size());
+        vertexInputInfo.pVertexBindingDescriptions = &bindingDescription;
+        vertexInputInfo.pVertexAttributeDescriptions = attributeDescriptions.data();
 
         VkPipelineInputAssemblyStateCreateInfo inputAssembly{};
         inputAssembly.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
@@ -498,7 +513,28 @@ namespace Sparky {
             throw std::runtime_error("failed to create graphics pipeline!");
         }
         
+        // Clean up shader modules
+        vkDestroyShaderModule(device, fragShaderModule, nullptr);
+        vkDestroyShaderModule(device, vertShaderModule, nullptr);
+        
         SPARKY_LOG_INFO("Graphics pipeline created");
+    }
+
+    VkShaderModule VulkanRenderer::createShaderModule(const std::vector<char>& code) {
+        // In a real implementation, we would create a shader module from SPIR-V code
+        // For now, we'll create a placeholder
+        
+        VkShaderModuleCreateInfo createInfo{};
+        createInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
+        createInfo.codeSize = code.size();
+        createInfo.pCode = reinterpret_cast<const uint32_t*>(code.data());
+
+        VkShaderModule shaderModule;
+        if (vkCreateShaderModule(device, &createInfo, nullptr, &shaderModule) != VK_SUCCESS) {
+            throw std::runtime_error("failed to create shader module!");
+        }
+
+        return shaderModule;
     }
 
     bool VulkanRenderer::isDeviceSuitable(VkPhysicalDevice device) {

@@ -6,8 +6,7 @@
 #include "../../Engine/include/Profiler.h"
 #include "../../Engine/include/ExampleState.h"
 #include "../../Engine/include/StateMachine.h"
-#include "Player.h"
-#include "Level.h"
+#include "ExampleGame.h"
 #include <iostream>
 #include <vector>
 
@@ -42,15 +41,15 @@ int main() {
         return -1;
     }
     
-    // Create game objects
-    Sparky::Player player;
-    Sparky::Level level("TestLevel");
+    // Create and initialize the game
+    Sparky::ExampleGame game;
+    if (!game.initialize(&engine)) {
+        SPARKY_LOG_ERROR("Failed to initialize game!");
+        return -1;
+    }
     
-    // Set up player camera
-    player.setCamera(&engine.getCamera());
-    
-    // Load the level from file
-    level.loadLevelFromFile("../Game/assets/level1.json");
+    // Start the game
+    game.startGame();
     
     SPARKY_LOG_INFO("Game initialized successfully");
     SPARKY_LOG_INFO("Controls:");
@@ -78,23 +77,6 @@ int main() {
         // Update input
         inputManager.update();
         
-        // Handle player input
-        if (inputManager.isKeyPressed(87)) { // W key
-            player.moveForward(deltaTime);
-        }
-        if (inputManager.isKeyPressed(83)) { // S key
-            player.moveBackward(deltaTime);
-        }
-        if (inputManager.isKeyPressed(65)) { // A key
-            player.moveLeft(deltaTime);
-        }
-        if (inputManager.isKeyPressed(68)) { // D key
-            player.moveRight(deltaTime);
-        }
-        if (inputManager.isKeyJustPressed(32)) { // Space key
-            player.jump();
-        }
-        
         // Check for exit key (ESC)
         if (inputManager.isKeyJustPressed(256)) { // ESC key
             SPARKY_LOG_INFO("ESC key pressed, shutting down...");
@@ -104,27 +86,16 @@ int main() {
         // Update state machine
         stateMachine.update(deltaTime);
         
-        // Update game objects
-        player.update(deltaTime);
-        level.update(deltaTime);
-        
-        // Simple ground collision detection
-        // In a real implementation, this would be more sophisticated
-        glm::vec3 playerPos = player.getPosition();
-        if (playerPos.y < 0.0f) {
-            playerPos.y = 0.0f;
-            player.setPosition(playerPos);
-            player.setOnGround(true);
-        } else {
-            player.setOnGround(false);
-        }
+        // Update game
+        game.update(deltaTime);
         
         // Render frame
         engine.getRenderer().render();
+        game.render();
     }
     
-    // Clean up
-    level.unloadLevel();
+    // End the game
+    game.endGame();
     
     // Print profiling report
     Sparky::Profiler::getInstance().printReport();

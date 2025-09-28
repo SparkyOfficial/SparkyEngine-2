@@ -17,6 +17,7 @@ add_library(SparkyEngine STATIC
     src/GameObject.cpp
     src/RenderComponent.cpp
     src/PhysicsComponent.cpp
+    src/PhysicsWorld.cpp
     src/CollisionSystem.cpp
     src/Timer.cpp
     src/Logger.cpp
@@ -28,6 +29,28 @@ add_library(SparkyEngine STATIC
     src/ExampleState.cpp
     src/Profiler.cpp
     src/ShaderCompiler.cpp
+    src/AudioEngine.cpp
+    src/Material.cpp
+    src/ShaderProgram.cpp
+    src/Light.cpp
+    src/DirectionalLight.cpp
+    src/PointLight.cpp
+    src/SpotLight.cpp
+    src/LightManager.cpp
+    src/GUIElement.cpp
+    src/Button.cpp
+    src/GUIManager.cpp
+    src/CharacterController.cpp
+    src/Inventory.cpp
+    src/Quest.cpp
+    src/QuestManager.cpp
+    src/ParticleSystem.cpp
+    src/Animation.cpp
+    src/AnimationController.cpp
+    src/ScriptComponent.cpp
+    src/BehaviorTree.cpp
+    src/BehaviorTreeExample.cpp
+    src/test_compile.cpp
 )
 
 # Include directories

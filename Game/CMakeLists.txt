@@ -8,6 +8,7 @@ add_executable(SparkyGame
     src/Platform.cpp
     src/Gun.cpp
     src/Level.cpp
+    src/ExampleGame.cpp
 )
 
 # Link with the engine library

@@ -55,12 +55,36 @@ namespace Sparky {
         VkPipelineLayout pipelineLayout;
         VkPipeline graphicsPipeline;
         VkCommandPool commandPool;
+        
+        // Framebuffers
+        std::vector<VkFramebuffer> swapChainFramebuffers;
+        
+        // Command buffers
+        std::vector<VkCommandBuffer> commandBuffers;
+        
+        // Sync objects
+        VkSemaphore imageAvailableSemaphore;
+        VkSemaphore renderFinishedSemaphore;
+        VkFence inFlightFence;
+        const int MAX_FRAMES_IN_FLIGHT = 2;
+        size_t currentFrame = 0;
+        
+        // Descriptor set layout
+        VkDescriptorSetLayout descriptorSetLayout;
+        
+        // Depth resources
+        VkImage depthImage;
+        VkDeviceMemory depthImageMemory;
+        VkImageView depthImageView;
 
         // Mesh renderer
         MeshRenderer meshRenderer;
 
         // Window handle
         void* windowHandle;
+        
+        // Debug messenger
+        VkDebugUtilsMessengerEXT debugMessenger;
 
         // Vulkan validation layers
         const std::vector<const char*> validationLayers = {
@@ -81,6 +105,7 @@ namespace Sparky {
         // Helper functions
         bool checkValidationLayerSupport();
         void createInstance();
+        void setupDebugMessenger();
         void createSurface();
         void pickPhysicalDevice();
         void createLogicalDevice();
@@ -89,6 +114,30 @@ namespace Sparky {
         void createRenderPass();
         void createGraphicsPipeline();
         void createCommandPool();
+        void createFramebuffers();
+        void createCommandBuffers();
+        void createSyncObjects();
+        void createDescriptorSetLayout();
+        void createDepthResources();
+        void cleanupSwapChain();
+        void recreateSwapChain();
+        void recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex);
+        
+        // Image helpers
+        void createImage(uint32_t width, uint32_t height, VkFormat format, VkImageTiling tiling, 
+                        VkImageUsageFlags usage, VkMemoryPropertyFlags properties, 
+                        VkImage& image, VkDeviceMemory& imageMemory);
+        VkImageView createImageView(VkImage image, VkFormat format, VkImageAspectFlags aspectFlags);
+        void transitionImageLayout(VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout);
+        VkCommandBuffer beginSingleTimeCommands();
+        void endSingleTimeCommands(VkCommandBuffer commandBuffer);
+        uint32_t findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties);
+        VkFormat findSupportedFormat(const std::vector<VkFormat>& candidates, VkImageTiling tiling, VkFormatFeatureFlags features);
+        VkFormat findDepthFormat();
+        
+        // Shader module creation
+        VkShaderModule createShaderModule(const std::vector<uint32_t>& code);
+        
         bool isDeviceSuitable(VkPhysicalDevice device);
         bool checkDeviceExtensionSupport(VkPhysicalDevice device);
         QueueFamilyIndices findQueueFamilies(VkPhysicalDevice device);
@@ -96,6 +145,34 @@ namespace Sparky {
         VkSurfaceFormatKHR chooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats);
         VkPresentModeKHR chooseSwapPresentMode(const std::vector<VkPresentModeKHR>& availablePresentModes);
         VkExtent2D chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities);
-        static std::vector<char> readFile(const std::string& filename);
+        
+        // Debug callback
+        static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
+            VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
+            VkDebugUtilsMessageTypeFlagsEXT messageType,
+            const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
+            void* pUserData) {
+            std::cerr << "validation layer: " << pCallbackData->pMessage << std::endl;
+            return VK_FALSE;
+        }
+        
+        // Debug messenger creation
+        VkResult CreateDebugUtilsMessengerEXT(VkInstance instance, const VkDebugUtilsMessengerCreateInfoEXT* pCreateInfo, 
+                                            const VkAllocationCallbacks* pAllocator, VkDebugUtilsMessengerEXT* pDebugMessenger) {
+            auto func = (PFN_vkCreateDebugUtilsMessengerEXT) vkGetInstanceProcAddr(instance, "vkCreateDebugUtilsMessengerEXT");
+            if (func != nullptr) {
+                return func(instance, pCreateInfo, pAllocator, pDebugMessenger);
+            } else {
+                return VK_ERROR_EXTENSION_NOT_PRESENT;
+            }
+        }
+        
+        void DestroyDebugUtilsMessengerEXT(VkInstance instance, VkDebugUtilsMessengerEXT debugMessenger, 
+                                        const VkAllocationCallbacks* pAllocator) {
+            auto func = (PFN_vkDestroyDebugUtilsMessengerEXT) vkGetInstanceProcAddr(instance, "vkDestroyDebugUtilsMessengerEXT");
+            if (func != nullptr) {
+                func(instance, debugMessenger, pAllocator);
+            }
+        }
     };
 }

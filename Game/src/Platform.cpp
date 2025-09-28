@@ -8,14 +8,9 @@
 
 namespace Sparky {
 
-    Platform::Platform(const std::string& name) : GameObject(), size(1.0f, 1.0f, 1.0f) {
+    Platform::Platform(const std::string& name) : GameObject() {
         setName(name);
-        createCubeMesh();
-        
-        // Add a render component
-        auto renderComponent = std::make_unique<RenderComponent>();
-        renderComponent->setMesh(&mesh);
-        addComponent(std::move(renderComponent));
+        // The mesh will be created when setSize is called
     }
 
     Platform::~Platform() {
@@ -32,6 +27,9 @@ namespace Sparky {
     void Platform::setSize(const glm::vec3& size) {
         this->size = size;
         setScale(size);
+        
+        // Create or update the mesh based on the size
+        createCubeMesh();
     }
 
     bool Platform::checkCollision(const glm::vec3& point) const {
@@ -44,48 +42,15 @@ namespace Sparky {
     }
 
     void Platform::createCubeMesh() {
-        // Create a simple cube mesh
-        std::vector<Vertex> vertices = {
-            // Front face
-            {{-0.5f, -0.5f,  0.5f}, {1.0f, 0.0f, 0.0f}, {0.0f, 0.0f}},
-            {{ 0.5f, -0.5f,  0.5f}, {0.0f, 1.0f, 0.0f}, {1.0f, 0.0f}},
-            {{ 0.5f,  0.5f,  0.5f}, {0.0f, 0.0f, 1.0f}, {1.0f, 1.0f}},
-            {{-0.5f,  0.5f,  0.5f}, {1.0f, 1.0f, 1.0f}, {0.0f, 1.0f}},
-
-            // Back face
-            {{-0.5f, -0.5f, -0.5f}, {1.0f, 0.0f, 0.0f}, {0.0f, 0.0f}},
-            {{ 0.5f, -0.5f, -0.5f}, {0.0f, 1.0f, 0.0f}, {1.0f, 0.0f}},
-            {{ 0.5f,  0.5f, -0.5f}, {0.0f, 0.0f, 1.0f}, {1.0f, 1.0f}},
-            {{-0.5f,  0.5f, -0.5f}, {1.0f, 1.0f, 1.0f}, {0.0f, 1.0f}},
-        };
-
-        std::vector<uint32_t> indices = {
-            // Front face
-            0, 1, 2,
-            2, 3, 0,
-
-            // Back face
-            4, 6, 5,
-            6, 4, 7,
-
-            // Left face
-            4, 0, 3,
-            3, 7, 4,
-
-            // Right face
-            1, 5, 6,
-            6, 2, 1,
-
-            // Top face
-            3, 2, 6,
-            6, 7, 3,
-
-            // Bottom face
-            4, 5, 1,
-            1, 0, 4
-        };
-
-        mesh.setVertices(vertices);
-        mesh.setIndices(indices);
+        // Remove any existing render component
+        removeComponent<RenderComponent>();
+        
+        // Create a new cube mesh with the specified size
+        auto cubeMesh = Mesh::createCube(1.0f); // Unit cube, scaled by the GameObject's scale
+        
+        // Add a render component with the cube mesh
+        auto renderComponent = std::make_unique<RenderComponent>();
+        renderComponent->setMesh(std::move(cubeMesh));
+        addComponent(std::move(renderComponent));
     }
 }

@@ -55,8 +55,6 @@ add_library(SparkyEngine STATIC
 # Include directories
 target_include_directories(SparkyEngine PUBLIC 
     ${CMAKE_CURRENT_SOURCE_DIR}/include
-    C:/glm-install/include
-    C:/glfw-install/include
 )
 
 # Link libraries

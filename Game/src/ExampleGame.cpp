@@ -146,34 +146,69 @@ namespace Sparky {
     void ExampleGame::createLevel() {
         SPARKY_LOG_DEBUG("Creating game level");
         
-        // Create a floor platform
+        // Create a floor platform with a mesh
         auto floor = std::make_unique<Platform>("Floor");
         floor->setPosition(glm::vec3(0.0f, -1.0f, 0.0f));
         floor->setSize(glm::vec3(20.0f, 1.0f, 20.0f));
+        
+        // Add a render component with a plane mesh
+        auto renderComponent = std::make_unique<RenderComponent>();
+        auto planeMesh = Mesh::createPlane(20.0f, 20.0f);
+        renderComponent->setMesh(std::move(planeMesh));
+        floor->addComponent(std::move(renderComponent));
+        
         platforms.push_back(std::move(floor));
         
-        // Create some platforms
+        // Create some platforms with cube meshes
         auto platform1 = std::make_unique<Platform>("Platform1");
         platform1->setPosition(glm::vec3(5.0f, 2.0f, 0.0f));
         platform1->setSize(glm::vec3(3.0f, 1.0f, 3.0f));
+        
+        // Add a render component with a cube mesh
+        auto cubeRender1 = std::make_unique<RenderComponent>();
+        auto cubeMesh1 = Mesh::createCube(1.0f);
+        cubeRender1->setMesh(std::move(cubeMesh1));
+        platform1->addComponent(std::move(cubeRender1));
+        
         platforms.push_back(std::move(platform1));
         
         auto platform2 = std::make_unique<Platform>("Platform2");
         platform2->setPosition(glm::vec3(-5.0f, 4.0f, 0.0f));
         platform2->setSize(glm::vec3(3.0f, 1.0f, 3.0f));
+        
+        // Add a render component with a cube mesh
+        auto cubeRender2 = std::make_unique<RenderComponent>();
+        auto cubeMesh2 = Mesh::createCube(1.0f);
+        cubeRender2->setMesh(std::move(cubeMesh2));
+        platform2->addComponent(std::move(cubeRender2));
+        
         platforms.push_back(std::move(platform2));
         
-        // Create a ramp
+        // Create a ramp with a mesh
         auto ramp = std::make_unique<Platform>("Ramp");
         ramp->setPosition(glm::vec3(0.0f, 1.0f, 5.0f));
         ramp->setSize(glm::vec3(8.0f, 1.0f, 3.0f));
+        
+        // Add a render component with a plane mesh
+        auto rampRender = std::make_unique<RenderComponent>();
+        auto rampMesh = Mesh::createPlane(8.0f, 3.0f);
+        rampRender->setMesh(std::move(rampMesh));
+        ramp->addComponent(std::move(rampRender));
+        
         platforms.push_back(std::move(ramp));
         
-        // Create stairs
+        // Create stairs with individual steps
         for (int i = 0; i < 5; i++) {
             auto step = std::make_unique<Platform>("Step" + std::to_string(i));
             step->setPosition(glm::vec3(8.0f, 0.5f + i * 1.0f, -5.0f + i * 1.0f));
             step->setSize(glm::vec3(2.0f, 1.0f, 1.0f));
+            
+            // Add a render component with a cube mesh
+            auto stepRender = std::make_unique<RenderComponent>();
+            auto stepMesh = Mesh::createCube(1.0f);
+            stepRender->setMesh(std::move(stepMesh));
+            step->addComponent(std::move(stepRender));
+            
             platforms.push_back(std::move(step));
         }
         
@@ -187,6 +222,12 @@ namespace Sparky {
         player->setName("Player");
         player->setPosition(glm::vec3(0.0f, 0.0f, 0.0f));
         player->setScale(glm::vec3(1.0f, 1.8f, 1.0f));
+        
+        // Add a render component with a cube mesh for the player
+        auto renderComponent = std::make_unique<RenderComponent>();
+        auto playerMesh = Mesh::createCube(1.0f);
+        renderComponent->setMesh(std::move(playerMesh));
+        player->addComponent(std::move(renderComponent));
         
         // Set up player camera
         if (engine) {
@@ -203,6 +244,12 @@ namespace Sparky {
         enemy->setName("Enemy");
         enemy->setPosition(glm::vec3(10.0f, 0.0f, 0.0f));
         enemy->setScale(glm::vec3(1.0f, 1.8f, 1.0f));
+        
+        // Add a render component with a cube mesh for the enemy
+        auto renderComponent = std::make_unique<RenderComponent>();
+        auto enemyMesh = Mesh::createCube(1.0f);
+        renderComponent->setMesh(std::move(enemyMesh));
+        enemy->addComponent(std::move(renderComponent));
         
         // Create enemy AI behavior
         enemyAI = ExampleAIBehavior::createPatrolBehavior(enemy.get());

@@ -2,6 +2,7 @@
 
 #include "../../Engine/include/GameObject.h"
 #include "../../Engine/include/Mesh.h"
+#include <memory>
 
 namespace Sparky {
     class Platform : public GameObject {
@@ -21,7 +22,6 @@ namespace Sparky {
 
     private:
         glm::vec3 size;
-        Mesh mesh;
         
         void createCubeMesh();
     };

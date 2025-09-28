@@ -5,13 +5,9 @@ project(SparkyEngine2)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-# Add GLFW support
-set(GLFW_DIR "C:/glfw-install")
-set(GLFW_INCLUDE_DIRS "${GLFW_DIR}/include")
-set(GLFW_LIBRARIES "${GLFW_DIR}/lib/glfw3.lib")
-
-# Add GLM support
-set(GLM_INCLUDE_DIRS "C:/glm-install/include")
+# Find required packages
+find_package(glfw3 REQUIRED)
+find_package(glm REQUIRED)
 
 # Engine library
 add_subdirectory(Engine)

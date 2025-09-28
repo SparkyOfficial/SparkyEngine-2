@@ -1,122 +1,79 @@
-# Sparky Engine 2
+# Sparky Engine 3D Platformer Game
 
-A powerful 3D game engine built with C++ and Vulkan, featuring a complete platformer game example.
+A powerful 3D game engine built with C++ and Vulkan, featuring a platformer game with platforms, ramps, stairs, and a table with a usable gun.
 
 ## Features
 
 - Vulkan-based 3D rendering engine
 - Entity-component architecture
 - Physics system with collision detection
-- Audio engine with OpenAL
-- Advanced lighting system (directional, point, and spot lights)
-- GUI system with event handling
-- Animation system
-- Particle effects system
+- Audio system
+- Advanced lighting and materials
+- GUI system
 - Quest and inventory systems
+- Particle effects system
+- Animation system
 - Behavior tree AI system
-- Scripting component for flexible game logic
 
 ## Prerequisites
 
-- Windows 10/11
-- Visual Studio 2022 or later
-- CMake 3.20 or later
-- Vulkan SDK 1.3 or later
-- GLFW3
+- Visual Studio 2022
+- Vulkan SDK 1.4.321.1
+- GLFW 3.4
 - GLM (OpenGL Mathematics)
-- glslang (for shader compilation)
 
-## Installing Dependencies
+## Building the Project
 
-Run the dependency installer script for guidance:
-```
-install_dependencies.bat
-```
+### Method 1: Using the build script
 
-Or manually install:
+1. Double-click `build.bat` to build the project
+2. The executable will be generated in `build\bin\Release\` directory
 
-1. **Vulkan SDK**
-   - Download from: https://vulkan.lunarg.com/
-   - Install the latest version for Windows
-   - Make sure to select "Add to PATH" during installation
+### Method 2: Manual build
 
-2. **GLFW3**
-   - Download from: https://www.glfw.org/download.html
-   - Or install via vcpkg:
-     ```
-     vcpkg install glfw3
-     ```
-
-3. **GLM (OpenGL Mathematics)**
-   - Download from: https://github.com/g-truc/glm/releases
-   - Or install via vcpkg:
-     ```
-     vcpkg install glm
-     ```
-
-4. **glslang**
-   - Usually included with Vulkan SDK
-   - Or install via vcpkg:
-     ```
-     vcpkg install glslang
-     ```
-
-## Building
-
-### Windows
-
-1. Make sure you have all prerequisites installed
-2. Run the build script:
-   ```
-   build.bat
-   ```
-
-   Or manually build:
+1. Open a command prompt in the project directory
+2. Run the following commands:
    ```
    mkdir build
    cd build
-   cmake .. -G "Visual Studio 17 2022"
+   cmake .. -G "Visual Studio 17 2022" -A x64
    cmake --build . --config Release
    ```
 
-## Running
+## Running the Game
 
-### Test Application
-To run the Vulkan test application:
+After building, run the executable:
 ```
-run_test.bat
+build\bin\Release\SparkyGame.exe
 ```
-
-### Game
-To run the platformer game:
-```
-run_game.bat
-```
-
-Or manually:
-```
-cd build
-Game\Release\SparkyGame.exe
-```
-
-## Project Structure
-
-- `Engine/` - Core engine code
-  - `src/` - Source files
-  - `include/` - Header files
-  - `shaders/` - GLSL shader files
-  - `assets/` - Engine assets
-- `Game/` - Game-specific code and assets
-  - `src/` - Source files
-  - `assets/` - Game assets
 
 ## Controls
 
-### Game Controls
 - WASD - Move player
 - Space - Jump
 - Mouse - Look around
 - ESC - Exit game
+
+## Project Structure
+
+- `Engine/` - Core engine components
+- `Game/` - Game-specific implementation
+- `Engine/include/` - Header files
+- `Engine/src/` - Source files
+- `Game/src/` - Game source files
+- `Engine/shaders/` - GLSL shader files
+- `Game/assets/` - Game assets
+
+## Game Elements
+
+The game features:
+- A player character that can move and jump
+- Various platforms to navigate
+- Ramps and stairs for complex movement
+- A table with a usable gun
+- Physics-based interactions
+- Lighting effects
+- Audio feedback
 
 ## Documentation
 

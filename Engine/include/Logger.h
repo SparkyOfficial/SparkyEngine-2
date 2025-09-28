@@ -8,7 +8,7 @@ namespace Sparky {
         DEBUG,
         INFO,
         WARNING,
-        ERROR
+        ERR
     };
 
     class Logger {

@@ -44,7 +44,7 @@ namespace Sparky {
     }
 
     void Logger::error(const std::string& message) {
-        log(LogLevel::ERROR, message);
+        log(LogLevel::ERR, message);
     }
 
     std::string Logger::levelToString(LogLevel level) {
@@ -52,7 +52,7 @@ namespace Sparky {
             case LogLevel::DEBUG: return "DEBUG";
             case LogLevel::INFO: return "INFO";
             case LogLevel::WARNING: return "WARNING";
-            case LogLevel::ERROR: return "ERROR";
+            case LogLevel::ERR: return "ERROR";
             default: return "UNKNOWN";
         }
     }

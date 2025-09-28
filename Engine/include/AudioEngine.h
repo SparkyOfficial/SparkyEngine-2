@@ -5,6 +5,12 @@
 #include <memory>
 #include <unordered_map>
 
+// Only include audio engine if ENABLE_AUDIO is defined
+#ifdef ENABLE_AUDIO
+#include <AL/al.h>
+#include <AL/alc.h>
+#endif
+
 namespace Sparky {
     class AudioBuffer {
     public:

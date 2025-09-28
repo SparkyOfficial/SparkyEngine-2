@@ -2,6 +2,7 @@
 #include "../include/PhysicsComponent.h"
 #include "../include/GameObject.h"
 #include "../include/Logger.h"
+#include "../include/Profiler.h"
 #include <algorithm>
 
 namespace Sparky {

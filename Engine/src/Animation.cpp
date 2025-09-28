@@ -5,97 +5,115 @@
 
 namespace Sparky {
 
-    Animation::Animation(const std::string& name, float duration) : 
-        name(name), duration(duration) {
-        SPARKY_LOG_DEBUG("Created animation: " + name + " with duration: " + std::to_string(duration));
+    Animation::Animation(const std::string& name) 
+        : name(name), duration(0.0f), currentTime(0.0f), isPlaying(false), loop(false) {
+        SPARKY_LOG_DEBUG("Creating Animation: " + name);
     }
 
     Animation::~Animation() {
+        SPARKY_LOG_DEBUG("Destroying Animation: " + name);
     }
 
-    void Animation::addKeyframe(const Keyframe& keyframe) {
-        keyframes.push_back(keyframe);
-        
-        // Keep keyframes sorted by time
-        std::sort(keyframes.begin(), keyframes.end(), 
-                 [](const Keyframe& a, const Keyframe& b) { return a.time < b.time; });
-        
-        SPARKY_LOG_DEBUG("Added keyframe to animation: " + name);
+    void Animation::addKeyFrame(const KeyFrame& keyFrame) {
+        keyFrames.push_back(keyFrame);
+        duration = std::max(duration, keyFrame.time);
+        SPARKY_LOG_DEBUG("Added keyframe at time: " + std::to_string(keyFrame.time));
     }
 
-    void Animation::removeKeyframe(int index) {
-        if (index >= 0 && index < static_cast<int>(keyframes.size())) {
-            keyframes.erase(keyframes.begin() + index);
-            SPARKY_LOG_DEBUG("Removed keyframe from animation: " + name);
-        }
+    void Animation::play() {
+        isPlaying = true;
+        currentTime = 0.0f;
+        SPARKY_LOG_DEBUG("Playing animation: " + name);
     }
 
-    Keyframe Animation::getKeyframe(int index) const {
-        if (index >= 0 && index < static_cast<int>(keyframes.size())) {
-            return keyframes[index];
-        }
-        return Keyframe{0.0f, glm::vec3(0.0f), glm::vec3(0.0f), glm::vec3(1.0f)};
+    void Animation::stop() {
+        isPlaying = false;
+        currentTime = 0.0f;
+        SPARKY_LOG_DEBUG("Stopping animation: " + name);
     }
 
-    void Animation::evaluate(float time, glm::vec3& position, glm::vec3& rotation, glm::vec3& scale) const {
-        if (keyframes.empty()) {
-            position = glm::vec3(0.0f);
-            rotation = glm::vec3(0.0f);
-            scale = glm::vec3(1.0f);
-            return;
-        }
+    void Animation::update(float deltaTime) {
+        if (!isPlaying) return;
 
-        // Wrap time to animation duration
-        time = fmod(time, duration);
-        if (time < 0.0f) time += duration;
+        currentTime += deltaTime;
 
-        // Find the two keyframes to interpolate between
-        int index = findKeyframeIndex(time);
-        
-        if (index == static_cast<int>(keyframes.size()) - 1) {
-            // Last keyframe
-            const Keyframe& keyframe = keyframes[index];
-            position = keyframe.position;
-            rotation = keyframe.rotation;
-            scale = keyframe.scale;
-        } else {
-            // Interpolate between two keyframes
-            const Keyframe& keyframe1 = keyframes[index];
-            const Keyframe& keyframe2 = keyframes[index + 1];
-            
-            float t = (time - keyframe1.time) / (keyframe2.time - keyframe1.time);
-            
-            // Use smooth interpolation
-            position = interpolateSmooth(keyframe1.position, keyframe2.position, t);
-            rotation = interpolateSmooth(keyframe1.rotation, keyframe2.rotation, t);
-            scale = interpolateSmooth(keyframe1.scale, keyframe2.scale, t);
-        }
-    }
-
-    glm::vec3 Animation::interpolateLinear(const glm::vec3& a, const glm::vec3& b, float t) {
-        return a + (b - a) * t;
-    }
-
-    glm::vec3 Animation::interpolateSmooth(const glm::vec3& a, const glm::vec3& b, float t) {
-        // Smooth interpolation using cubic easing
-        t = t * t * (3.0f - 2.0f * t);
-        return a + (b - a) * t;
-    }
-
-    int Animation::findKeyframeIndex(float time) const {
-        // Binary search for the keyframe
-        int left = 0;
-        int right = static_cast<int>(keyframes.size()) - 1;
-        
-        while (left < right) {
-            int mid = (left + right) / 2;
-            if (keyframes[mid].time < time) {
-                left = mid + 1;
+        if (currentTime >= duration) {
+            if (loop) {
+                currentTime = fmod(currentTime, duration);
+                SPARKY_LOG_DEBUG("Looping animation: " + name);
             } else {
-                right = mid;
+                currentTime = duration;
+                isPlaying = false;
+                SPARKY_LOG_DEBUG("Animation finished: " + name);
             }
         }
-        
-        return left > 0 ? left - 1 : 0;
     }
+
+    bool Animation::isFinished() const {
+        return !isPlaying && currentTime >= duration;
+    }
+
+    glm::vec3 Animation::interpolatePosition(float time) const {
+        if (keyFrames.empty()) {
+            return glm::vec3(0.0f);
+        }
+
+        // Find the two keyframes to interpolate between
+        for (size_t i = 0; i < keyFrames.size() - 1; ++i) {
+            if (time >= keyFrames[i].time && time <= keyFrames[i + 1].time) {
+                float t = (time - keyFrames[i].time) / (keyFrames[i + 1].time - keyFrames[i].time);
+                return glm::mix(keyFrames[i].position, keyFrames[i + 1].position, t);
+            }
+        }
+
+        // If time is before the first keyframe or after the last, return the closest one
+        if (time <= keyFrames.front().time) {
+            return keyFrames.front().position;
+        } else {
+            return keyFrames.back().position;
+        }
+    }
+
+    glm::vec3 Animation::interpolateRotation(float time) const {
+        if (keyFrames.empty()) {
+            return glm::vec3(0.0f);
+        }
+
+        // Find the two keyframes to interpolate between
+        for (size_t i = 0; i < keyFrames.size() - 1; ++i) {
+            if (time >= keyFrames[i].time && time <= keyFrames[i + 1].time) {
+                float t = (time - keyFrames[i].time) / (keyFrames[i + 1].time - keyFrames[i].time);
+                return glm::mix(keyFrames[i].rotation, keyFrames[i + 1].rotation, t);
+            }
+        }
+
+        // If time is before the first keyframe or after the last, return the closest one
+        if (time <= keyFrames.front().time) {
+            return keyFrames.front().rotation;
+        } else {
+            return keyFrames.back().rotation;
+        }
+    }
+
+    glm::vec3 Animation::interpolateScale(float time) const {
+        if (keyFrames.empty()) {
+            return glm::vec3(1.0f);
+        }
+
+        // Find the two keyframes to interpolate between
+        for (size_t i = 0; i < keyFrames.size() - 1; ++i) {
+            if (time >= keyFrames[i].time && time <= keyFrames[i + 1].time) {
+                float t = (time - keyFrames[i].time) / (keyFrames[i + 1].time - keyFrames[i].time);
+                return glm::mix(keyFrames[i].scale, keyFrames[i + 1].scale, t);
+            }
+        }
+
+        // If time is before the first keyframe or after the last, return the closest one
+        if (time <= keyFrames.front().time) {
+            return keyFrames.front().scale;
+        } else {
+            return keyFrames.back().scale;
+        }
+    }
+
 }

@@ -1,6 +1,13 @@
 #include "../include/Mesh.h"
-#include <array>
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
 #include <cmath>
+#include <vector>
+
+// Define M_PI if not already defined
+#ifndef M_PI
+#define M_PI 3.14159265358979323846
+#endif
 
 namespace Sparky {
 
@@ -18,37 +25,6 @@ namespace Sparky {
         this->indices = indices;
     }
 
-    VkVertexInputBindingDescription Vertex::getBindingDescription() {
-        VkVertexInputBindingDescription bindingDescription{};
-        bindingDescription.binding = 0;
-        bindingDescription.stride = sizeof(Vertex);
-        bindingDescription.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
-
-        return bindingDescription;
-    }
-
-    std::array<VkVertexInputAttributeDescription, 3> Vertex::getAttributeDescriptions() {
-        std::array<VkVertexInputAttributeDescription, 3> attributeDescriptions{};
-
-        attributeDescriptions[0].binding = 0;
-        attributeDescriptions[0].location = 0;
-        attributeDescriptions[0].format = VK_FORMAT_R32G32B32_SFLOAT;
-        attributeDescriptions[0].offset = offsetof(Vertex, position);
-
-        attributeDescriptions[1].binding = 0;
-        attributeDescriptions[1].location = 1;
-        attributeDescriptions[1].format = VK_FORMAT_R32G32B32_SFLOAT;
-        attributeDescriptions[1].offset = offsetof(Vertex, color);
-
-        attributeDescriptions[2].binding = 0;
-        attributeDescriptions[2].location = 2;
-        attributeDescriptions[2].format = VK_FORMAT_R32G32_SFLOAT;
-        attributeDescriptions[2].offset = offsetof(Vertex, texCoord);
-
-        return attributeDescriptions;
-    }
-
-    // Create a cube mesh
     std::unique_ptr<Mesh> Mesh::createCube(float size) {
         auto mesh = std::make_unique<Mesh>();
         
@@ -57,65 +33,64 @@ namespace Sparky {
         // Define vertices for a cube
         std::vector<Vertex> vertices = {
             // Front face
-            {{-halfSize, -halfSize,  halfSize}, {1.0f, 0.0f, 0.0f}, {0.0f, 0.0f}},
-            {{ halfSize, -halfSize,  halfSize}, {0.0f, 1.0f, 0.0f}, {1.0f, 0.0f}},
-            {{ halfSize,  halfSize,  halfSize}, {0.0f, 0.0f, 1.0f}, {1.0f, 1.0f}},
-            {{-halfSize,  halfSize,  halfSize}, {1.0f, 1.0f, 0.0f}, {0.0f, 1.0f}},
-
+            {{-halfSize, -halfSize,  halfSize}, {1.0f, 0.0f, 0.0f}, {0.0f, 0.0f}}, // 0
+            {{ halfSize, -halfSize,  halfSize}, {0.0f, 1.0f, 0.0f}, {1.0f, 0.0f}}, // 1
+            {{ halfSize,  halfSize,  halfSize}, {0.0f, 0.0f, 1.0f}, {1.0f, 1.0f}}, // 2
+            {{-halfSize,  halfSize,  halfSize}, {1.0f, 1.0f, 0.0f}, {0.0f, 1.0f}}, // 3
+            
             // Back face
-            {{-halfSize, -halfSize, -halfSize}, {1.0f, 0.0f, 1.0f}, {0.0f, 0.0f}},
-            {{ halfSize, -halfSize, -halfSize}, {0.0f, 1.0f, 1.0f}, {1.0f, 0.0f}},
-            {{ halfSize,  halfSize, -halfSize}, {1.0f, 1.0f, 1.0f}, {1.0f, 1.0f}},
-            {{-halfSize,  halfSize, -halfSize}, {0.5f, 0.5f, 0.5f}, {0.0f, 1.0f}},
-
-            // Top face
-            {{-halfSize,  halfSize, -halfSize}, {1.0f, 0.0f, 0.0f}, {0.0f, 0.0f}},
-            {{ halfSize,  halfSize, -halfSize}, {0.0f, 1.0f, 0.0f}, {1.0f, 0.0f}},
-            {{ halfSize,  halfSize,  halfSize}, {0.0f, 0.0f, 1.0f}, {1.0f, 1.0f}},
-            {{-halfSize,  halfSize,  halfSize}, {1.0f, 1.0f, 0.0f}, {0.0f, 1.0f}},
-
-            // Bottom face
-            {{-halfSize, -halfSize, -halfSize}, {1.0f, 0.0f, 1.0f}, {0.0f, 0.0f}},
-            {{ halfSize, -halfSize, -halfSize}, {0.0f, 1.0f, 1.0f}, {1.0f, 0.0f}},
-            {{ halfSize, -halfSize,  halfSize}, {1.0f, 1.0f, 1.0f}, {1.0f, 1.0f}},
-            {{-halfSize, -halfSize,  halfSize}, {0.5f, 0.5f, 0.5f}, {0.0f, 1.0f}},
-
-            // Right face
-            {{ halfSize, -halfSize, -halfSize}, {1.0f, 0.0f, 0.0f}, {0.0f, 0.0f}},
-            {{ halfSize,  halfSize, -halfSize}, {0.0f, 1.0f, 0.0f}, {1.0f, 0.0f}},
-            {{ halfSize,  halfSize,  halfSize}, {0.0f, 0.0f, 1.0f}, {1.0f, 1.0f}},
-            {{ halfSize, -halfSize,  halfSize}, {1.0f, 1.0f, 0.0f}, {0.0f, 1.0f}},
-
+            {{-halfSize, -halfSize, -halfSize}, {1.0f, 0.0f, 1.0f}, {1.0f, 0.0f}}, // 4
+            {{ halfSize, -halfSize, -halfSize}, {0.0f, 1.0f, 1.0f}, {0.0f, 0.0f}}, // 5
+            {{ halfSize,  halfSize, -halfSize}, {1.0f, 1.0f, 1.0f}, {0.0f, 1.0f}}, // 6
+            {{-halfSize,  halfSize, -halfSize}, {0.5f, 0.5f, 0.5f}, {1.0f, 1.0f}}, // 7
+            
             // Left face
-            {{-halfSize, -halfSize, -halfSize}, {1.0f, 0.0f, 1.0f}, {0.0f, 0.0f}},
-            {{-halfSize,  halfSize, -halfSize}, {0.0f, 1.0f, 1.0f}, {1.0f, 0.0f}},
-            {{-halfSize,  halfSize,  halfSize}, {1.0f, 1.0f, 1.0f}, {1.0f, 1.0f}},
-            {{-halfSize, -halfSize,  halfSize}, {0.5f, 0.5f, 0.5f}, {0.0f, 1.0f}}
+            {{-halfSize, -halfSize, -halfSize}, {1.0f, 0.0f, 0.0f}, {0.0f, 0.0f}}, // 8
+            {{-halfSize, -halfSize,  halfSize}, {0.0f, 1.0f, 0.0f}, {1.0f, 0.0f}}, // 9
+            {{-halfSize,  halfSize,  halfSize}, {0.0f, 0.0f, 1.0f}, {1.0f, 1.0f}}, // 10
+            {{-halfSize,  halfSize, -halfSize}, {1.0f, 1.0f, 0.0f}, {0.0f, 1.0f}}, // 11
+            
+            // Right face
+            {{ halfSize, -halfSize, -halfSize}, {1.0f, 0.0f, 1.0f}, {1.0f, 0.0f}}, // 12
+            {{ halfSize, -halfSize,  halfSize}, {0.0f, 1.0f, 1.0f}, {0.0f, 0.0f}}, // 13
+            {{ halfSize,  halfSize,  halfSize}, {1.0f, 1.0f, 1.0f}, {0.0f, 1.0f}}, // 14
+            {{ halfSize,  halfSize, -halfSize}, {0.5f, 0.5f, 0.5f}, {1.0f, 1.0f}}, // 15
+            
+            // Top face
+            {{-halfSize,  halfSize, -halfSize}, {1.0f, 0.0f, 0.0f}, {0.0f, 0.0f}}, // 16
+            {{-halfSize,  halfSize,  halfSize}, {0.0f, 1.0f, 0.0f}, {1.0f, 0.0f}}, // 17
+            {{ halfSize,  halfSize,  halfSize}, {0.0f, 0.0f, 1.0f}, {1.0f, 1.0f}}, // 18
+            {{ halfSize,  halfSize, -halfSize}, {1.0f, 1.0f, 0.0f}, {0.0f, 1.0f}}, // 19
+            
+            // Bottom face
+            {{-halfSize, -halfSize, -halfSize}, {1.0f, 0.0f, 1.0f}, {1.0f, 0.0f}}, // 20
+            {{-halfSize, -halfSize,  halfSize}, {0.0f, 1.0f, 1.0f}, {0.0f, 0.0f}}, // 21
+            {{ halfSize, -halfSize,  halfSize}, {1.0f, 1.0f, 1.0f}, {0.0f, 1.0f}}, // 22
+            {{ halfSize, -halfSize, -halfSize}, {0.5f, 0.5f, 0.5f}, {1.0f, 1.0f}}  // 23
         };
-
-        // Define indices for the cube
+        
+        // Define indices for the cube faces
         std::vector<uint32_t> indices = {
             // Front face
             0, 1, 2, 2, 3, 0,
             // Back face
             4, 6, 5, 6, 4, 7,
-            // Top face
-            8, 9, 10, 10, 11, 8,
-            // Bottom face
-            12, 14, 13, 14, 12, 15,
-            // Right face
-            16, 17, 18, 18, 19, 16,
             // Left face
+            8, 9, 10, 10, 11, 8,
+            // Right face
+            12, 14, 13, 14, 12, 15,
+            // Top face
+            16, 17, 18, 18, 19, 16,
+            // Bottom face
             20, 22, 21, 22, 20, 23
         };
-
+        
         mesh->setVertices(vertices);
         mesh->setIndices(indices);
         
         return mesh;
     }
 
-    // Create a plane mesh
     std::unique_ptr<Mesh> Mesh::createPlane(float width, float height) {
         auto mesh = std::make_unique<Mesh>();
         
@@ -124,24 +99,23 @@ namespace Sparky {
         
         // Define vertices for a plane
         std::vector<Vertex> vertices = {
-            {{-halfWidth, 0.0f, -halfHeight}, {1.0f, 1.0f, 1.0f}, {0.0f, 0.0f}},
-            {{ halfWidth, 0.0f, -halfHeight}, {1.0f, 1.0f, 1.0f}, {1.0f, 0.0f}},
-            {{ halfWidth, 0.0f,  halfHeight}, {1.0f, 1.0f, 1.0f}, {1.0f, 1.0f}},
-            {{-halfWidth, 0.0f,  halfHeight}, {1.0f, 1.0f, 1.0f}, {0.0f, 1.0f}}
+            {{-halfWidth, 0.0f, -halfHeight}, {1.0f, 1.0f, 1.0f}, {0.0f, 0.0f}}, // 0
+            {{ halfWidth, 0.0f, -halfHeight}, {1.0f, 1.0f, 1.0f}, {1.0f, 0.0f}}, // 1
+            {{ halfWidth, 0.0f,  halfHeight}, {1.0f, 1.0f, 1.0f}, {1.0f, 1.0f}}, // 2
+            {{-halfWidth, 0.0f,  halfHeight}, {1.0f, 1.0f, 1.0f}, {0.0f, 1.0f}}  // 3
         };
-
+        
         // Define indices for the plane
         std::vector<uint32_t> indices = {
             0, 1, 2, 2, 3, 0
         };
-
+        
         mesh->setVertices(vertices);
         mesh->setIndices(indices);
         
         return mesh;
     }
 
-    // Create a sphere mesh
     std::unique_ptr<Mesh> Mesh::createSphere(float radius, int sectors, int stacks) {
         auto mesh = std::make_unique<Mesh>();
         

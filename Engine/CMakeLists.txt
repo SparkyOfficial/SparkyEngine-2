@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.20)
 project(SparkyEngine)
 
 # Create the engine library
-add_library(SparkyEngine STATIC
+set(ENGINE_SOURCES
     src/VulkanRenderer.cpp
     src/WindowManager.cpp
     src/GameEntity.cpp
@@ -29,9 +29,6 @@ add_library(SparkyEngine STATIC
     src/ExampleState.cpp
     src/Profiler.cpp
     src/ShaderCompiler.cpp
-    src/AudioEngine.cpp
-    src/Material.cpp
-    src/ShaderProgram.cpp
     src/Light.cpp
     src/DirectionalLight.cpp
     src/PointLight.cpp
@@ -52,17 +49,72 @@ add_library(SparkyEngine STATIC
     src/BehaviorTreeExample.cpp
 )
 
+# Only include AudioEngine if audio is enabled
+if(ENABLE_AUDIO)
+    list(APPEND ENGINE_SOURCES src/AudioEngine.cpp)
+endif()
+
+add_library(SparkyEngine STATIC ${ENGINE_SOURCES})
+
 # Include directories
 target_include_directories(SparkyEngine PUBLIC 
     ${CMAKE_CURRENT_SOURCE_DIR}/include
+    E:/VulkanSDK/1.4.321.1/Include
     C:/glm-install/include
     C:/glfw-install/include
 )
 
+# Check for glslang headers
+if(EXISTS "${VULKAN_SDK}/Include/glslang/Public/ShaderLang.h")
+    set(HAS_GLSLANG TRUE)
+    message(STATUS "Found glslang headers")
+else()
+    set(HAS_GLSLANG FALSE)
+    message(STATUS "glslang headers not found, shader compilation will be disabled")
+endif()
+
 # Link libraries
 target_link_libraries(SparkyEngine 
+    ${VULKAN_LIBRARIES}
     glfw
+    glslang
+    SPIRV
+    glslang-default-resource-limits
 )
 
+# Only link OpenAL if audio is enabled
+if(ENABLE_AUDIO)
+    # Try to find OpenAL
+    find_package(OpenAL QUIET)
+    if(OpenAL_FOUND)
+        target_link_libraries(SparkyEngine ${OPENAL_LIBRARY})
+        target_include_directories(SparkyEngine PRIVATE ${OPENAL_INCLUDE_DIR})
+    else()
+        # Try to find OpenAL in common locations
+        find_path(OPENAL_INCLUDE_DIR AL/al.h)
+        find_library(OPENAL_LIBRARY OpenAL32)
+        if(OPENAL_INCLUDE_DIR AND OPENAL_LIBRARY)
+            target_link_libraries(SparkyEngine ${OPENAL_LIBRARY})
+            target_include_directories(SparkyEngine PRIVATE ${OPENAL_INCLUDE_DIR})
+        else()
+            message(WARNING "OpenAL not found, audio support will be disabled")
+            # Remove AudioEngine from sources if OpenAL not found
+            list(REMOVE_ITEM ENGINE_SOURCES src/AudioEngine.cpp)
+        endif()
+    endif()
+endif()
+
 # Compiler definitions
-target_compile_definitions(SparkyEngine PRIVATE SIMPLE_BUILD)
+target_compile_definitions(SparkyEngine PRIVATE VK_PROTOTYPES)
+
+# Define HAS_GLSLANG if glslang headers are found
+if(HAS_GLSLANG)
+    target_compile_definitions(SparkyEngine PRIVATE HAS_GLSLANG)
+endif()
+
+# Define ENABLE_AUDIO if audio is enabled and OpenAL is found
+if(ENABLE_AUDIO)
+    if(OPENAL_INCLUDE_DIR AND OPENAL_LIBRARY)
+        target_compile_definitions(SparkyEngine PRIVATE ENABLE_AUDIO)
+    endif()
+endif()

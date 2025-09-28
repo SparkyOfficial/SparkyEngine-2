@@ -86,7 +86,14 @@ namespace Sparky {
     }
 
     BehaviorStatus PrintMessage::update(float deltaTime) {
-        SPARKY_LOG_INFO("Behavior Tree Message: " + message);
+        static float lastPrintTime = 0.0f;
+        static const float printInterval = 1.0f; // Print at most once per second
+        
+        lastPrintTime += deltaTime;
+        if (lastPrintTime >= printInterval) {
+            SPARKY_LOG_INFO("Behavior Tree Message: " + message);
+            lastPrintTime = 0.0f;
+        }
         return BehaviorStatus::SUCCESS;
     }
 

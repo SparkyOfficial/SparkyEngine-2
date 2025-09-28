@@ -71,6 +71,19 @@ namespace Sparky {
     void ExampleGame::render() {
         if (!initialized || paused) return;
 
+        // Render game objects
+        if (player) {
+            player->render();
+        }
+        
+        if (enemy) {
+            enemy->render();
+        }
+        
+        for (auto& platform : platforms) {
+            platform->render();
+        }
+
         // Render game systems
         if (particleSystem) {
             particleSystem->render();

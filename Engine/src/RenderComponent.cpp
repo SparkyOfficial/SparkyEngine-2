@@ -14,7 +14,8 @@ namespace Sparky {
 
     void RenderComponent::render() {
         // In a real implementation, this would render the mesh
-        // For now, it's just a placeholder
+        // For now, we'll add a placeholder that doesn't spam the log
+        // SPARKY_LOG_DEBUG("Rendering mesh");
     }
 
     void RenderComponent::setMesh(Mesh* mesh) {

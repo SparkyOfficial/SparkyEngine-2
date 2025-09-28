@@ -1,0 +1,82 @@
+{
+  "name": "Test Level",
+  "version": "1.0",
+  "entities": [
+    {
+      "type": "platform",
+      "name": "floor",
+      "position": [0, -1, 0],
+      "size": [20, 1, 20],
+      "material": "concrete"
+    },
+    {
+      "type": "platform",
+      "name": "platform1",
+      "position": [5, 2, 0],
+      "size": [3, 1, 3],
+      "material": "metal"
+    },
+    {
+      "type": "platform",
+      "name": "platform2",
+      "position": [-5, 4, 0],
+      "size": [3, 1, 3],
+      "material": "metal"
+    },
+    {
+      "type": "platform",
+      "name": "ramp",
+      "position": [0, 1, 5],
+      "size": [8, 1, 3],
+      "material": "wood"
+    },
+    {
+      "type": "platform",
+      "name": "step1",
+      "position": [8, 0.5, -5],
+      "size": [2, 1, 1],
+      "material": "stone"
+    },
+    {
+      "type": "platform",
+      "name": "step2",
+      "position": [8, 1.5, -4],
+      "size": [2, 1, 1],
+      "material": "stone"
+    },
+    {
+      "type": "platform",
+      "name": "step3",
+      "position": [8, 2.5, -3],
+      "size": [2, 1, 1],
+      "material": "stone"
+    },
+    {
+      "type": "platform",
+      "name": "step4",
+      "position": [8, 3.5, -2],
+      "size": [2, 1, 1],
+      "material": "stone"
+    },
+    {
+      "type": "platform",
+      "name": "step5",
+      "position": [8, 4.5, -1],
+      "size": [2, 1, 1],
+      "material": "stone"
+    },
+    {
+      "type": "platform",
+      "name": "table",
+      "position": [-8, 1.5, 0],
+      "size": [2, 0.5, 1],
+      "material": "wood"
+    },
+    {
+      "type": "gun",
+      "name": "pistol",
+      "position": [-8, 2, 0],
+      "model": "pistol.obj"
+    }
+  ]
+}

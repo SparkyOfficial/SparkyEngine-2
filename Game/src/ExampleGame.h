@@ -15,6 +15,7 @@ namespace Sparky {
     class GUIManager;
     class AudioEngine;
     class BehaviorTree;
+    class Mesh;
 
     class ExampleGame {
     public:
@@ -42,6 +43,11 @@ namespace Sparky {
         std::vector<std::unique_ptr<Platform>> platforms;
         std::unique_ptr<GameObject> enemy;
         
+        // Meshes for game objects
+        std::vector<std::unique_ptr<Mesh>> levelMeshes;
+        std::unique_ptr<Mesh> playerMesh;
+        std::unique_ptr<Mesh> enemyMesh;
+        
         // Systems
         std::unique_ptr<ParticleSystem> particleSystem;
         std::unique_ptr<Inventory> playerInventory;
@@ -53,7 +59,7 @@ namespace Sparky {
         std::unique_ptr<Light> pointLight;
         
         // Audio
-        AudioEngine* audioEngine;
+        // AudioEngine* audioEngine;  // Disabled due to missing OpenAL
         
         // Game state
         int score;

@@ -1,22 +1,24 @@
 #include "ExampleGame.h"
 #include "../../Engine/include/SparkyEngine.h"
 #include "../../Engine/include/GameObject.h"
-#include "../../Engine/include/Player.h"
-#include "../../Engine/include/Platform.h"
+#include "Player.h"
+#include "Platform.h"
 #include "../../Engine/include/Light.h"
 #include "../../Engine/include/ParticleSystem.h"
 #include "../../Engine/include/Inventory.h"
 #include "../../Engine/include/Quest.h"
-#include "../../Engine/include/AudioEngine.h"
 #include "../../Engine/include/GUIManager.h"
 #include "../../Engine/include/BehaviorTreeExample.h"
 #include "../../Engine/include/Logger.h"
+#include "../../Engine/include/RenderComponent.h"
+#include "../../Engine/include/Button.h"
+#include "../../Engine/include/Mesh.h"
 #include <glm/glm.hpp>
 
 namespace Sparky {
 
     ExampleGame::ExampleGame() : engine(nullptr), initialized(false), paused(false),
-                               score(0), health(100), audioEngine(nullptr) {
+                               score(0), health(100) {
         SPARKY_LOG_INFO("Creating example game");
     }
 
@@ -146,16 +148,19 @@ namespace Sparky {
     void ExampleGame::createLevel() {
         SPARKY_LOG_DEBUG("Creating game level");
         
+        // Clear existing meshes
+        levelMeshes.clear();
+        
         // Create a floor platform with a mesh
         auto floor = std::make_unique<Platform>("Floor");
         floor->setPosition(glm::vec3(0.0f, -1.0f, 0.0f));
         floor->setSize(glm::vec3(20.0f, 1.0f, 20.0f));
         
         // Add a render component with a plane mesh
-        auto renderComponent = std::make_unique<RenderComponent>();
+        RenderComponent* renderComponent = floor->addComponent<RenderComponent>();
         auto planeMesh = Mesh::createPlane(20.0f, 20.0f);
-        renderComponent->setMesh(std::move(planeMesh));
-        floor->addComponent(std::move(renderComponent));
+        levelMeshes.push_back(std::move(planeMesh));
+        renderComponent->setMesh(levelMeshes.back().get());
         
         platforms.push_back(std::move(floor));
         
@@ -165,10 +170,10 @@ namespace Sparky {
         platform1->setSize(glm::vec3(3.0f, 1.0f, 3.0f));
         
         // Add a render component with a cube mesh
-        auto cubeRender1 = std::make_unique<RenderComponent>();
+        RenderComponent* cubeRender1 = platform1->addComponent<RenderComponent>();
         auto cubeMesh1 = Mesh::createCube(1.0f);
-        cubeRender1->setMesh(std::move(cubeMesh1));
-        platform1->addComponent(std::move(cubeRender1));
+        levelMeshes.push_back(std::move(cubeMesh1));
+        cubeRender1->setMesh(levelMeshes.back().get());
         
         platforms.push_back(std::move(platform1));
         
@@ -177,10 +182,10 @@ namespace Sparky {
         platform2->setSize(glm::vec3(3.0f, 1.0f, 3.0f));
         
         // Add a render component with a cube mesh
-        auto cubeRender2 = std::make_unique<RenderComponent>();
+        RenderComponent* cubeRender2 = platform2->addComponent<RenderComponent>();
         auto cubeMesh2 = Mesh::createCube(1.0f);
-        cubeRender2->setMesh(std::move(cubeMesh2));
-        platform2->addComponent(std::move(cubeRender2));
+        levelMeshes.push_back(std::move(cubeMesh2));
+        cubeRender2->setMesh(levelMeshes.back().get());
         
         platforms.push_back(std::move(platform2));
         
@@ -190,10 +195,10 @@ namespace Sparky {
         ramp->setSize(glm::vec3(8.0f, 1.0f, 3.0f));
         
         // Add a render component with a plane mesh
-        auto rampRender = std::make_unique<RenderComponent>();
+        RenderComponent* rampRender = ramp->addComponent<RenderComponent>();
         auto rampMesh = Mesh::createPlane(8.0f, 3.0f);
-        rampRender->setMesh(std::move(rampMesh));
-        ramp->addComponent(std::move(rampRender));
+        levelMeshes.push_back(std::move(rampMesh));
+        rampRender->setMesh(levelMeshes.back().get());
         
         platforms.push_back(std::move(ramp));
         
@@ -204,10 +209,10 @@ namespace Sparky {
             step->setSize(glm::vec3(2.0f, 1.0f, 1.0f));
             
             // Add a render component with a cube mesh
-            auto stepRender = std::make_unique<RenderComponent>();
+            RenderComponent* stepRender = step->addComponent<RenderComponent>();
             auto stepMesh = Mesh::createCube(1.0f);
-            stepRender->setMesh(std::move(stepMesh));
-            step->addComponent(std::move(stepRender));
+            levelMeshes.push_back(std::move(stepMesh));
+            stepRender->setMesh(levelMeshes.back().get());
             
             platforms.push_back(std::move(step));
         }
@@ -224,10 +229,9 @@ namespace Sparky {
         player->setScale(glm::vec3(1.0f, 1.8f, 1.0f));
         
         // Add a render component with a cube mesh for the player
-        auto renderComponent = std::make_unique<RenderComponent>();
-        auto playerMesh = Mesh::createCube(1.0f);
-        renderComponent->setMesh(std::move(playerMesh));
-        player->addComponent(std::move(renderComponent));
+        RenderComponent* renderComponent = player->addComponent<RenderComponent>();
+        playerMesh = Mesh::createCube(1.0f);
+        renderComponent->setMesh(playerMesh.get());
         
         // Set up player camera
         if (engine) {
@@ -246,10 +250,9 @@ namespace Sparky {
         enemy->setScale(glm::vec3(1.0f, 1.8f, 1.0f));
         
         // Add a render component with a cube mesh for the enemy
-        auto renderComponent = std::make_unique<RenderComponent>();
-        auto enemyMesh = Mesh::createCube(1.0f);
-        renderComponent->setMesh(std::move(enemyMesh));
-        enemy->addComponent(std::move(renderComponent));
+        RenderComponent* renderComponent = enemy->addComponent<RenderComponent>();
+        enemyMesh = Mesh::createCube(1.0f);
+        renderComponent->setMesh(enemyMesh.get());
         
         // Create enemy AI behavior
         enemyAI = ExampleAIBehavior::createPatrolBehavior(enemy.get());
@@ -263,14 +266,14 @@ namespace Sparky {
         // Create directional light (sun)
         directionalLight = std::make_unique<Light>("Sun");
         directionalLight->setDirection(glm::vec3(-0.5f, -1.0f, -0.5f));
-        directionalLight->setColor(glm::vec3(1.0f, 1.0f, 1.0f));
-        directionalLight->setIntensity(1.0f);
+        directionalLight->setDiffuse(glm::vec3(1.0f, 1.0f, 1.0f)); // Color
+        directionalLight->setAmbient(glm::vec3(0.1f, 0.1f, 0.1f)); // Intensity-like effect
         
         // Create point light
         pointLight = std::make_unique<Light>("PointLight");
         pointLight->setPosition(glm::vec3(0.0f, 5.0f, 0.0f));
-        pointLight->setColor(glm::vec3(1.0f, 1.0f, 1.0f));
-        pointLight->setIntensity(0.5f);
+        pointLight->setDiffuse(glm::vec3(1.0f, 1.0f, 1.0f)); // Color
+        pointLight->setAmbient(glm::vec3(0.05f, 0.05f, 0.05f)); // Intensity-like effect
         pointLight->setConstant(1.0f);
         pointLight->setLinear(0.09f);
         pointLight->setQuadratic(0.032f);
@@ -300,12 +303,8 @@ namespace Sparky {
     void ExampleGame::setupAudio() {
         SPARKY_LOG_DEBUG("Setting up audio");
         
-        audioEngine = &AudioEngine::getInstance();
-        if (audioEngine->initialize()) {
-            SPARKY_LOG_DEBUG("Audio engine initialized");
-        } else {
-            SPARKY_LOG_WARNING("Failed to initialize audio engine");
-        }
+        // Audio is disabled in this build
+        SPARKY_LOG_DEBUG("Audio support is disabled");
     }
 
     void ExampleGame::setupGUI() {
@@ -379,15 +378,15 @@ namespace Sparky {
         auto& guiManager = GUIManager::getInstance();
         
         // Update health bar
-        auto healthBar = static_cast<Button*>(guiManager.getElement("HealthBar"));
-        if (healthBar) {
-            healthBar->setText("Health: " + std::to_string(health));
+        GUIElement* healthBarElement = guiManager.getElement("HealthBar");
+        if (healthBarElement) {
+            healthBarElement->setText("Health: " + std::to_string(health));
         }
         
         // Update score display
-        auto scoreDisplay = static_cast<Button*>(guiManager.getElement("ScoreDisplay"));
-        if (scoreDisplay) {
-            scoreDisplay->setText("Score: " + std::to_string(score));
+        GUIElement* scoreDisplayElement = guiManager.getElement("ScoreDisplay");
+        if (scoreDisplayElement) {
+            scoreDisplayElement->setText("Score: " + std::to_string(score));
         }
         
         // Update GUI

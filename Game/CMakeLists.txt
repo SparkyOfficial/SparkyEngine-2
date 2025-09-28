@@ -12,7 +12,11 @@ add_executable(SparkyGame
 )
 
 # Link with the engine library
-target_link_libraries(SparkyGame SparkyEngine glfw)
+target_link_libraries(SparkyGame SparkyEngine 
+    ${VULKAN_LIBRARIES}
+    ${GLFW_LIBRARIES}
+    ${glslang_LIBRARIES}
+)
 
 # Include directories
 target_include_directories(SparkyGame PRIVATE 

@@ -22,6 +22,7 @@ namespace Sparky {
 
     private:
         glm::vec3 size;
+        std::unique_ptr<Mesh> mesh;
         
         void createCubeMesh();
     };

@@ -1,6 +1,14 @@
 #include <vulkan/vulkan.h>
 #include <GLFW/glfw3.h>
+// For Windows-specific Vulkan extensions
+#ifdef _WIN32
+#define VK_USE_PLATFORM_WIN32_KHR
+#include <windows.h>
+#include <vulkan/vulkan_win32.h>
+#define GLFW_EXPOSE_NATIVE_WIN32
 #include <GLFW/glfw3native.h>
+#endif
+
 #include <stdexcept>
 #include <set>
 #include <algorithm>
@@ -12,14 +20,6 @@
 #include <cstdint>
 #include <limits>
 #include <iostream>
-
-// For Windows-specific Vulkan extensions
-#ifdef _WIN32
-#define VK_USE_PLATFORM_WIN32_KHR
-#include <windows.h>
-#include <vulkan/vulkan_win32.h>
-#define GLFW_EXPOSE_NATIVE_WIN32
-#endif
 
 #include "../include/VulkanRenderer.h"
 #include "../include/Logger.h"
@@ -230,6 +230,31 @@ namespace Sparky {
         }
         
         currentFrame = (currentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
+    }
+
+    bool VulkanRenderer::checkValidationLayerSupport() {
+        uint32_t layerCount;
+        vkEnumerateInstanceLayerProperties(&layerCount, nullptr);
+
+        std::vector<VkLayerProperties> availableLayers(layerCount);
+        vkEnumerateInstanceLayerProperties(&layerCount, availableLayers.data());
+
+        for (const char* layerName : validationLayers) {
+            bool layerFound = false;
+
+            for (const auto& layerProperties : availableLayers) {
+                if (strcmp(layerName, layerProperties.layerName) == 0) {
+                    layerFound = true;
+                    break;
+                }
+            }
+
+            if (!layerFound) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     void VulkanRenderer::createInstance() {
@@ -1025,3 +1050,5 @@ namespace Sparky {
         
         SPARKY_LOG_INFO("Descriptor set layout created");
     }
+
+}

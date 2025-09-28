@@ -76,10 +76,8 @@ endif()
 # Link libraries
 target_link_libraries(SparkyEngine 
     ${VULKAN_LIBRARIES}
-    glfw
-    glslang
-    SPIRV
-    glslang-default-resource-limits
+    ${GLFW_LIBRARIES}
+    ${glslang_LIBRARIES}
 )
 
 # Only link OpenAL if audio is enabled

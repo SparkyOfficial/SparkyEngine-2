@@ -10,8 +10,7 @@ namespace Sparky {
         setName("Player");
         
         // Add physics component
-        auto physicsComponent = std::make_unique<PhysicsComponent>();
-        addComponent(std::move(physicsComponent));
+        addComponent<PhysicsComponent>();
     }
 
     Player::~Player() {
@@ -89,7 +88,7 @@ namespace Sparky {
     }
 
     bool Player::isOnGround() const {
-        PhysicsComponent* physics = getComponent<PhysicsComponent>();
+        const PhysicsComponent* physics = getComponent<PhysicsComponent>();
         return physics ? physics->isOnGround() : false;
     }
 

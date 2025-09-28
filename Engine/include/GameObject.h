@@ -4,6 +4,7 @@
 #include <string>
 #include <vector>
 #include <memory>
+#include <algorithm>
 
 #include "Component.h"
 
@@ -53,6 +54,29 @@ namespace Sparky {
                 }
             }
             return nullptr;
+        }
+
+        template<typename T>
+        const T* getComponent() const {
+            static_assert(std::is_base_of<Component, T>::value, "T must inherit from Component");
+            for (const auto& component : components) {
+                if (const T* castComponent = dynamic_cast<const T*>(component.get())) {
+                    return castComponent;
+                }
+            }
+            return nullptr;
+        }
+
+        template<typename T>
+        void removeComponent() {
+            static_assert(std::is_base_of<Component, T>::value, "T must inherit from Component");
+            components.erase(
+                std::remove_if(components.begin(), components.end(),
+                    [](const std::unique_ptr<Component>& component) {
+                        return dynamic_cast<T*>(component.get()) != nullptr;
+                    }),
+                components.end()
+            );
         }
 
         // Virtual methods

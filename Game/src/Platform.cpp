@@ -46,11 +46,10 @@ namespace Sparky {
         removeComponent<RenderComponent>();
         
         // Create a new cube mesh with the specified size
-        auto cubeMesh = Mesh::createCube(1.0f); // Unit cube, scaled by the GameObject's scale
+        mesh = Mesh::createCube(1.0f); // Unit cube, scaled by the GameObject's scale
         
         // Add a render component with the cube mesh
-        auto renderComponent = std::make_unique<RenderComponent>();
-        renderComponent->setMesh(std::move(cubeMesh));
-        addComponent(std::move(renderComponent));
+        RenderComponent* renderComponent = addComponent<RenderComponent>();
+        renderComponent->setMesh(mesh.get());
     }
 }

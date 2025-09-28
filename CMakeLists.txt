@@ -13,7 +13,11 @@ set(VULKAN_LIBRARIES "${VULKAN_SDK}/Lib/vulkan-1.lib")
 # Add GLFW support
 set(GLFW_DIR "C:/glfw-install")
 set(GLFW_INCLUDE_DIRS "${GLFW_DIR}/include")
-set(GLFW_LIBRARIES "${GLFW_DIR}/lib/glfw3.lib")
+find_library(GLFW_LIBRARIES NAMES glfw3 glfw PATHS "${GLFW_DIR}/lib")
+if(NOT GLFW_LIBRARIES)
+    message(FATAL_ERROR "GLFW library not found in ${GLFW_DIR}/lib")
+endif()
+message(STATUS "Found GLFW library: ${GLFW_LIBRARIES}")
 
 # Add GLM support
 set(GLM_INCLUDE_DIRS "C:/glm-install/include")

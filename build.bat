@@ -1,20 +1,35 @@
 @echo off
-echo Building Sparky Engine 3D Game...
+echo Building Sparky Engine...
 
-REM Clean previous build
-if exist "build" rmdir /s /q "build"
+REM Create build directory if it doesn't exist
+if not exist "build" mkdir "build"
 
-REM Create build directory
-mkdir build
+REM Change to build directory
 cd build
 
-REM Configure with CMake
+REM Generate build files with CMake
 cmake .. -G "Visual Studio 17 2022" -A x64
 
 REM Build the project
 cmake --build . --config Release
 
-echo.
-echo Build complete!
-echo Executable will be in build\bin\Release\ directory
+REM Check if build was successful
+if %ERRORLEVEL% EQU 0 (
+    echo.
+    echo Build completed successfully!
+    echo.
+    echo To run the game, execute:
+    echo   build\bin\Release\SparkyGame.exe
+    echo.
+    echo To run the JSON level test, execute:
+    echo   build\bin\Release\test_json_level.exe
+    echo.
+    echo To run the components test, execute:
+    echo   build\bin\Release\test_components.exe
+) else (
+    echo.
+    echo Build failed with error level %ERRORLEVEL%
+    echo Please check the error messages above.
+)
+
 pause

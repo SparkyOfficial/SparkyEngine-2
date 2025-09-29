@@ -2,9 +2,12 @@
 
 #include <string>
 #include <glm/glm.hpp>
+#include <vector>
+#include <vulkan/vulkan.h>
 
 namespace Sparky {
     class ShaderProgram;
+    class Texture;
 
     class Material {
     public:
@@ -26,15 +29,11 @@ namespace Sparky {
         const glm::vec3& getEmissive() const { return emissive; }
 
         // Texture support
-        void setDiffuseTexture(int textureId);
-        void setSpecularTexture(int textureId);
-        void setNormalTexture(int textureId);
-        void setEmissiveTexture(int textureId);
+        void setTexture(Texture* texture);
+        Texture* getTexture() const { return texture; }
 
-        int getDiffuseTexture() const { return diffuseTexture; }
-        int getSpecularTexture() const { return specularTexture; }
-        int getNormalTexture() const { return normalTexture; }
-        int getEmissiveTexture() const { return emissiveTexture; }
+        // Vulkan-specific
+        std::vector<VkDescriptorSet> descriptorSets;
 
         // Shader program
         void setShaderProgram(ShaderProgram* shader);
@@ -55,11 +54,8 @@ namespace Sparky {
         float shininess;
         glm::vec3 emissive;
 
-        // Textures
-        int diffuseTexture;
-        int specularTexture;
-        int normalTexture;
-        int emissiveTexture;
+        // Texture
+        Texture* texture;
 
         // Shader program
         ShaderProgram* shaderProgram;

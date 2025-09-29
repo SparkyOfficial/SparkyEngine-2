@@ -5,7 +5,9 @@ namespace Sparky {
     
     InputManager* InputManager::instance = nullptr;
 
-    InputManager::InputManager() : mouseX(0), mouseY(0), prevMouseX(0), prevMouseY(0), window(nullptr) {
+    InputManager::InputManager() : mouseX(0), mouseY(0), prevMouseX(0), prevMouseY(0), 
+                                 scrollX(0), scrollY(0), prevScrollX(0), prevScrollY(0),
+                                 window(nullptr), cursorMode(GLFW_CURSOR_NORMAL) {
         memset(keys, 0, sizeof(keys));
         memset(prevKeys, 0, sizeof(prevKeys));
         memset(mouseButtons, 0, sizeof(mouseButtons));
@@ -24,6 +26,7 @@ namespace Sparky {
         glfwSetKeyCallback(window, keyCallback);
         glfwSetCursorPosCallback(window, mouseCallback);
         glfwSetMouseButtonCallback(window, mouseButtonCallback);
+        glfwSetScrollCallback(window, scrollCallback);
     }
 
     void InputManager::update() {
@@ -32,6 +35,8 @@ namespace Sparky {
         memcpy(prevMouseButtons, mouseButtons, sizeof(mouseButtons));
         prevMouseX = mouseX;
         prevMouseY = mouseY;
+        prevScrollX = scrollX;
+        prevScrollY = scrollY;
     }
 
     bool InputManager::isKeyPressed(int key) {
@@ -65,6 +70,16 @@ namespace Sparky {
     void InputManager::setMousePosition(float x, float y) {
         mouseX = x;
         mouseY = y;
+        if (window) {
+            glfwSetCursorPos(window, x, y);
+        }
+    }
+
+    void InputManager::setCursorMode(int mode) {
+        cursorMode = mode;
+        if (window) {
+            glfwSetInputMode(window, GLFW_CURSOR, mode);
+        }
     }
 
     void InputManager::keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods) {
@@ -91,6 +106,13 @@ namespace Sparky {
             } else if (action == GLFW_RELEASE) {
                 instance->mouseButtons[button] = false;
             }
+        }
+    }
+
+    void InputManager::scrollCallback(GLFWwindow* window, double xoffset, double yoffset) {
+        if (instance) {
+            instance->scrollX += static_cast<float>(xoffset);
+            instance->scrollY += static_cast<float>(yoffset);
         }
     }
 }

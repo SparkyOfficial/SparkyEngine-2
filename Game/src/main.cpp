@@ -7,6 +7,8 @@
 #include "../../Engine/include/ExampleState.h"
 #include "../../Engine/include/StateMachine.h"
 #include "ExampleGame.h"
+#include "Player.h"
+#include "Gun.h"
 #include <iostream>
 #include <vector>
 
@@ -48,14 +50,30 @@ int main() {
         return -1;
     }
     
+    // Create player
+    auto player = std::make_unique<Sparky::Player>();
+    player->setPosition(glm::vec3(0.0f, 0.0f, 0.0f));
+    player->setCamera(&engine.getCamera());
+    
+    // Create gun
+    auto gun = std::make_unique<Sparky::Gun>();
+    gun->setCamera(&engine.getCamera());
+    
+    // Register player and gun with the render system
+    engine.getRenderSystem().registerGameObject(player.get());
+    engine.getRenderSystem().registerGameObject(gun.get());
+    
     // Start the game
     game.startGame();
     
     SPARKY_LOG_INFO("Game initialized successfully");
     SPARKY_LOG_INFO("Controls:");
     SPARKY_LOG_INFO("  WASD - Move");
+    SPARKY_LOG_INFO("  Mouse - Look around");
     SPARKY_LOG_INFO("  Space - Jump");
-    SPARKY_LOG_INFO("  ESC - Exit");
+    SPARKY_LOG_INFO("  Left Mouse Button - Shoot");
+    SPARKY_LOG_INFO("  R - Reload");
+    SPARKY_LOG_INFO("  ESC - Toggle mouse lock");
     
     float lastTime = 0.0f;
     
@@ -84,11 +102,11 @@ int main() {
         // Update input
         inputManager.update();
         
-        // Check for exit key (ESC)
-        if (inputManager.isKeyJustPressed(256)) { // ESC key
-            SPARKY_LOG_INFO("ESC key pressed, shutting down...");
-            break;
-        }
+        // Update player
+        player->update(deltaTime);
+        
+        // Update gun
+        gun->update(deltaTime);
         
         // Debug: Log state machine and game update
         if (frameCount % 60 == 0) {

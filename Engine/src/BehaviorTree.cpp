@@ -2,167 +2,148 @@
 #include "../include/Logger.h"
 
 namespace Sparky {
-
+    
     // BehaviorNode implementation
-    BehaviorNode::BehaviorNode(const std::string& name) : 
-        name(name), status(BehaviorStatus::SUCCESS) {
+    BehaviorNode::BehaviorNode(NodeType type) : type(type), status(NodeStatus::RUNNING) {
     }
-
+    
     BehaviorNode::~BehaviorNode() {
     }
-
-    void BehaviorNode::initialize() {
-        status = BehaviorStatus::RUNNING;
-    }
-
-    void BehaviorNode::terminate(BehaviorStatus status) {
-        this->status = status;
-    }
-
-    // CompositeNode implementation
-    CompositeNode::CompositeNode(const std::string& name) : BehaviorNode(name) {
-    }
-
-    CompositeNode::~CompositeNode() {
-    }
-
-    void CompositeNode::addChild(std::unique_ptr<BehaviorNode> child) {
-        if (child) {
-            children.push_back(std::move(child));
-            SPARKY_LOG_DEBUG("Added child to composite node: " + name);
-        }
-    }
-
-    // Selector implementation
-    Selector::Selector(const std::string& name) : CompositeNode(name), currentChild(0) {
-    }
-
-    Selector::~Selector() {
-    }
-
-    BehaviorStatus Selector::update(float deltaTime) {
-        // If this is the first time, initialize
-        if (status != BehaviorStatus::RUNNING) {
-            initialize();
-            currentChild = 0;
-        }
-
-        // Try each child until one succeeds
-        while (currentChild < children.size()) {
-            BehaviorStatus childStatus = children[currentChild]->update(deltaTime);
-
-            if (childStatus == BehaviorStatus::RUNNING) {
-                return BehaviorStatus::RUNNING;
-            } else if (childStatus == BehaviorStatus::SUCCESS) {
-                terminate(BehaviorStatus::SUCCESS);
-                return BehaviorStatus::SUCCESS;
-            } else {
-                // Child failed, try next child
-                currentChild++;
-            }
-        }
-
-        // All children failed
-        terminate(BehaviorStatus::FAILURE);
-        return BehaviorStatus::FAILURE;
-    }
-
-    // Sequence implementation
-    Sequence::Sequence(const std::string& name) : CompositeNode(name) {
-    }
-
-    Sequence::~Sequence() {
-    }
-
-    BehaviorStatus Sequence::update(float deltaTime) {
-        // If this is the first time, initialize
-        if (status != BehaviorStatus::RUNNING) {
-            initialize();
-        }
-
-        // Execute all children in sequence
+    
+    void BehaviorNode::reset() {
+        status = NodeStatus::RUNNING;
         for (auto& child : children) {
-            BehaviorStatus childStatus = child->update(deltaTime);
-
-            if (childStatus == BehaviorStatus::RUNNING) {
-                return BehaviorStatus::RUNNING;
-            } else if (childStatus == BehaviorStatus::FAILURE) {
-                terminate(BehaviorStatus::FAILURE);
-                return BehaviorStatus::FAILURE;
-            }
-            // If child succeeded, continue to next child
+            child->reset();
         }
-
-        // All children succeeded
-        terminate(BehaviorStatus::SUCCESS);
-        return BehaviorStatus::SUCCESS;
     }
-
-    // DecoratorNode implementation
-    DecoratorNode::DecoratorNode(const std::string& name) : BehaviorNode(name) {
+    
+    void BehaviorNode::addChild(std::unique_ptr<BehaviorNode> child) {
+        children.push_back(std::move(child));
     }
-
-    DecoratorNode::~DecoratorNode() {
+    
+    // ActionNode implementation
+    ActionNode::ActionNode(std::function<NodeStatus(float)> actionFunc) 
+        : BehaviorNode(NodeType::ACTION), actionFunction(actionFunc) {
     }
-
-    void DecoratorNode::setChild(std::unique_ptr<BehaviorNode> child) {
-        this->child = std::move(child);
-        SPARKY_LOG_DEBUG("Set child for decorator node: " + name);
+    
+    ActionNode::~ActionNode() {
     }
-
-    // Inverter implementation
-    Inverter::Inverter(const std::string& name) : DecoratorNode(name) {
-    }
-
-    Inverter::~Inverter() {
-    }
-
-    BehaviorStatus Inverter::update(float deltaTime) {
-        if (!child) {
-            return BehaviorStatus::FAILURE;
-        }
-
-        BehaviorStatus childStatus = child->update(deltaTime);
-
-        if (childStatus == BehaviorStatus::RUNNING) {
-            return BehaviorStatus::RUNNING;
-        } else if (childStatus == BehaviorStatus::SUCCESS) {
-            return BehaviorStatus::FAILURE;
+    
+    NodeStatus ActionNode::update(float deltaTime) {
+        if (actionFunction) {
+            status = actionFunction(deltaTime);
         } else {
-            return BehaviorStatus::SUCCESS;
+            status = NodeStatus::FAILURE;
         }
+        return status;
     }
-
-    // LeafNode implementation
-    LeafNode::LeafNode(const std::string& name) : BehaviorNode(name) {
+    
+    // ConditionNode implementation
+    ConditionNode::ConditionNode(std::function<bool()> conditionFunc) 
+        : BehaviorNode(NodeType::CONDITION), conditionFunction(conditionFunc) {
     }
-
-    LeafNode::~LeafNode() {
+    
+    ConditionNode::~ConditionNode() {
     }
-
-    void LeafNode::setTask(TaskFunction task) {
-        this->task = task;
-        SPARKY_LOG_DEBUG("Set task for leaf node: " + name);
+    
+    NodeStatus ConditionNode::update(float deltaTime) {
+        if (conditionFunction) {
+            status = conditionFunction() ? NodeStatus::SUCCESS : NodeStatus::FAILURE;
+        } else {
+            status = NodeStatus::FAILURE;
+        }
+        return status;
     }
-
+    
+    // SelectorNode implementation
+    SelectorNode::SelectorNode() : BehaviorNode(NodeType::SELECTOR), currentChildIndex(0) {
+    }
+    
+    SelectorNode::~SelectorNode() {
+    }
+    
+    NodeStatus SelectorNode::update(float deltaTime) {
+        // Try each child until one succeeds
+        for (size_t i = 0; i < children.size(); ++i) {
+            NodeStatus childStatus = children[i]->update(deltaTime);
+            
+            if (childStatus == NodeStatus::SUCCESS) {
+                // Reset all children for next run
+                for (auto& child : children) {
+                    child->reset();
+                }
+                status = NodeStatus::SUCCESS;
+                return status;
+            } else if (childStatus == NodeStatus::RUNNING) {
+                // If a child is still running, we're still running
+                status = NodeStatus::RUNNING;
+                return status;
+            }
+            // If child failed, try the next one
+        }
+        
+        // All children failed
+        status = NodeStatus::FAILURE;
+        return status;
+    }
+    
+    // SequenceNode implementation
+    SequenceNode::SequenceNode() : BehaviorNode(NodeType::SEQUENCE), currentChildIndex(0) {
+    }
+    
+    SequenceNode::~SequenceNode() {
+    }
+    
+    NodeStatus SequenceNode::update(float deltaTime) {
+        // Execute children in order until one fails
+        for (size_t i = 0; i < children.size(); ++i) {
+            NodeStatus childStatus = children[i]->update(deltaTime);
+            
+            if (childStatus == NodeStatus::FAILURE) {
+                // Reset all children for next run
+                for (auto& child : children) {
+                    child->reset();
+                }
+                status = NodeStatus::FAILURE;
+                return status;
+            } else if (childStatus == NodeStatus::RUNNING) {
+                // If a child is still running, we're still running
+                status = NodeStatus::RUNNING;
+                return status;
+            }
+            // If child succeeded, continue to the next one
+        }
+        
+        // All children succeeded
+        status = NodeStatus::SUCCESS;
+        return status;
+    }
+    
     // BehaviorTree implementation
     BehaviorTree::BehaviorTree() {
-        SPARKY_LOG_DEBUG("Created behavior tree");
     }
-
+    
     BehaviorTree::~BehaviorTree() {
     }
-
-    void BehaviorTree::setRoot(std::unique_ptr<BehaviorNode> root) {
-        this->root = std::move(root);
-        SPARKY_LOG_DEBUG("Set root node for behavior tree");
+    
+    void BehaviorTree::setRootNode(std::unique_ptr<BehaviorNode> root) {
+        rootNode = std::move(root);
     }
-
-    BehaviorStatus BehaviorTree::update(float deltaTime) {
-        if (!root) {
-            return BehaviorStatus::FAILURE;
+    
+    void BehaviorTree::update(float deltaTime) {
+        if (rootNode) {
+            NodeStatus rootStatus = rootNode->update(deltaTime);
+            
+            // If the root node finished (success or failure), reset it for the next run
+            if (rootStatus != NodeStatus::RUNNING) {
+                rootNode->reset();
+            }
         }
-
-        return root->update(deltaTime);
+    }
+    
+    void BehaviorTree::reset() {
+        if (rootNode) {
+            rootNode->reset();
+        }
     }
 }

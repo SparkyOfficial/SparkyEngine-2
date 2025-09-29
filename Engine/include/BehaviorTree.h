@@ -3,105 +3,109 @@
 #include <memory>
 #include <vector>
 #include <functional>
-#include <string>
 
 namespace Sparky {
-    enum class BehaviorStatus {
+    
+    // Forward declarations
+    class GameObject;
+    
+    // Behavior tree node types
+    enum class NodeType {
+        ACTION,
+        CONDITION,
+        SELECTOR,
+        SEQUENCE,
+        PARALLEL
+    };
+    
+    // Behavior tree node status
+    enum class NodeStatus {
         SUCCESS,
         FAILURE,
         RUNNING
     };
-
+    
+    // Base class for behavior tree nodes
     class BehaviorNode {
     public:
-        BehaviorNode(const std::string& name = "BehaviorNode");
+        BehaviorNode(NodeType type);
         virtual ~BehaviorNode();
-
-        virtual BehaviorStatus update(float deltaTime) = 0;
-        virtual void initialize();
-        virtual void terminate(BehaviorStatus status);
-
-        const std::string& getName() const { return name; }
-        BehaviorStatus getStatus() const { return status; }
-
-    protected:
-        std::string name;
-        BehaviorStatus status;
-    };
-
-    class CompositeNode : public BehaviorNode {
-    public:
-        CompositeNode(const std::string& name = "CompositeNode");
-        virtual ~CompositeNode();
-
+        
+        virtual NodeStatus update(float deltaTime) = 0;
+        virtual void reset();
+        
+        NodeType getType() const { return type; }
+        NodeStatus getStatus() const { return status; }
+        
+        // Child management
         void addChild(std::unique_ptr<BehaviorNode> child);
         const std::vector<std::unique_ptr<BehaviorNode>>& getChildren() const { return children; }
-
+        
     protected:
+        NodeType type;
+        NodeStatus status;
         std::vector<std::unique_ptr<BehaviorNode>> children;
     };
-
-    class Selector : public CompositeNode {
+    
+    // Action node - performs an action
+    class ActionNode : public BehaviorNode {
     public:
-        Selector(const std::string& name = "Selector");
-        virtual ~Selector();
-
-        BehaviorStatus update(float deltaTime) override;
-
+        ActionNode(std::function<NodeStatus(float)> actionFunc);
+        virtual ~ActionNode();
+        
+        NodeStatus update(float deltaTime) override;
+        
     private:
-        size_t currentChild;
+        std::function<NodeStatus(float)> actionFunction;
     };
-
-    class Sequence : public CompositeNode {
+    
+    // Condition node - checks a condition
+    class ConditionNode : public BehaviorNode {
     public:
-        Sequence(const std::string& name = "Sequence");
-        virtual ~Sequence();
-
-        BehaviorStatus update(float deltaTime) override;
+        ConditionNode(std::function<bool()> conditionFunc);
+        virtual ~ConditionNode();
+        
+        NodeStatus update(float deltaTime) override;
+        
+    private:
+        std::function<bool()> conditionFunction;
     };
-
-    class DecoratorNode : public BehaviorNode {
+    
+    // Selector node - tries each child until one succeeds
+    class SelectorNode : public BehaviorNode {
     public:
-        DecoratorNode(const std::string& name = "DecoratorNode");
-        virtual ~DecoratorNode();
-
-        void setChild(std::unique_ptr<BehaviorNode> child);
-        BehaviorNode* getChild() const { return child.get(); }
-
-    protected:
-        std::unique_ptr<BehaviorNode> child;
+        SelectorNode();
+        virtual ~SelectorNode();
+        
+        NodeStatus update(float deltaTime) override;
+        
+    private:
+        size_t currentChildIndex;
     };
-
-    class Inverter : public DecoratorNode {
+    
+    // Sequence node - executes children in order until one fails
+    class SequenceNode : public BehaviorNode {
     public:
-        Inverter(const std::string& name = "Inverter");
-        virtual ~Inverter();
-
-        BehaviorStatus update(float deltaTime) override;
+        SequenceNode();
+        virtual ~SequenceNode();
+        
+        NodeStatus update(float deltaTime) override;
+        
+    private:
+        size_t currentChildIndex;
     };
-
-    class LeafNode : public BehaviorNode {
-    public:
-        LeafNode(const std::string& name = "LeafNode");
-        virtual ~LeafNode();
-
-        using TaskFunction = std::function<BehaviorStatus(float)>;
-
-        void setTask(TaskFunction task);
-
-    protected:
-        TaskFunction task;
-    };
-
+    
+    // Behavior tree class
     class BehaviorTree {
     public:
         BehaviorTree();
         ~BehaviorTree();
-
-        void setRoot(std::unique_ptr<BehaviorNode> root);
-        BehaviorStatus update(float deltaTime);
-
+        
+        void setRootNode(std::unique_ptr<BehaviorNode> root);
+        void update(float deltaTime);
+        void reset();
+        
     private:
-        std::unique_ptr<BehaviorNode> root;
+        std::unique_ptr<BehaviorNode> rootNode;
     };
 }

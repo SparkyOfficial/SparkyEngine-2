@@ -1,35 +1,20 @@
 #include "../include/Mesh.h"
 #include "../include/Logger.h"
-#include <glm/glm.hpp>
-#include <glm/gtc/matrix_transform.hpp>
 #include <cmath>
-#include <vector>
-#include <array>
-#include <string>
-
-// Define M_PI if not already defined
-#ifndef M_PI
-#define M_PI 3.14159265358979323846
-#endif
 
 namespace Sparky {
 
-    // Implement the missing Vertex methods
     VkVertexInputBindingDescription Vertex::getBindingDescription() {
         VkVertexInputBindingDescription bindingDescription{};
         bindingDescription.binding = 0;
         bindingDescription.stride = sizeof(Vertex);
         bindingDescription.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
         
-        SPARKY_LOG_DEBUG("Vertex binding description - binding: " + std::to_string(bindingDescription.binding) + 
-                        ", stride: " + std::to_string(bindingDescription.stride) + 
-                        ", inputRate: " + std::to_string(bindingDescription.inputRate));
-        
         return bindingDescription;
     }
 
-    std::array<VkVertexInputAttributeDescription, 3> Vertex::getAttributeDescriptions() {
-        std::array<VkVertexInputAttributeDescription, 3> attributeDescriptions{};
+    std::vector<VkVertexInputAttributeDescription> Vertex::getAttributeDescriptions() {
+        std::vector<VkVertexInputAttributeDescription> attributeDescriptions(3);
         
         // Position attribute
         attributeDescriptions[0].binding = 0;
@@ -37,11 +22,11 @@ namespace Sparky {
         attributeDescriptions[0].format = VK_FORMAT_R32G32B32_SFLOAT;
         attributeDescriptions[0].offset = offsetof(Vertex, position);
         
-        // Color attribute
+        // Normal attribute
         attributeDescriptions[1].binding = 0;
         attributeDescriptions[1].location = 1;
         attributeDescriptions[1].format = VK_FORMAT_R32G32B32_SFLOAT;
-        attributeDescriptions[1].offset = offsetof(Vertex, color);
+        attributeDescriptions[1].offset = offsetof(Vertex, normal);
         
         // Texture coordinate attribute
         attributeDescriptions[2].binding = 0;
@@ -49,32 +34,40 @@ namespace Sparky {
         attributeDescriptions[2].format = VK_FORMAT_R32G32_SFLOAT;
         attributeDescriptions[2].offset = offsetof(Vertex, texCoord);
         
-        SPARKY_LOG_DEBUG("Vertex attribute descriptions created");
-        SPARKY_LOG_DEBUG("Position - location: " + std::to_string(attributeDescriptions[0].location) + 
-                        ", format: " + std::to_string(attributeDescriptions[0].format) + 
-                        ", offset: " + std::to_string(attributeDescriptions[0].offset));
-        SPARKY_LOG_DEBUG("Color - location: " + std::to_string(attributeDescriptions[1].location) + 
-                        ", format: " + std::to_string(attributeDescriptions[1].format) + 
-                        ", offset: " + std::to_string(attributeDescriptions[1].offset));
-        SPARKY_LOG_DEBUG("TexCoord - location: " + std::to_string(attributeDescriptions[2].location) + 
-                        ", format: " + std::to_string(attributeDescriptions[2].format) + 
-                        ", offset: " + std::to_string(attributeDescriptions[2].offset));
-        
         return attributeDescriptions;
     }
+    
+    bool Vertex::operator==(const Vertex& other) const {
+        return position == other.position && normal == other.normal && texCoord == other.texCoord;
+    }
 
-    Mesh::Mesh() {
+    Mesh::Mesh() : vertexBuffer(nullptr), vertexBufferMemory(nullptr), 
+                  indexBuffer(nullptr), indexBufferMemory(nullptr) {
     }
 
     Mesh::~Mesh() {
     }
 
-    void Mesh::setVertices(const std::vector<Vertex>& vertices) {
-        this->vertices = vertices;
-    }
-
-    void Mesh::setIndices(const std::vector<uint32_t>& indices) {
-        this->indices = indices;
+    void Mesh::cleanup(VkDevice device) {
+        if (indexBufferMemory) {
+            vkFreeMemory(device, indexBufferMemory, nullptr);
+            indexBufferMemory = nullptr;
+        }
+        
+        if (indexBuffer) {
+            vkDestroyBuffer(device, indexBuffer, nullptr);
+            indexBuffer = nullptr;
+        }
+        
+        if (vertexBufferMemory) {
+            vkFreeMemory(device, vertexBufferMemory, nullptr);
+            vertexBufferMemory = nullptr;
+        }
+        
+        if (vertexBuffer) {
+            vkDestroyBuffer(device, vertexBuffer, nullptr);
+            vertexBuffer = nullptr;
+        }
     }
 
     std::unique_ptr<Mesh> Mesh::createCube(float size) {
@@ -82,65 +75,54 @@ namespace Sparky {
         
         float halfSize = size * 0.5f;
         
-        // Define vertices for a cube with more distinct colors
-        std::vector<Vertex> vertices = {
-            // Front face (red)
-            {{-halfSize, -halfSize,  halfSize}, {1.0f, 0.0f, 0.0f}, {0.0f, 0.0f}}, // 0
-            {{ halfSize, -halfSize,  halfSize}, {1.0f, 0.0f, 0.0f}, {1.0f, 0.0f}}, // 1
-            {{ halfSize,  halfSize,  halfSize}, {1.0f, 0.0f, 0.0f}, {1.0f, 1.0f}}, // 2
-            {{-halfSize,  halfSize,  halfSize}, {1.0f, 0.0f, 0.0f}, {0.0f, 1.0f}}, // 3
-            
-            // Back face (green)
-            {{-halfSize, -halfSize, -halfSize}, {0.0f, 1.0f, 0.0f}, {1.0f, 0.0f}}, // 4
-            {{ halfSize, -halfSize, -halfSize}, {0.0f, 1.0f, 0.0f}, {0.0f, 0.0f}}, // 5
-            {{ halfSize,  halfSize, -halfSize}, {0.0f, 1.0f, 0.0f}, {0.0f, 1.0f}}, // 6
-            {{-halfSize,  halfSize, -halfSize}, {0.0f, 1.0f, 0.0f}, {1.0f, 1.0f}}, // 7
-            
-            // Left face (blue)
-            {{-halfSize, -halfSize, -halfSize}, {0.0f, 0.0f, 1.0f}, {0.0f, 0.0f}}, // 8
-            {{-halfSize, -halfSize,  halfSize}, {0.0f, 0.0f, 1.0f}, {1.0f, 0.0f}}, // 9
-            {{-halfSize,  halfSize,  halfSize}, {0.0f, 0.0f, 1.0f}, {1.0f, 1.0f}}, // 10
-            {{-halfSize,  halfSize, -halfSize}, {0.0f, 0.0f, 1.0f}, {0.0f, 1.0f}}, // 11
-            
-            // Right face (yellow)
-            {{ halfSize, -halfSize, -halfSize}, {1.0f, 1.0f, 0.0f}, {1.0f, 0.0f}}, // 12
-            {{ halfSize, -halfSize,  halfSize}, {1.0f, 1.0f, 0.0f}, {0.0f, 0.0f}}, // 13
-            {{ halfSize,  halfSize,  halfSize}, {1.0f, 1.0f, 0.0f}, {0.0f, 1.0f}}, // 14
-            {{ halfSize,  halfSize, -halfSize}, {1.0f, 1.0f, 0.0f}, {1.0f, 1.0f}}, // 15
-            
-            // Top face (magenta)
-            {{-halfSize,  halfSize, -halfSize}, {1.0f, 0.0f, 1.0f}, {0.0f, 0.0f}}, // 16
-            {{-halfSize,  halfSize,  halfSize}, {1.0f, 0.0f, 1.0f}, {1.0f, 0.0f}}, // 17
-            {{ halfSize,  halfSize,  halfSize}, {1.0f, 0.0f, 1.0f}, {1.0f, 1.0f}}, // 18
-            {{ halfSize,  halfSize, -halfSize}, {1.0f, 0.0f, 1.0f}, {0.0f, 1.0f}}, // 19
-            
-            // Bottom face (cyan)
-            {{-halfSize, -halfSize, -halfSize}, {0.0f, 1.0f, 1.0f}, {1.0f, 0.0f}}, // 20
-            {{-halfSize, -halfSize,  halfSize}, {0.0f, 1.0f, 1.0f}, {0.0f, 0.0f}}, // 21
-            {{ halfSize, -halfSize,  halfSize}, {0.0f, 1.0f, 1.0f}, {0.0f, 1.0f}}, // 22
-            {{ halfSize, -halfSize, -halfSize}, {0.0f, 1.0f, 1.0f}, {1.0f, 1.0f}}  // 23
-        };
-        
-        // Define indices for the cube faces
-        std::vector<uint32_t> indices = {
+        // Define vertices with positions, normals, and texture coordinates
+        mesh->vertices = {
             // Front face
-            0, 1, 2, 2, 3, 0,
+            {{-halfSize, -halfSize,  halfSize}, {0.0f, 0.0f, 1.0f}, {0.0f, 0.0f}},
+            {{ halfSize, -halfSize,  halfSize}, {0.0f, 0.0f, 1.0f}, {1.0f, 0.0f}},
+            {{ halfSize,  halfSize,  halfSize}, {0.0f, 0.0f, 1.0f}, {1.0f, 1.0f}},
+            {{-halfSize,  halfSize,  halfSize}, {0.0f, 0.0f, 1.0f}, {0.0f, 1.0f}},
+            
             // Back face
-            4, 6, 5, 6, 4, 7,
-            // Left face
-            8, 9, 10, 10, 11, 8,
-            // Right face
-            12, 14, 13, 14, 12, 15,
+            {{-halfSize, -halfSize, -halfSize}, {0.0f, 0.0f, -1.0f}, {1.0f, 0.0f}},
+            {{-halfSize,  halfSize, -halfSize}, {0.0f, 0.0f, -1.0f}, {1.0f, 1.0f}},
+            {{ halfSize,  halfSize, -halfSize}, {0.0f, 0.0f, -1.0f}, {0.0f, 1.0f}},
+            {{ halfSize, -halfSize, -halfSize}, {0.0f, 0.0f, -1.0f}, {0.0f, 0.0f}},
+            
             // Top face
-            16, 17, 18, 18, 19, 16,
+            {{-halfSize,  halfSize, -halfSize}, {0.0f, 1.0f, 0.0f}, {0.0f, 1.0f}},
+            {{-halfSize,  halfSize,  halfSize}, {0.0f, 1.0f, 0.0f}, {0.0f, 0.0f}},
+            {{ halfSize,  halfSize,  halfSize}, {0.0f, 1.0f, 0.0f}, {1.0f, 0.0f}},
+            {{ halfSize,  halfSize, -halfSize}, {0.0f, 1.0f, 0.0f}, {1.0f, 1.0f}},
+            
             // Bottom face
-            20, 22, 21, 22, 20, 23
+            {{-halfSize, -halfSize, -halfSize}, {0.0f, -1.0f, 0.0f}, {0.0f, 0.0f}},
+            {{ halfSize, -halfSize, -halfSize}, {0.0f, -1.0f, 0.0f}, {1.0f, 0.0f}},
+            {{ halfSize, -halfSize,  halfSize}, {0.0f, -1.0f, 0.0f}, {1.0f, 1.0f}},
+            {{-halfSize, -halfSize,  halfSize}, {0.0f, -1.0f, 0.0f}, {0.0f, 1.0f}},
+            
+            // Right face
+            {{ halfSize, -halfSize, -halfSize}, {1.0f, 0.0f, 0.0f}, {1.0f, 0.0f}},
+            {{ halfSize,  halfSize, -halfSize}, {1.0f, 0.0f, 0.0f}, {1.0f, 1.0f}},
+            {{ halfSize,  halfSize,  halfSize}, {1.0f, 0.0f, 0.0f}, {0.0f, 1.0f}},
+            {{ halfSize, -halfSize,  halfSize}, {1.0f, 0.0f, 0.0f}, {0.0f, 0.0f}},
+            
+            // Left face
+            {{-halfSize, -halfSize, -halfSize}, {-1.0f, 0.0f, 0.0f}, {0.0f, 0.0f}},
+            {{-halfSize, -halfSize,  halfSize}, {-1.0f, 0.0f, 0.0f}, {1.0f, 0.0f}},
+            {{-halfSize,  halfSize,  halfSize}, {-1.0f, 0.0f, 0.0f}, {1.0f, 1.0f}},
+            {{-halfSize,  halfSize, -halfSize}, {-1.0f, 0.0f, 0.0f}, {0.0f, 1.0f}}
         };
         
-        mesh->setVertices(vertices);
-        mesh->setIndices(indices);
-        
-        SPARKY_LOG_DEBUG("Created cube mesh with " + std::to_string(vertices.size()) + " vertices and " + std::to_string(indices.size()) + " indices");
+        // Define indices
+        mesh->indices = {
+            0,  1,  2,  2,  3,  0,    // Front
+            4,  5,  6,  6,  7,  4,    // Back
+            8,  9,  10, 10, 11, 8,    // Top
+            12, 13, 14, 14, 15, 12,   // Bottom
+            16, 17, 18, 18, 19, 16,   // Right
+            20, 21, 22, 22, 23, 20    // Left
+        };
         
         return mesh;
     }
@@ -151,32 +133,24 @@ namespace Sparky {
         float halfWidth = width * 0.5f;
         float halfHeight = height * 0.5f;
         
-        // Define vertices for a plane with a distinct color
-        std::vector<Vertex> vertices = {
-            {{-halfWidth, 0.0f, -halfHeight}, {0.5f, 0.5f, 1.0f}, {0.0f, 0.0f}}, // Blue-ish
-            {{ halfWidth, 0.0f, -halfHeight}, {0.5f, 0.5f, 1.0f}, {1.0f, 0.0f}}, // Blue-ish
-            {{ halfWidth, 0.0f,  halfHeight}, {0.5f, 0.5f, 1.0f}, {1.0f, 1.0f}}, // Blue-ish
-            {{-halfWidth, 0.0f,  halfHeight}, {0.5f, 0.5f, 1.0f}, {0.0f, 1.0f}}  // Blue-ish
+        // Define vertices with positions, normals, and texture coordinates
+        mesh->vertices = {
+            {{-halfWidth, 0.0f, -halfHeight}, {0.0f, 1.0f, 0.0f}, {0.0f, 0.0f}},
+            {{ halfWidth, 0.0f, -halfHeight}, {0.0f, 1.0f, 0.0f}, {1.0f, 0.0f}},
+            {{ halfWidth, 0.0f,  halfHeight}, {0.0f, 1.0f, 0.0f}, {1.0f, 1.0f}},
+            {{-halfWidth, 0.0f,  halfHeight}, {0.0f, 1.0f, 0.0f}, {0.0f, 1.0f}}
         };
         
-        // Define indices for the plane
-        std::vector<uint32_t> indices = {
+        // Define indices
+        mesh->indices = {
             0, 1, 2, 2, 3, 0
         };
-        
-        mesh->setVertices(vertices);
-        mesh->setIndices(indices);
-        
-        SPARKY_LOG_DEBUG("Created plane mesh with " + std::to_string(vertices.size()) + " vertices and " + std::to_string(indices.size()) + " indices");
         
         return mesh;
     }
 
     std::unique_ptr<Mesh> Mesh::createSphere(float radius, int sectors, int stacks) {
         auto mesh = std::make_unique<Mesh>();
-        
-        std::vector<Vertex> vertices;
-        std::vector<uint32_t> indices;
         
         float sectorStep = 2 * M_PI / sectors;
         float stackStep = M_PI / stacks;
@@ -192,23 +166,18 @@ namespace Sparky {
                 float x = xy * cosf(sectorAngle);
                 float y = xy * sinf(sectorAngle);
                 
-                Vertex vertex;
-                vertex.position = glm::vec3(x, y, z);
+                // Vertex position
+                glm::vec3 position(x, y, z);
                 
-                // Color based on position
-                vertex.color = glm::vec3(
-                    (x + radius) / (2 * radius),
-                    (y + radius) / (2 * radius),
-                    (z + radius) / (2 * radius)
-                );
+                // Normal (normalized position for sphere)
+                glm::vec3 normal = glm::normalize(position);
                 
-                // Texture coordinates
-                vertex.texCoord = glm::vec2(
-                    (float)j / sectors,
-                    (float)i / stacks
-                );
+                // Texture coordinate
+                float s = (float)j / sectors;
+                float t = (float)i / stacks;
+                glm::vec2 texCoord(s, t);
                 
-                vertices.push_back(vertex);
+                mesh->vertices.push_back({position, normal, texCoord});
             }
         }
         
@@ -219,21 +188,37 @@ namespace Sparky {
             
             for (int j = 0; j < sectors; ++j, ++k1, ++k2) {
                 if (i != 0) {
-                    indices.push_back(k1);
-                    indices.push_back(k2);
-                    indices.push_back(k1 + 1);
+                    mesh->indices.push_back(k1);
+                    mesh->indices.push_back(k2);
+                    mesh->indices.push_back(k1 + 1);
                 }
                 
                 if (i != (stacks - 1)) {
-                    indices.push_back(k1 + 1);
-                    indices.push_back(k2);
-                    indices.push_back(k2 + 1);
+                    mesh->indices.push_back(k1 + 1);
+                    mesh->indices.push_back(k2);
+                    mesh->indices.push_back(k2 + 1);
                 }
             }
         }
         
-        mesh->setVertices(vertices);
-        mesh->setIndices(indices);
+        return mesh;
+    }
+
+    std::unique_ptr<Mesh> Mesh::createQuad() {
+        auto mesh = std::make_unique<Mesh>();
+        
+        // Define vertices with positions, normals, and texture coordinates
+        mesh->vertices = {
+            {{-0.5f, -0.5f, 0.0f}, {0.0f, 0.0f, 1.0f}, {0.0f, 0.0f}},
+            {{ 0.5f, -0.5f, 0.0f}, {0.0f, 0.0f, 1.0f}, {1.0f, 0.0f}},
+            {{ 0.5f,  0.5f, 0.0f}, {0.0f, 0.0f, 1.0f}, {1.0f, 1.0f}},
+            {{-0.5f,  0.5f, 0.0f}, {0.0f, 0.0f, 1.0f}, {0.0f, 1.0f}}
+        };
+        
+        // Define indices
+        mesh->indices = {
+            0, 1, 2, 2, 3, 0
+        };
         
         return mesh;
     }

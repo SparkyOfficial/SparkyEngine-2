@@ -8,6 +8,7 @@ add_executable(SparkyGame
     src/Platform.cpp
     src/Gun.cpp
     src/Level.cpp
+    src/Enemy.cpp
     src/ExampleGame.cpp
     src/PhysicsDemo.cpp
 )
@@ -18,6 +19,14 @@ add_executable(test_json_level
     src/Level.cpp
     src/Platform.cpp
     src/Gun.cpp
+    src/Enemy.cpp
+)
+
+# Create a test executable for the new components
+add_executable(test_components
+    src/test_components.cpp
+    ../Engine/src/HealthComponent.cpp
+    ../Engine/src/AIComponent.cpp
 )
 
 # Pass the project source directory to the code
@@ -37,6 +46,13 @@ target_link_libraries(test_json_level SparkyEngine
     ${glslang_LIBRARIES}
 )
 
+# Link the components test executable
+target_link_libraries(test_components SparkyEngine 
+    ${VULKAN_LIBRARIES}
+    ${GLFW_LIBRARIES}
+    ${glslang_LIBRARIES}
+)
+
 # Include directories
 target_include_directories(SparkyGame PRIVATE 
     ${CMAKE_CURRENT_SOURCE_DIR}/../Engine/include
@@ -44,5 +60,10 @@ target_include_directories(SparkyGame PRIVATE
 
 # Include directories for test executable
 target_include_directories(test_json_level PRIVATE 
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Engine/include
+)
+
+# Include directories for components test executable
+target_include_directories(test_components PRIVATE 
     ${CMAKE_CURRENT_SOURCE_DIR}/../Engine/include
 )

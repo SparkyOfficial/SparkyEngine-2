@@ -32,6 +32,10 @@
 #include "../include/RenderSystem.h"
 #include "../include/GameObject.h"
 #include "../include/RenderComponent.h"
+#include "../include/Material.h"
+#include "../include/Light.h"
+#include "../include/stb_image.h"
+#include <nlohmann/json.hpp>
 
 // Debug callback function
 static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
@@ -295,14 +299,20 @@ namespace Sparky {
         
         result = vkQueuePresentKHR(presentQueue, &presentInfo);
         
-        if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR || (engine && engine->getWindowManager().framebufferResized)) {
-            if (engine) engine->getWindowManager().framebufferResized = false;
+        if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR) {
             recreateSwapChain();
         } else if (result != VK_SUCCESS) {
             throw std::runtime_error("failed to present swap chain image!");
         }
         
         currentFrame = (currentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
+    }
+
+    void VulkanRenderer::renderMeshes() {
+        // This method is called from the render loop to render all meshes
+        // In a full implementation, this would iterate through all registered meshes
+        // and render them with appropriate materials and lighting
+        meshRenderer.renderMeshes();
     }
 
     bool VulkanRenderer::checkValidationLayerSupport() {
@@ -649,6 +659,32 @@ namespace Sparky {
         SPARKY_LOG_INFO("Descriptor set layout created");
     }
 
+    void VulkanRenderer::createMaterialDescriptorSetLayout() {
+        VkDescriptorSetLayoutBinding materialUniformBinding{};
+        materialUniformBinding.binding = 0;
+        materialUniformBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+        materialUniformBinding.descriptorCount = 1;
+        materialUniformBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+        materialUniformBinding.pImmutableSamplers = nullptr;
+
+        VkDescriptorSetLayoutBinding samplerBinding{};
+        samplerBinding.binding = 1;
+        samplerBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+        samplerBinding.descriptorCount = 1;
+        samplerBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+        samplerBinding.pImmutableSamplers = nullptr;
+
+        std::array<VkDescriptorSetLayoutBinding, 2> bindings = {materialUniformBinding, samplerBinding};
+        VkDescriptorSetLayoutCreateInfo layoutInfo{};
+        layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+        layoutInfo.bindingCount = static_cast<uint32_t>(bindings.size());
+        layoutInfo.pBindings = bindings.data();
+
+        if (vkCreateDescriptorSetLayout(device, &layoutInfo, nullptr, &materialDescriptorSetLayout) != VK_SUCCESS) {
+            throw std::runtime_error("failed to create material descriptor set layout!");
+        }
+    }
+
     void VulkanRenderer::createCommandPool() {
         QueueFamilyIndices queueFamilyIndices = findQueueFamilies(physicalDevice);
 
@@ -665,128 +701,52 @@ namespace Sparky {
     }
 
     void VulkanRenderer::createGraphicsPipeline() {
-        // Compile shaders if needed
+        SPARKY_LOG_INFO("Creating graphics pipeline");
+        
+        // Use the advanced shaders instead of basic ones
+        std::string project_root = TOSTRING(PROJECT_SOURCE_DIR);
+        if (!project_root.empty() && project_root.front() == '"') {
+            project_root = project_root.substr(1);
+        }
+        if (!project_root.empty() && project_root.back() == '"') {
+            project_root = project_root.substr(0, project_root.length() - 1);
+        }
+        
+        std::string vertShaderPath = project_root + "/Engine/shaders/advanced.vert";
+        std::string fragShaderPath = project_root + "/Engine/shaders/advanced.frag";
+        std::string vertSPVPath = project_root + "/Engine/shaders/advanced.vert.spv";
+        std::string fragSPVPath = project_root + "/Engine/shaders/advanced.frag.spv";
+        
         std::vector<uint32_t> vertShaderCode;
         std::vector<uint32_t> fragShaderCode;
         
         try {
-            // Use the project source directory to build absolute paths to shaders
-            // Convert the macro to a string
-            #define STRINGIFY(x) #x
-            #define TOSTRING(x) STRINGIFY(x)
-            std::string project_root = TOSTRING(PROJECT_SOURCE_DIR);
+            // Check if SPIR-V files exist
+            bool vertSPVFound = Sparky::FileUtils::fileExists(vertSPVPath);
+            bool fragSPVFound = Sparky::FileUtils::fileExists(fragSPVPath);
+            bool vertShaderFound = Sparky::FileUtils::fileExists(vertShaderPath);
+            bool fragShaderFound = Sparky::FileUtils::fileExists(fragShaderPath);
             
-            // Remove any quotes from the path
-            if (!project_root.empty() && project_root.front() == '"') {
-                project_root = project_root.substr(1);
-            }
-            if (!project_root.empty() && project_root.back() == '"') {
-                project_root = project_root.substr(0, project_root.length() - 1);
-            }
-            
-            // Build absolute paths to the shaders
-            std::string vertShaderPath = project_root + "/Engine/shaders/basic.vert";
-            std::string fragShaderPath = project_root + "/Engine/shaders/basic.frag";
-            std::string vertSPVPath = project_root + "/Engine/shaders/basic.vert.spv";
-            std::string fragSPVPath = project_root + "/Engine/shaders/basic.frag.spv";
-            
-            // Try alternative paths if the first one doesn't work
-            std::vector<std::string> vertShaderPaths = {
-                vertShaderPath,
-                project_root + "/shaders/basic.vert",
-                "../Engine/shaders/basic.vert",
-                "../../Engine/shaders/basic.vert",
-                "Engine/shaders/basic.vert"
-            };
-            
-            std::vector<std::string> fragShaderPaths = {
-                fragShaderPath,
-                project_root + "/shaders/basic.frag",
-                "../Engine/shaders/basic.frag",
-                "../../Engine/shaders/basic.frag",
-                "Engine/shaders/basic.frag"
-            };
-            
-            std::vector<std::string> vertSPVPaths = {
-                vertSPVPath,
-                project_root + "/shaders/basic.vert.spv",
-                "../Engine/shaders/basic.vert.spv",
-                "../../Engine/shaders/basic.vert.spv",
-                "Engine/shaders/basic.vert.spv"
-            };
-            
-            std::vector<std::string> fragSPVPaths = {
-                fragSPVPath,
-                project_root + "/shaders/basic.frag.spv",
-                "../Engine/shaders/basic.frag.spv",
-                "../../Engine/shaders/basic.frag.spv",
-                "Engine/shaders/basic.frag.spv"
-            };
-            
-            std::string vertShaderPathFound, fragShaderPathFound;
-            std::string vertSPVPathFound, fragSPVPathFound;
-            bool vertShaderFound = false, fragShaderFound = false;
-            bool vertSPVFound = false, fragSPVFound = false;
-            
-            // Try to find vertex shader
-            for (const auto& path : vertShaderPaths) {
-                // SPARKY_LOG_DEBUG("Trying vertex shader path: " + path);
-                if (Sparky::FileUtils::fileExists(path)) {
-                    vertShaderPathFound = path;
-                    vertShaderFound = true;
-                    // SPARKY_LOG_DEBUG("Found vertex shader at: " + path);
-                    break;
-                }
-            }
-            
-            // Try to find fragment shader
-            for (const auto& path : fragShaderPaths) {
-                // SPARKY_LOG_DEBUG("Trying fragment shader path: " + path);
-                if (Sparky::FileUtils::fileExists(path)) {
-                    fragShaderPathFound = path;
-                    fragShaderFound = true;
-                    // SPARKY_LOG_DEBUG("Found fragment shader at: " + path);
-                    break;
-                }
-            }
-            
-            // Try to find vertex SPIR-V
-            for (const auto& path : vertSPVPaths) {
-                // SPARKY_LOG_DEBUG("Trying vertex SPIR-V path: " + path);
-                if (Sparky::FileUtils::fileExists(path)) {
-                    vertSPVPathFound = path;
-                    vertSPVFound = true;
-                    SPARKY_LOG_INFO("Found vertex SPIR-V at: " + path);
-                    break;
-                }
-            }
-            
-            // Try to find fragment SPIR-V
-            for (const auto& path : fragSPVPaths) {
-                // SPARKY_LOG_DEBUG("Trying fragment SPIR-V path: " + path);
-                if (Sparky::FileUtils::fileExists(path)) {
-                    fragSPVPathFound = path;
-                    fragSPVFound = true;
-                    SPARKY_LOG_INFO("Found fragment SPIR-V at: " + path);
-                    break;
-                }
-            }
+            SPARKY_LOG_DEBUG("Vertex shader SPV found: " + std::to_string(vertSPVFound));
+            SPARKY_LOG_DEBUG("Fragment shader SPV found: " + std::to_string(fragSPVFound));
+            SPARKY_LOG_DEBUG("Vertex shader GLSL found: " + std::to_string(vertShaderFound));
+            SPARKY_LOG_DEBUG("Fragment shader GLSL found: " + std::to_string(fragShaderFound));
             
             // Prioritize SPIR-V files if they exist
             if (vertSPVFound && fragSPVFound) {
                 // Load pre-compiled SPIR-V files
-                vertShaderCode = ShaderCompiler::loadSPIRVFromFile(vertSPVPathFound);
-                fragShaderCode = ShaderCompiler::loadSPIRVFromFile(fragSPVPathFound);
+                vertShaderCode = ShaderCompiler::loadSPIRVFromFile(vertSPVPath);
+                fragShaderCode = ShaderCompiler::loadSPIRVFromFile(fragSPVPath);
                 SPARKY_LOG_INFO("Loaded pre-compiled SPIR-V files");
             } else if (vertShaderFound && fragShaderFound) {
                 // Compile GLSL shaders if SPIR-V files don't exist
                 // Read vertex shader source
-                std::vector<char> vertSource = FileUtils::readFile(vertShaderPathFound);
+                std::vector<char> vertSource = FileUtils::readFile(vertShaderPath);
                 std::string vertSourceStr(vertSource.begin(), vertSource.end());
                 SPARKY_LOG_DEBUG("Vertex shader source length: " + std::to_string(vertSourceStr.length()));
                 
                 // Read fragment shader source
-                std::vector<char> fragSource = FileUtils::readFile(fragShaderPathFound);
+                std::vector<char> fragSource = FileUtils::readFile(fragShaderPath);
                 std::string fragSourceStr(fragSource.begin(), fragSource.end());
                 SPARKY_LOG_DEBUG("Fragment shader source length: " + std::to_string(fragSourceStr.length()));
                 
@@ -816,12 +776,12 @@ namespace Sparky {
                     
                     // If compilation fails, try to load pre-compiled SPIR-V
                     if (vertSPVFound && fragSPVFound) {
-                        vertShaderCode = ShaderCompiler::loadSPIRVFromFile(vertSPVPathFound);
-                        fragShaderCode = ShaderCompiler::loadSPIRVFromFile(fragSPVPathFound);
+                        vertShaderCode = ShaderCompiler::loadSPIRVFromFile(vertSPVPath);
+                        fragShaderCode = ShaderCompiler::loadSPIRVFromFile(fragSPVPath);
                         SPARKY_LOG_INFO("Loaded pre-compiled SPIR-V files as fallback");
                     } else {
                         SPARKY_LOG_ERROR("Failed to find SPIR-V files");
-                        throw std::runtime_error("Failed to compile or load shaders: " + std::string(compileError.what()));
+                        throw std::runtime_error("Failed to compile shaders: " + std::string(compileError.what()));
                     }
                 }
             } else {
@@ -832,17 +792,6 @@ namespace Sparky {
             SPARKY_LOG_ERROR("Failed to compile shaders: " + std::string(e.what()));
             // Try to load pre-compiled SPIR-V files as a last resort
             try {
-                std::string project_root = TOSTRING(PROJECT_SOURCE_DIR);
-                if (!project_root.empty() && project_root.front() == '"') {
-                    project_root = project_root.substr(1);
-                }
-                if (!project_root.empty() && project_root.back() == '"') {
-                    project_root = project_root.substr(0, project_root.length() - 1);
-                }
-                
-                std::string vertSPVPath = project_root + "/Engine/shaders/basic.vert.spv";
-                std::string fragSPVPath = project_root + "/Engine/shaders/basic.frag.spv";
-                
                 if (Sparky::FileUtils::fileExists(vertSPVPath) && Sparky::FileUtils::fileExists(fragSPVPath)) {
                     vertShaderCode = ShaderCompiler::loadSPIRVFromFile(vertSPVPath);
                     fragShaderCode = ShaderCompiler::loadSPIRVFromFile(fragSPVPath);
@@ -873,7 +822,7 @@ namespace Sparky {
 
         VkPipelineShaderStageCreateInfo shaderStages[] = {vertShaderStageInfo, fragShaderStageInfo};
 
-        // Vertex input
+        // Vertex input - updated to include normals and texture coordinates
         VkPipelineVertexInputStateCreateInfo vertexInputInfo{};
         vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
 
@@ -886,7 +835,7 @@ namespace Sparky {
         vertexInputInfo.pVertexAttributeDescriptions = attributeDescriptions.data();
         
         SPARKY_LOG_DEBUG("Vertex input state - bindings: " + std::to_string(vertexInputInfo.vertexBindingDescriptionCount) + 
-                        ", attributes: " + std::to_string(vertexInputInfo.vertexAttributeDescriptionCount));
+                    ", attributes: " + std::to_string(vertexInputInfo.vertexAttributeDescriptionCount));
 
         // Input assembly
         VkPipelineInputAssemblyStateCreateInfo inputAssembly{};
@@ -955,10 +904,16 @@ namespace Sparky {
         pushConstantRange.offset = 0;
         pushConstantRange.size = sizeof(PushConstantData);
 
+        // Update to include multiple descriptor set layouts
+        std::vector<VkDescriptorSetLayout> layouts = {descriptorSetLayout};
+        if (materialDescriptorSetLayout != VK_NULL_HANDLE) {
+            layouts.push_back(materialDescriptorSetLayout);
+        }
+
         VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
         pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-        pipelineLayoutInfo.setLayoutCount = 1;
-        pipelineLayoutInfo.pSetLayouts = &descriptorSetLayout;
+        pipelineLayoutInfo.setLayoutCount = static_cast<uint32_t>(layouts.size());
+        pipelineLayoutInfo.pSetLayouts = layouts.data();
         pipelineLayoutInfo.pushConstantRangeCount = 1;
         pipelineLayoutInfo.pPushConstantRanges = &pushConstantRange;
 

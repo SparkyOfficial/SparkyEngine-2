@@ -17,6 +17,25 @@ namespace Sparky {
     Light::~Light() {
     }
 
-    // We can add any additional methods that aren't inline in the header here
-    // But we'll remove the duplicate definitions that are already in the header
+    void Light::fillUniformBufferObject(LightUniformBufferObject& ubo) const {
+        // Set position with w component indicating light type
+        ubo.position = glm::vec4(position, type == LightType::DIRECTIONAL ? 0.0f : 1.0f);
+        ubo.direction = glm::vec4(direction, 0.0f);
+        ubo.ambient = glm::vec4(ambient, 1.0f);
+        ubo.diffuse = glm::vec4(diffuse, 1.0f);
+        ubo.specular = glm::vec4(specular, 1.0f);
+        ubo.constant = constant;
+        ubo.linear = linear;
+        ubo.quadratic = quadratic;
+        ubo.cutOff = cutOff;
+        ubo.outerCutOff = outerCutOff;
+    }
+
+    void Light::fillUniformBufferObjects(std::vector<LightUniformBufferObject>& ubos, 
+                                      const std::vector<std::unique_ptr<Light>>& lights) {
+        ubos.resize(lights.size());
+        for (size_t i = 0; i < lights.size(); ++i) {
+            lights[i]->fillUniformBufferObject(ubos[i]);
+        }
+    }
 }

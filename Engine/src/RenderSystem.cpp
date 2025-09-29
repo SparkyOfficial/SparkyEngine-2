@@ -1,132 +1,92 @@
 #include "../include/RenderSystem.h"
 #include "../include/RenderComponent.h"
 #include "../include/Logger.h"
+#include "../include/MeshRenderer.h"
 #include <algorithm>
 
 namespace Sparky {
 
     RenderSystem::RenderSystem() : renderer(nullptr) {
+        SPARKY_LOG_DEBUG("RenderSystem created");
     }
 
     RenderSystem::~RenderSystem() {
-        cleanup();
+        SPARKY_LOG_DEBUG("RenderSystem destroyed");
     }
 
     void RenderSystem::initialize(VulkanRenderer* renderer) {
         this->renderer = renderer;
-        SPARKY_LOG_INFO("RenderSystem initialized");
+        SPARKY_LOG_DEBUG("RenderSystem initialized with VulkanRenderer");
     }
 
     void RenderSystem::cleanup() {
         gameObjects.clear();
-        renderer = nullptr;
-        SPARKY_LOG_INFO("RenderSystem cleaned up");
+        SPARKY_LOG_DEBUG("RenderSystem cleaned up");
     }
 
     void RenderSystem::registerGameObject(GameObject* gameObject) {
-        if (!gameObject) {
-            return;
-        }
-
-        // Check if the object is already registered
-        auto it = std::find(gameObjects.begin(), gameObjects.end(), gameObject);
-        if (it == gameObjects.end()) {
+        if (std::find(gameObjects.begin(), gameObjects.end(), gameObject) == gameObjects.end()) {
             gameObjects.push_back(gameObject);
-            SPARKY_LOG_INFO("Registered game object: " + gameObject->getName());
-            
-            // Create vertex and index buffers for the mesh if it has a render component
-            if (renderer) {
-                RenderComponent* renderComponent = gameObject->getComponent<RenderComponent>();
-                if (renderComponent && renderComponent->getMesh()) {
-                    MeshRenderer& meshRenderer = renderer->getMeshRenderer();
-                    const Mesh* mesh = renderComponent->getMesh();
-                    
-                    SPARKY_LOG_INFO("Creating vertex buffer for mesh with " + std::to_string(mesh->getVertices().size()) + " vertices");
-                    
-                    // Create vertex buffer
-                    meshRenderer.createVertexBuffer(*mesh);
-                    
-                    // Create index buffer if the mesh has indices
-                    if (!mesh->getIndices().empty()) {
-                        SPARKY_LOG_INFO("Creating index buffer for mesh with " + std::to_string(mesh->getIndices().size()) + " indices");
-                        meshRenderer.createIndexBuffer(*mesh);
-                    }
-                }
-            }
+            SPARKY_LOG_DEBUG("GameObject registered with RenderSystem: " + gameObject->getName());
         }
     }
 
     void RenderSystem::unregisterGameObject(GameObject* gameObject) {
-        if (!gameObject) {
-            return;
-        }
-
         auto it = std::find(gameObjects.begin(), gameObjects.end(), gameObject);
         if (it != gameObjects.end()) {
             gameObjects.erase(it);
-            SPARKY_LOG_INFO("Unregistered game object: " + gameObject->getName());
+            SPARKY_LOG_DEBUG("GameObject unregistered from RenderSystem: " + gameObject->getName());
         }
     }
 
     void RenderSystem::update(float deltaTime) {
-        // Render system doesn't need update logic in this implementation
-        // But we could add logic here for things like frustum culling, LOD, etc.
+        // Update all registered game objects
+        for (auto& gameObject : gameObjects) {
+            gameObject->update(deltaTime);
+        }
     }
 
     void RenderSystem::render() {
         if (!renderer) {
-            SPARKY_LOG_ERROR("RenderSystem not initialized with a renderer");
+            SPARKY_LOG_ERROR("RenderSystem::render() called without initialized renderer");
             return;
         }
-
-        // Get the mesh renderer from the Vulkan renderer
-        MeshRenderer& meshRenderer = renderer->getMeshRenderer();
         
-        // Log the number of game objects
-        static int frameCount = 0;
-        frameCount++;
-        if (frameCount % 60 == 0) { // Log every 60 frames
-            SPARKY_LOG_DEBUG("RenderSystem has " + std::to_string(gameObjects.size()) + " game objects registered");
-        }
-
-        // Render all registered game objects that have render components
-        int objectsProcessed = 0;
-        for (GameObject* gameObject : gameObjects) {
-            if (gameObject) {
-                objectsProcessed++;
-                renderGameObject(gameObject);
-            }
+        // Render all registered game objects
+        for (auto& gameObject : gameObjects) {
+            renderGameObject(gameObject);
         }
         
-        if (frameCount % 60 == 0) {
-            SPARKY_LOG_DEBUG("RenderSystem processed " + std::to_string(objectsProcessed) + " game objects");
-        }
+        // Tell the renderer to render all meshes
+        renderer->renderMeshes();
     }
 
     void RenderSystem::renderGameObject(GameObject* gameObject) {
-        if (!gameObject || !renderer) {
+        if (!gameObject) {
             return;
         }
-
-        // Get the render component from the game object
+        
+        // Get the render component
         RenderComponent* renderComponent = gameObject->getComponent<RenderComponent>();
-        if (renderComponent && renderComponent->getMesh()) {
-            // Log object rendering
-            static int frameCount = 0;
-            frameCount++;
-            if (frameCount % 300 == 0) { // Log every 300 frames
-                SPARKY_LOG_DEBUG("Rendering game object: " + gameObject->getName() + 
-                               " with " + std::to_string(renderComponent->getMesh()->getVertices().size()) + " vertices");
-            }
-            // We don't actually render here anymore - the VulkanRenderer handles this in recordCommandBuffer
-            // This method is kept for future expansion if needed
-        } else {
-            // Log if object doesn't have a render component
-            static int frameCount = 0;
-            frameCount++;
-            if (frameCount % 300 == 0) {
-                SPARKY_LOG_DEBUG("Skipping game object: " + gameObject->getName() + " (no render component or mesh)");
-            }
+        if (!renderComponent || !renderComponent->isVisible()) {
+            return;
         }
+        
+        // Get the mesh and material
+        Mesh* mesh = renderComponent->getMesh();
+        Material* material = renderComponent->getMaterial();
+        
+        if (!mesh) {
+            return;
+        }
+        
+        // In a full implementation, we would:
+        // 1. Bind the material's descriptor set
+        // 2. Set the push constants for the model matrix
+        // 3. Draw the mesh
+        // 
+        // For now, we'll just log that we're rendering
+        SPARKY_LOG_DEBUG("Rendering GameObject: " + gameObject->getName() + 
+                        " with " + std::to_string(mesh->getVertexCount()) + " vertices");
     }
 }

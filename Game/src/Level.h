@@ -1,48 +1,55 @@
 #pragma once
 
-#include "../../Engine/include/GameObject.h"
-#include <vector>
 #include <string>
+#include <vector>
+#include <memory>
 #include <glm/glm.hpp>
 
-// Forward declarations
 namespace Sparky {
-    class Platform;
-    class Gun;
-}
-
-namespace Sparky {
-    class Level : public GameObject {
+    class GameObject;
+    class Player;
+    class Enemy;
+    
+    struct LevelObject {
+        std::string type;
+        glm::vec3 position;
+        glm::vec3 rotation;
+        glm::vec3 scale;
+        std::string name;
+    };
+    
+    class Level {
     public:
-        Level(const std::string& name);
+        Level();
         ~Level();
-
-        void update(float deltaTime) override;
-        void render() override;
-
-        // Level management
-        void loadLevel();
-        void loadLevelFromFile(const std::string& filename);
-        void unloadLevel();
-
-        // Add entities to the level
-        void addPlatform(Platform* platform);
-        void addGun(Gun* gun);
-
-        // Getters
-        const std::vector<Platform*>& getPlatforms() const { return platforms; }
-        const std::vector<Gun*>& getGuns() const { return guns; }
-
+        
+        bool loadFromFile(const std::string& filepath);
+        bool saveToFile(const std::string& filepath) const;
+        
+        void addLevelObject(const LevelObject& obj);
+        void removeLevelObject(size_t index);
+        const std::vector<LevelObject>& getLevelObjects() const { return levelObjects; }
+        
+        void spawnObjects();
+        
+        const std::string& getName() const { return name; }
+        void setName(const std::string& levelName) { name = levelName; }
+        
+        const std::string& getDescription() const { return description; }
+        void setDescription(const std::string& levelDescription) { description = levelDescription; }
+        
+        // Get spawned game objects
+        const std::vector<std::unique_ptr<GameObject>>& getSpawnedObjects() const { return spawnedObjects; }
+        
     private:
-        std::vector<Platform*> platforms;
-        std::vector<Gun*> guns;
+        std::string name;
+        std::string description;
+        std::vector<LevelObject> levelObjects;
+        std::vector<std::unique_ptr<GameObject>> spawnedObjects;
         
-        // Level geometry
-        void createTestLevel();
-        
-        // JSON parsing helpers
-        void parsePlatformFromJSON(const std::string& platformData);
-        void parseGunFromJSON(const std::string& gunData);
-        glm::vec3 parseVector3FromArray(const std::string& arrayContent);
+        // Private helper methods
+        std::unique_ptr<GameObject> createObject(const LevelObject& obj) const;
+        void parseLevelFile(const std::string& content);
+        std::string serializeLevel() const;
     };
 }

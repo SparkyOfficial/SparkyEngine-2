@@ -22,6 +22,9 @@ message(STATUS "Found GLFW library: ${GLFW_LIBRARIES}")
 # Add GLM support
 set(GLM_INCLUDE_DIRS "C:/glm-install/include")
 
+# Add JSON library support (nlohmann/json)
+set(JSON_INCLUDE_DIRS "C:/json-install/include")
+
 # Try to find glslang
 find_package(glslang QUIET)
 
@@ -58,4 +61,5 @@ add_subdirectory(Game)
 #     ${VULKAN_INCLUDE_DIRS}
 #     ${GLFW_INCLUDE_DIRS}
 #     ${GLM_INCLUDE_DIRS}
+#     ${JSON_INCLUDE_DIRS}
 # )

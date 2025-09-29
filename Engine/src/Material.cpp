@@ -1,21 +1,20 @@
 #include "../include/Material.h"
 #include "../include/Logger.h"
+#include "../include/Texture.h"
 
 namespace Sparky {
 
     Material::Material() : name("DefaultMaterial"), ambient(0.2f, 0.2f, 0.2f), 
                           diffuse(0.8f, 0.8f, 0.8f), specular(1.0f, 1.0f, 1.0f), 
                           shininess(32.0f), emissive(0.0f, 0.0f, 0.0f),
-                          diffuseTexture(-1), specularTexture(-1), 
-                          normalTexture(-1), emissiveTexture(-1),
+                          texture(nullptr),
                           shaderProgram(nullptr) {
     }
 
     Material::Material(const std::string& name) : name(name), ambient(0.2f, 0.2f, 0.2f), 
                                                  diffuse(0.8f, 0.8f, 0.8f), specular(1.0f, 1.0f, 1.0f), 
                                                  shininess(32.0f), emissive(0.0f, 0.0f, 0.0f),
-                                                 diffuseTexture(-1), specularTexture(-1), 
-                                                 normalTexture(-1), emissiveTexture(-1),
+                                                 texture(nullptr),
                                                  shaderProgram(nullptr) {
     }
 
@@ -42,20 +41,8 @@ namespace Sparky {
         this->emissive = emissive;
     }
 
-    void Material::setDiffuseTexture(int textureId) {
-        this->diffuseTexture = textureId;
-    }
-
-    void Material::setSpecularTexture(int textureId) {
-        this->specularTexture = textureId;
-    }
-
-    void Material::setNormalTexture(int textureId) {
-        this->normalTexture = textureId;
-    }
-
-    void Material::setEmissiveTexture(int textureId) {
-        this->emissiveTexture = textureId;
+    void Material::setTexture(Texture* texture) {
+        this->texture = texture;
     }
 
     void Material::setShaderProgram(ShaderProgram* shader) {
@@ -76,28 +63,10 @@ namespace Sparky {
             
             // Bind textures to the appropriate texture units
             // Activate the texture unit and bind the texture
-            if (diffuseTexture >= 0) {
+            if (texture) {
                 // In a complete implementation, we would activate the texture unit and bind the texture
                 // For now, we'll just set the uniform to indicate the texture unit
-                shaderProgram->setInt("material.diffuseTexture", 0); // Texture unit 0
-            }
-            
-            // Activate the texture unit and bind the texture
-            if (specularTexture >= 0) {
-                // In a complete implementation, we would activate the texture unit and bind the texture
-                shaderProgram->setInt("material.specularTexture", 1); // Texture unit 1
-            }
-            
-            // Activate the texture unit and bind the texture
-            if (normalTexture >= 0) {
-                // In a complete implementation, we would activate the texture unit and bind the texture
-                shaderProgram->setInt("material.normalTexture", 2); // Texture unit 2
-            }
-            
-            // Activate the texture unit and bind the texture
-            if (emissiveTexture >= 0) {
-                // In a complete implementation, we would activate the texture unit and bind the texture
-                shaderProgram->setInt("material.emissiveTexture", 3); // Texture unit 3
+                shaderProgram->setInt("material.texture", 0); // Texture unit 0
             }
             
             SPARKY_LOG_DEBUG("Material properties bound to shader successfully");

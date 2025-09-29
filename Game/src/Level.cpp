@@ -1,163 +1,210 @@
 #include "Level.h"
-#include "Platform.h"
-#include "Gun.h"
-#include <glm/glm.hpp>
+#include "Player.h"
+#include "Enemy.h"
+#include "../../Engine/include/GameObject.h"
+#include "../../Engine/include/Logger.h"
+#include "../../Engine/include/FileUtils.h"
+#include <nlohmann/json.hpp>
 #include <fstream>
 #include <sstream>
-#include <string>
-#include <vector>
-#include <map>
-#include <iostream>
+
+using json = nlohmann::json;
 
 namespace Sparky {
 
-    Level::Level(const std::string& name) : GameObject() {
-        setName(name);
+    Level::Level() : name("Untitled Level"), description("No description") {
+        SPARKY_LOG_DEBUG("Level created");
     }
 
     Level::~Level() {
-        unloadLevel();
+        SPARKY_LOG_DEBUG("Level destroyed");
     }
 
-    void Level::update(float deltaTime) {
-        GameObject::update(deltaTime);
+    bool Level::loadFromFile(const std::string& filepath) {
+        SPARKY_LOG_INFO("Loading level from file: " + filepath);
         
-        // Update all platforms
-        for (Platform* platform : platforms) {
-            platform->update(deltaTime);
-        }
-        
-        // Update all guns
-        for (Gun* gun : guns) {
-            gun->update(deltaTime);
-        }
-    }
-
-    void Level::render() {
-        GameObject::render();
-        
-        // Render all platforms
-        for (Platform* platform : platforms) {
-            platform->render();
-        }
-        
-        // Render all guns
-        for (Gun* gun : guns) {
-            gun->render();
-        }
-    }
-
-    void Level::loadLevel() {
-        createTestLevel();
-    }
-
-    void Level::loadLevelFromFile(const std::string& filename) {
-        // In a complete implementation, this would parse the JSON file
-        // and create entities based on the file contents
-        // For now, we'll just create the test level
-        createTestLevel();
-    }
-
-    void Level::unloadLevel() {
-        // Clean up platforms
-        for (Platform* platform : platforms) {
-            delete platform;
-        }
-        platforms.clear();
-        
-        // Clean up guns
-        for (Gun* gun : guns) {
-            delete gun;
-        }
-        guns.clear();
-    }
-
-    void Level::addPlatform(Platform* platform) {
-        platforms.push_back(platform);
-    }
-
-    void Level::addGun(Gun* gun) {
-        guns.push_back(gun);
-    }
-
-    void Level::createTestLevel() {
-        // Create a floor platform
-        Platform* floor = new Platform("Floor");
-        floor->setPosition(glm::vec3(0.0f, -1.0f, 0.0f));
-        floor->setSize(glm::vec3(20.0f, 1.0f, 20.0f));
-        addPlatform(floor);
-        
-        // Create some platforms
-        Platform* platform1 = new Platform("Platform1");
-        platform1->setPosition(glm::vec3(5.0f, 2.0f, 0.0f));
-        platform1->setSize(glm::vec3(3.0f, 1.0f, 3.0f));
-        addPlatform(platform1);
-        
-        Platform* platform2 = new Platform("Platform2");
-        platform2->setPosition(glm::vec3(-5.0f, 4.0f, 0.0f));
-        platform2->setSize(glm::vec3(3.0f, 1.0f, 3.0f));
-        addPlatform(platform2);
-        
-        // Create a ramp
-        Platform* ramp = new Platform("Ramp");
-        ramp->setPosition(glm::vec3(0.0f, 1.0f, 5.0f));
-        ramp->setSize(glm::vec3(8.0f, 1.0f, 3.0f));
-        addPlatform(ramp);
-        
-        // Create stairs
-        for (int i = 0; i < 5; i++) {
-            Platform* step = new Platform("Step" + std::to_string(i));
-            step->setPosition(glm::vec3(8.0f, 0.5f + i * 1.0f, -5.0f + i * 1.0f));
-            step->setSize(glm::vec3(2.0f, 1.0f, 1.0f));
-            addPlatform(step);
-        }
-        
-        // Create a table with a gun
-        Platform* table = new Platform("Table");
-        table->setPosition(glm::vec3(-8.0f, 1.5f, 0.0f));
-        table->setSize(glm::vec3(2.0f, 0.5f, 1.0f));
-        addPlatform(table);
-        
-        Gun* pistol = new Gun("Pistol");
-        pistol->setPosition(glm::vec3(-8.0f, 2.0f, 0.0f));
-        addGun(pistol);
-    }
-    
-    // Helper function to parse a single platform from JSON data (placeholder)
-    void Level::parsePlatformFromJSON(const std::string& platformData) {
-        // This is a placeholder implementation
-    }
-    
-    // Helper function to parse a single gun from JSON data (placeholder)
-    void Level::parseGunFromJSON(const std::string& gunData) {
-        // This is a placeholder implementation
-    }
-    
-    // Helper function to parse a vector3 from JSON array "[x,y,z]"
-    glm::vec3 Level::parseVector3FromArray(const std::string& arrayContent) {
-        glm::vec3 result(0.0f);
-        std::stringstream ss(arrayContent);
-        std::string item;
-        int index = 0;
-        
-        while (std::getline(ss, item, ',') && index < 3) {
-            // Remove whitespace
-            item.erase(0, item.find_first_not_of(" \t"));
-            item.erase(item.find_last_not_of(" \t") + 1);
+        try {
+            // Read the file content
+            std::vector<char> fileContent = FileUtils::readFile(filepath);
+            std::string content(fileContent.begin(), fileContent.end());
             
-            try {
-                float value = std::stof(item);
-                switch (index) {
-                    case 0: result.x = value; break;
-                    case 1: result.y = value; break;
-                    case 2: result.z = value; break;
-                }
-                index++;
-            } catch (const std::exception&) {
-                // Ignore parsing errors
+            // Parse the JSON content
+            parseLevelFile(content);
+            
+            SPARKY_LOG_INFO("Level loaded successfully: " + name);
+            return true;
+        } catch (const std::exception& e) {
+            SPARKY_LOG_ERROR("Failed to load level: " + std::string(e.what()));
+            return false;
+        }
+    }
+
+    bool Level::saveToFile(const std::string& filepath) const {
+        SPARKY_LOG_INFO("Saving level to file: " + filepath);
+        
+        try {
+            // Serialize the level to JSON
+            std::string content = serializeLevel();
+            
+            // Write to file
+            std::ofstream file(filepath);
+            if (!file.is_open()) {
+                SPARKY_LOG_ERROR("Failed to open file for writing: " + filepath);
+                return false;
+            }
+            
+            file << content;
+            file.close();
+            
+            SPARKY_LOG_INFO("Level saved successfully: " + filepath);
+            return true;
+        } catch (const std::exception& e) {
+            SPARKY_LOG_ERROR("Failed to save level: " + std::string(e.what()));
+            return false;
+        }
+    }
+
+    void Level::addLevelObject(const LevelObject& obj) {
+        levelObjects.push_back(obj);
+    }
+
+    void Level::removeLevelObject(size_t index) {
+        if (index < levelObjects.size()) {
+            levelObjects.erase(levelObjects.begin() + index);
+        }
+    }
+
+    void Level::spawnObjects() {
+        SPARKY_LOG_INFO("Spawning " + std::to_string(levelObjects.size()) + " objects in level");
+        
+        // Clear previously spawned objects
+        spawnedObjects.clear();
+        
+        // Spawn all level objects
+        for (const auto& obj : levelObjects) {
+            auto gameObject = createObject(obj);
+            if (gameObject) {
+                // Set the object's transform
+                gameObject->setPosition(obj.position);
+                gameObject->setRotation(obj.rotation);
+                gameObject->setScale(obj.scale);
+                gameObject->setName(obj.name);
+                
+                // Add to spawned objects
+                spawnedObjects.push_back(std::move(gameObject));
             }
         }
         
-        return result;
+        SPARKY_LOG_INFO("Spawned " + std::to_string(spawnedObjects.size()) + " objects");
+    }
+
+    std::unique_ptr<GameObject> Level::createObject(const LevelObject& obj) const {
+        // Create objects based on their type
+        if (obj.type == "player") {
+            auto player = std::make_unique<Player>();
+            return player;
+        } else if (obj.type == "enemy") {
+            auto enemy = std::make_unique<Enemy>();
+            return enemy;
+        } else if (obj.type == "crate" || obj.type == "box") {
+            auto crate = std::make_unique<GameObject>(obj.name);
+            // In a full implementation, we would set up the crate's mesh, etc.
+            return crate;
+        } else if (obj.type == "wall") {
+            auto wall = std::make_unique<GameObject>(obj.name);
+            // In a full implementation, we would set up the wall's mesh, etc.
+            return wall;
+        } else {
+            SPARKY_LOG_WARNING("Unknown object type in level: " + obj.type);
+            auto genericObject = std::make_unique<GameObject>(obj.name);
+            return genericObject;
+        }
+    }
+
+    void Level::parseLevelFile(const std::string& content) {
+        try {
+            // Parse JSON
+            json levelData = json::parse(content);
+            
+            // Extract level metadata
+            if (levelData.contains("name")) {
+                name = levelData["name"];
+            }
+            
+            if (levelData.contains("description")) {
+                description = levelData["description"];
+            }
+            
+            // Clear existing objects
+            levelObjects.clear();
+            
+            // Extract objects
+            if (levelData.contains("objects") && levelData["objects"].is_array()) {
+                for (const auto& objData : levelData["objects"]) {
+                    LevelObject obj;
+                    
+                    // Extract object properties
+                    obj.type = objData.value("type", "generic");
+                    obj.name = objData.value("name", "UnnamedObject");
+                    
+                    // Extract position
+                    if (objData.contains("position") && objData["position"].is_array() && objData["position"].size() == 3) {
+                        obj.position.x = objData["position"][0];
+                        obj.position.y = objData["position"][1];
+                        obj.position.z = objData["position"][2];
+                    } else {
+                        obj.position = glm::vec3(0.0f);
+                    }
+                    
+                    // Extract rotation
+                    if (objData.contains("rotation") && objData["rotation"].is_array() && objData["rotation"].size() == 3) {
+                        obj.rotation.x = objData["rotation"][0];
+                        obj.rotation.y = objData["rotation"][1];
+                        obj.rotation.z = objData["rotation"][2];
+                    } else {
+                        obj.rotation = glm::vec3(0.0f);
+                    }
+                    
+                    // Extract scale
+                    if (objData.contains("scale") && objData["scale"].is_array() && objData["scale"].size() == 3) {
+                        obj.scale.x = objData["scale"][0];
+                        obj.scale.y = objData["scale"][1];
+                        obj.scale.z = objData["scale"][2];
+                    } else {
+                        obj.scale = glm::vec3(1.0f);
+                    }
+                    
+                    levelObjects.push_back(obj);
+                }
+            }
+            
+        } catch (const std::exception& e) {
+            SPARKY_LOG_ERROR("Failed to parse level file: " + std::string(e.what()));
+            throw;
+        }
+    }
+
+    std::string Level::serializeLevel() const {
+        json levelData;
+        
+        // Add level metadata
+        levelData["name"] = name;
+        levelData["description"] = description;
+        
+        // Add objects
+        json objectsArray = json::array();
+        for (const auto& obj : levelObjects) {
+            json objData;
+            objData["type"] = obj.type;
+            objData["name"] = obj.name;
+            objData["position"] = {obj.position.x, obj.position.y, obj.position.z};
+            objData["rotation"] = {obj.rotation.x, obj.rotation.y, obj.rotation.z};
+            objData["scale"] = {obj.scale.x, obj.scale.y, obj.scale.z};
+            objectsArray.push_back(objData);
+        }
+        
+        levelData["objects"] = objectsArray;
+        
+        return levelData.dump(4); // Pretty print with 4 spaces
     }
 }

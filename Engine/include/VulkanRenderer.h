@@ -6,12 +6,16 @@
 #include <optional>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
+#include <unordered_map>
 #include "MeshRenderer.h"
+#include "Texture.h"
 
 // Forward declaration
 namespace Sparky {
     class RenderSystem;
-    class Engine;  // Add forward declaration
+    class Engine;  
+    class Material;  
+    class Light;     
 }
 
 namespace Sparky {
@@ -24,6 +28,16 @@ namespace Sparky {
     // Add push constant structure
     struct PushConstantData {
         glm::mat4 model;
+    };
+
+    // Add material uniform buffer structure
+    struct MaterialUniformBufferObject {
+        glm::vec4 ambient;
+        glm::vec4 diffuse;
+        glm::vec4 specular;
+        float shininess;
+        int hasTexture;
+        int padding[2]; // For alignment
     };
 
     struct QueueFamilyIndices {
@@ -52,6 +66,22 @@ namespace Sparky {
         void renderMeshes();  // Add this method
         MeshRenderer& getMeshRenderer() { return meshRenderer; }
         
+        // Texture management
+        void createTextureImage(const std::string& filepath, Texture& texture);
+        void createTextureImageView(Texture& texture);
+        void createTextureSampler(Texture& texture);
+        void transitionImageLayout(VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout);
+        void copyBufferToImage(VkBuffer buffer, VkImage image, uint32_t width, uint32_t height);
+        
+        // Material system
+        void createMaterialDescriptorSetLayout();
+        void createMaterialDescriptorPool();
+        void createMaterialDescriptorSets(Material* material);
+        void updateMaterialDescriptorSet(Material* material);
+        
+        // Lighting system
+        void updateLightingUniformBuffer(uint32_t currentImage, const std::vector<std::unique_ptr<Light>>& lights);
+        
         // Setter for engine reference
         void setEngine(Engine* engine) { this->engine = engine; }
 
@@ -60,6 +90,9 @@ namespace Sparky {
         VkPhysicalDevice getPhysicalDevice() const { return physicalDevice; }
         VkCommandPool getCommandPool() const { return commandPool; }
         VkQueue getGraphicsQueue() const { return graphicsQueue; }
+        VkDescriptorSetLayout getDescriptorSetLayout() const { return descriptorSetLayout; }
+        VkDescriptorSetLayout getMaterialDescriptorSetLayout() const { return materialDescriptorSetLayout; }
+        VkSampler getTextureSampler() const { return textureSampler; }
 
     private:
         // Vulkan instance
@@ -94,20 +127,35 @@ namespace Sparky {
         
         // Descriptor set layout
         VkDescriptorSetLayout descriptorSetLayout;
+        VkDescriptorSetLayout materialDescriptorSetLayout;
         
         // Uniform buffers
         std::vector<VkBuffer> uniformBuffers;
         std::vector<VkDeviceMemory> uniformBuffersMemory;
         std::vector<void*> uniformBuffersMapped;
         
+        // Material uniform buffers
+        std::vector<VkBuffer> materialUniformBuffers;
+        std::vector<VkDeviceMemory> materialUniformBuffersMemory;
+        std::vector<void*> materialUniformBuffersMapped;
+        
+        // Lighting uniform buffers
+        std::vector<VkBuffer> lightingUniformBuffers;
+        std::vector<VkDeviceMemory> lightingUniformBuffersMemory;
+        std::vector<void*> lightingUniformBuffersMapped;
+        
         // Descriptor pools and sets
         VkDescriptorPool descriptorPool;
+        VkDescriptorPool materialDescriptorPool;
         std::vector<VkDescriptorSet> descriptorSets;
         
         // Depth resources
         VkImage depthImage;
         VkDeviceMemory depthImageMemory;
         VkImageView depthImageView;
+
+        // Texture sampler
+        VkSampler textureSampler;
 
         // Mesh renderer
         MeshRenderer meshRenderer;
@@ -153,6 +201,8 @@ namespace Sparky {
         void createDepthResources();
         void createFramebuffers();
         void createUniformBuffers();
+        void createMaterialUniformBuffers();
+        void createLightingUniformBuffers();
         void createDescriptorPool();
         void createDescriptorSets();
         void createSyncObjects();
@@ -177,7 +227,6 @@ namespace Sparky {
         VkFormat findDepthFormat();
         void createImage(uint32_t width, uint32_t height, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties, VkImage& image, VkDeviceMemory& imageMemory);
         VkImageView createImageView(VkImage image, VkFormat format, VkImageAspectFlags aspectFlags);
-        void transitionImageLayout(VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout);
         VkCommandBuffer beginSingleTimeCommands();
         void endSingleTimeCommands(VkCommandBuffer commandBuffer);
     };

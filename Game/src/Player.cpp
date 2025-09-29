@@ -6,7 +6,8 @@
 
 namespace Sparky {
 
-    Player::Player() : GameObject(), camera(nullptr), jumpForce(10.0f), moveSpeed(5.0f) {
+    Player::Player() : GameObject(), camera(nullptr), jumpForce(10.0f), moveSpeed(5.0f), 
+                      mouseLocked(false), lastX(400), lastY(300), firstMouse(true) {
         setName("Player");
         
         // Add physics component
@@ -19,16 +20,14 @@ namespace Sparky {
     void Player::update(float deltaTime) {
         GameObject::update(deltaTime);
         
+        // Process player input
+        processInput(deltaTime);
+        
         // Update camera position to follow player
         if (camera) {
-            // Position camera behind and above the player
+            // Position camera at player position with slight offset for head height
             glm::vec3 playerPos = getPosition();
-            glm::vec3 cameraPos = playerPos + glm::vec3(0.0f, 2.0f, 3.0f); // Above and behind
-            camera->setPosition(cameraPos);
-            
-            // Make camera look at player
-            glm::vec3 lookDirection = glm::normalize(playerPos - cameraPos);
-            camera->setFront(lookDirection);
+            camera->Position = playerPos + glm::vec3(0.0f, 1.8f, 0.0f); // Head height
         }
     }
 
@@ -36,9 +35,48 @@ namespace Sparky {
         GameObject::render();
     }
 
+    void Player::processInput(float deltaTime) {
+        // Get input manager instance
+        InputManager& inputManager = InputManager::getInstance();
+        
+        // Mouse movement for camera
+        if (mouseLocked) {
+            glm::vec2 mouseDelta = inputManager.getMouseDelta();
+            if (camera) {
+                camera->ProcessMouseMovement(mouseDelta.x, -mouseDelta.y);
+            }
+        }
+        
+        // Keyboard movement
+        if (inputManager.isKeyPressed(GLFW_KEY_W)) {
+            moveForward(deltaTime);
+        }
+        if (inputManager.isKeyPressed(GLFW_KEY_S)) {
+            moveBackward(deltaTime);
+        }
+        if (inputManager.isKeyPressed(GLFW_KEY_A)) {
+            moveLeft(deltaTime);
+        }
+        if (inputManager.isKeyPressed(GLFW_KEY_D)) {
+            moveRight(deltaTime);
+        }
+        if (inputManager.isKeyPressed(GLFW_KEY_SPACE)) {
+            jump();
+        }
+        if (inputManager.isKeyPressed(GLFW_KEY_LEFT_SHIFT)) {
+            moveDown(deltaTime);
+        }
+        
+        // Toggle mouse lock
+        if (inputManager.isKeyJustPressed(GLFW_KEY_ESCAPE)) {
+            mouseLocked = !mouseLocked;
+            inputManager.setCursorMode(mouseLocked ? GLFW_CURSOR_DISABLED : GLFW_CURSOR_NORMAL);
+        }
+    }
+
     void Player::moveForward(float deltaTime) {
         if (camera) {
-            glm::vec3 front = camera->getFront();
+            glm::vec3 front = camera->Front;
             front.y = 0.0f; // Keep movement horizontal
             front = glm::normalize(front);
             
@@ -50,7 +88,7 @@ namespace Sparky {
 
     void Player::moveBackward(float deltaTime) {
         if (camera) {
-            glm::vec3 front = camera->getFront();
+            glm::vec3 front = camera->Front;
             front.y = 0.0f; // Keep movement horizontal
             front = glm::normalize(front);
             
@@ -62,7 +100,7 @@ namespace Sparky {
 
     void Player::moveLeft(float deltaTime) {
         if (camera) {
-            glm::vec3 right = camera->getRight();
+            glm::vec3 right = camera->Right;
             
             glm::vec3 pos = getPosition();
             pos -= right * moveSpeed * deltaTime;
@@ -72,12 +110,24 @@ namespace Sparky {
 
     void Player::moveRight(float deltaTime) {
         if (camera) {
-            glm::vec3 right = camera->getRight();
+            glm::vec3 right = camera->Right;
             
             glm::vec3 pos = getPosition();
             pos += right * moveSpeed * deltaTime;
             setPosition(pos);
         }
+    }
+
+    void Player::moveUp(float deltaTime) {
+        glm::vec3 pos = getPosition();
+        pos.y += moveSpeed * deltaTime;
+        setPosition(pos);
+    }
+
+    void Player::moveDown(float deltaTime) {
+        glm::vec3 pos = getPosition();
+        pos.y -= moveSpeed * deltaTime;
+        setPosition(pos);
     }
 
     void Player::jump() {

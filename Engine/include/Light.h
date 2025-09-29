@@ -2,6 +2,7 @@
 
 #include <glm/glm.hpp>
 #include <string>
+#include <vector>
 
 namespace Sparky {
 
@@ -9,6 +10,21 @@ namespace Sparky {
         DIRECTIONAL,
         POINT,
         SPOT
+    };
+
+    // Structure for uniform buffer objects
+    struct LightUniformBufferObject {
+        glm::vec4 position;     // w component indicates light type (1.0 for point, 0.0 for directional)
+        glm::vec4 direction;    // w component unused
+        glm::vec4 ambient;
+        glm::vec4 diffuse;
+        glm::vec4 specular;
+        float constant;
+        float linear;
+        float quadratic;
+        float cutOff;
+        float outerCutOff;
+        float padding[3];       // For alignment to 16-byte boundaries
     };
 
     class Light {
@@ -57,6 +73,11 @@ namespace Sparky {
         void setQuadratic(float q) { quadratic = q; }
         void setCutOff(float co) { cutOff = co; }
         void setOuterCutOff(float oco) { outerCutOff = oco; }
+
+        // Vulkan-specific methods
+        void fillUniformBufferObject(LightUniformBufferObject& ubo) const;
+        static void fillUniformBufferObjects(std::vector<LightUniformBufferObject>& ubos, 
+                                           const std::vector<std::unique_ptr<Light>>& lights);
     };
 
 }

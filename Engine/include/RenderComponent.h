@@ -2,25 +2,38 @@
 
 #include "Component.h"
 #include "Mesh.h"
-#include <string>
+#include "Material.h"
+#include <memory>
 
 namespace Sparky {
     class RenderComponent : public Component {
     public:
         RenderComponent();
-        virtual ~RenderComponent();
+        ~RenderComponent();
 
         void update(float deltaTime) override;
         void render() override;
 
-        void setMesh(Mesh* mesh);
-        Mesh* getMesh() const { return mesh; }
-
-        void setMaterial(const std::string& material);
-        const std::string& getMaterial() const { return material; }
+        // Mesh management
+        void setMesh(std::unique_ptr<Mesh> mesh);
+        Mesh* getMesh() const { return mesh.get(); }
+        
+        // Material management
+        void setMaterial(std::unique_ptr<Material> mat);
+        Material* getMaterial() const { return material.get(); }
+        
+        // Getters and setters for rendering properties
+        bool isVisible() const { return visible; }
+        void setVisible(bool vis) { visible = vis; }
+        
+        // Vulkan-specific methods
+        void createVertexBuffer(VkPhysicalDevice physicalDevice, VkDevice device, VkCommandPool commandPool, VkQueue graphicsQueue);
+        void createIndexBuffer(VkPhysicalDevice physicalDevice, VkDevice device, VkCommandPool commandPool, VkQueue graphicsQueue);
+        void cleanup(VkDevice device);
 
     private:
-        Mesh* mesh;
-        std::string material;
+        std::unique_ptr<Mesh> mesh;
+        std::unique_ptr<Material> material;
+        bool visible;
     };
 }

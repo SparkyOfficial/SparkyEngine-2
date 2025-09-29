@@ -1,160 +1,201 @@
 #include "../include/BehaviorTreeExample.h"
+#include "../include/BehaviorTree.h"
 #include "../include/GameObject.h"
+#include "../include/AIComponent.h"
 #include "../include/Logger.h"
-#include <iostream>
+#include <glm/glm.hpp>
 
 namespace Sparky {
-
-    // MoveToTarget implementation
-    MoveToTarget::MoveToTarget(GameObject* owner, const glm::vec3& target) : 
-        LeafNode("MoveToTarget"), owner(owner), target(target), speed(5.0f) {
-    }
-
-    MoveToTarget::~MoveToTarget() {
-    }
-
-    BehaviorStatus MoveToTarget::update(float deltaTime) {
-        if (!owner) {
-            return BehaviorStatus::FAILURE;
-        }
-
-        glm::vec3 currentPosition = owner->getPosition();
-        glm::vec3 direction = target - currentPosition;
-        float distance = glm::length(direction);
-
-        // If we're close enough, consider it a success
-        if (distance < 0.1f) {
-            return BehaviorStatus::SUCCESS;
-        }
-
-        // Move towards target
-        direction = glm::normalize(direction);
-        glm::vec3 newPosition = currentPosition + direction * speed * deltaTime;
-        owner->setPosition(newPosition);
-
-        return BehaviorStatus::RUNNING;
-    }
-
-    // Wait implementation
-    Wait::Wait(float duration) : LeafNode("Wait"), duration(duration), elapsed(0.0f) {
-    }
-
-    Wait::~Wait() {
-    }
-
-    BehaviorStatus Wait::update(float deltaTime) {
-        elapsed += deltaTime;
-
-        if (elapsed >= duration) {
-            elapsed = 0.0f;
-            return BehaviorStatus::SUCCESS;
-        }
-
-        return BehaviorStatus::RUNNING;
-    }
-
-    // CheckDistance implementation
-    CheckDistance::CheckDistance(GameObject* owner, const glm::vec3& target, float threshold) : 
-        LeafNode("CheckDistance"), owner(owner), target(target), threshold(threshold) {
-    }
-
-    CheckDistance::~CheckDistance() {
-    }
-
-    BehaviorStatus CheckDistance::update(float deltaTime) {
-        if (!owner) {
-            return BehaviorStatus::FAILURE;
-        }
-
-        glm::vec3 currentPosition = owner->getPosition();
-        glm::vec3 direction = target - currentPosition;
-        float distance = glm::length(direction);
-
-        if (distance <= threshold) {
-            return BehaviorStatus::SUCCESS;
-        }
-
-        return BehaviorStatus::FAILURE;
-    }
-
-    // PrintMessage implementation
-    PrintMessage::PrintMessage(const std::string& message) : 
-        LeafNode("PrintMessage"), message(message) {
-    }
-
-    PrintMessage::~PrintMessage() {
-    }
-
-    BehaviorStatus PrintMessage::update(float deltaTime) {
-        static float lastPrintTime = 0.0f;
-        static const float printInterval = 1.0f; // Print at most once per second
-        
-        lastPrintTime += deltaTime;
-        if (lastPrintTime >= printInterval) {
-            SPARKY_LOG_INFO("Behavior Tree Message: " + message);
-            lastPrintTime = 0.0f;
-        }
-        return BehaviorStatus::SUCCESS;
-    }
-
-    // ExampleAIBehavior implementation
-    std::unique_ptr<BehaviorTree> ExampleAIBehavior::createPatrolBehavior(GameObject* owner) {
+    
+    std::unique_ptr<BehaviorTree> createPatrolBehaviorTree(GameObject* enemy, GameObject* player) {
         auto tree = std::make_unique<BehaviorTree>();
-
-        // Create a sequence: Print -> Move to point A -> Wait -> Print -> Move to point B -> Wait
-        auto sequence = std::make_unique<Sequence>("PatrolSequence");
-
-        // Add print message
-        auto print1 = std::make_unique<PrintMessage>("Starting patrol...");
-        sequence->addChild(std::move(print1));
-
-        // Move to point A
-        auto moveA = std::make_unique<MoveToTarget>(owner, glm::vec3(10.0f, 0.0f, 0.0f));
-        sequence->addChild(std::move(moveA));
-
-        // Wait
-        auto wait1 = std::make_unique<Wait>(2.0f);
-        sequence->addChild(std::move(wait1));
-
-        // Add print message
-        auto print2 = std::make_unique<PrintMessage>("Reached point A, moving to point B...");
-        sequence->addChild(std::move(print2));
-
-        // Move to point B
-        auto moveB = std::make_unique<MoveToTarget>(owner, glm::vec3(-10.0f, 0.0f, 0.0f));
-        sequence->addChild(std::move(moveB));
-
-        // Wait
-        auto wait2 = std::make_unique<Wait>(2.0f);
-        sequence->addChild(std::move(wait2));
-
-        // Add print message
-        auto print3 = std::make_unique<PrintMessage>("Reached point B, restarting patrol...");
-        sequence->addChild(std::move(print3));
-
-        tree->setRoot(std::move(sequence));
+        
+        // Create root selector node
+        auto rootSelector = std::make_unique<SelectorNode>();
+        
+        // Create sequence for attacking player
+        auto attackSequence = std::make_unique<SequenceNode>();
+        
+        // Add condition: Is player in range?
+        auto playerInRangeCondition = std::make_unique<ConditionNode>([enemy, player]() -> bool {
+            if (!enemy || !player) return false;
+            
+            AIComponent* ai = enemy->getComponent<AIComponent>();
+            if (!ai) return false;
+            
+            // Set player as target
+            ai->setTarget(player);
+            
+            // Check if player is in detection range
+            float distance = glm::distance(enemy->getPosition(), player->getPosition());
+            return distance <= ai->getDetectionRange();
+        });
+        
+        // Add action: Attack player
+        auto attackAction = std::make_unique<ActionNode>([enemy](float deltaTime) -> NodeStatus {
+            if (!enemy) return NodeStatus::FAILURE;
+            
+            AIComponent* ai = enemy->getComponent<AIComponent>();
+            if (!ai) return NodeStatus::FAILURE;
+            
+            // Set AI state to attack
+            ai->setState(AIState::ATTACK);
+            
+            // For simplicity, we'll just return SUCCESS
+            // In a real implementation, this would depend on the attack outcome
+            return NodeStatus::SUCCESS;
+        });
+        
+        // Add condition and action to attack sequence
+        attackSequence->addChild(std::move(playerInRangeCondition));
+        attackSequence->addChild(std::move(attackAction));
+        
+        // Create sequence for patrolling
+        auto patrolSequence = std::make_unique<SequenceNode>();
+        
+        // Add condition: Is player NOT in range?
+        auto playerNotInRangeCondition = std::make_unique<ConditionNode>([enemy, player]() -> bool {
+            if (!enemy || !player) return true; // If no player, just patrol
+            
+            AIComponent* ai = enemy->getComponent<AIComponent>();
+            if (!ai) return true;
+            
+            // Check if player is NOT in detection range
+            float distance = glm::distance(enemy->getPosition(), player->getPosition());
+            return distance > ai->getDetectionRange();
+        });
+        
+        // Add action: Patrol
+        auto patrolAction = std::make_unique<ActionNode>([enemy](float deltaTime) -> NodeStatus {
+            if (!enemy) return NodeStatus::FAILURE;
+            
+            AIComponent* ai = enemy->getComponent<AIComponent>();
+            if (!ai) return NodeStatus::FAILURE;
+            
+            // Set AI state to patrol
+            ai->setState(AIState::PATROL);
+            
+            // For simplicity, we'll just return SUCCESS
+            return NodeStatus::SUCCESS;
+        });
+        
+        // Add condition and action to patrol sequence
+        patrolSequence->addChild(std::move(playerNotInRangeCondition));
+        patrolSequence->addChild(std::move(patrolAction));
+        
+        // Add sequences to root selector
+        rootSelector->addChild(std::move(attackSequence));
+        rootSelector->addChild(std::move(patrolSequence));
+        
+        // Set root node of the tree
+        tree->setRootNode(std::move(rootSelector));
+        
         return tree;
     }
-
-    std::unique_ptr<BehaviorTree> ExampleAIBehavior::createChaseBehavior(GameObject* owner, const glm::vec3& target) {
+    
+    std::unique_ptr<BehaviorTree> createGuardBehaviorTree(GameObject* enemy, GameObject* player) {
         auto tree = std::make_unique<BehaviorTree>();
-
-        // Create a sequence: Check distance -> Move to target -> Print success
-        auto sequence = std::make_unique<Sequence>("ChaseSequence");
-
-        // Check if target is close
-        auto checkDistance = std::make_unique<CheckDistance>(owner, target, 5.0f);
-        sequence->addChild(std::move(checkDistance));
-
-        // Move to target
-        auto moveToTarget = std::make_unique<MoveToTarget>(owner, target);
-        sequence->addChild(std::move(moveToTarget));
-
-        // Print success message
-        auto printSuccess = std::make_unique<PrintMessage>("Target reached!");
-        sequence->addChild(std::move(printSuccess));
-
-        tree->setRoot(std::move(sequence));
+        
+        // Create root selector node
+        auto rootSelector = std::make_unique<SelectorNode>();
+        
+        // Create sequence for investigating noise
+        auto investigateSequence = std::make_unique<SequenceNode>();
+        
+        // Add condition: Is there a noise to investigate?
+        auto noiseCondition = std::make_unique<ConditionNode>([enemy]() -> bool {
+            // In a full implementation, we would check for noise events
+            // For now, we'll just return false to skip this branch
+            return false;
+        });
+        
+        // Add action: Investigate noise
+        auto investigateAction = std::make_unique<ActionNode>([enemy](float deltaTime) -> NodeStatus {
+            if (!enemy) return NodeStatus::FAILURE;
+            
+            AIComponent* ai = enemy->getComponent<AIComponent>();
+            if (!ai) return NodeStatus::FAILURE;
+            
+            // For simplicity, we'll just return FAILURE to move to next branch
+            return NodeStatus::FAILURE;
+        });
+        
+        // Add condition and action to investigate sequence
+        investigateSequence->addChild(std::move(noiseCondition));
+        investigateSequence->addChild(std::move(investigateAction));
+        
+        // Create sequence for attacking player
+        auto attackSequence = std::make_unique<SequenceNode>();
+        
+        // Add condition: Can see player?
+        auto canSeePlayerCondition = std::make_unique<ConditionNode>([enemy, player]() -> bool {
+            if (!enemy || !player) return false;
+            
+            // Simple line-of-sight check
+            glm::vec3 direction = player->getPosition() - enemy->getPosition();
+            float distance = glm::length(direction);
+            
+            AIComponent* ai = enemy->getComponent<AIComponent>();
+            if (!ai) return false;
+            
+            // Set player as target
+            ai->setTarget(player);
+            
+            // Check if player is in sight range
+            return distance <= ai->getDetectionRange();
+        });
+        
+        // Add action: Attack player
+        auto attackAction = std::make_unique<ActionNode>([enemy](float deltaTime) -> NodeStatus {
+            if (!enemy) return NodeStatus::FAILURE;
+            
+            AIComponent* ai = enemy->getComponent<AIComponent>();
+            if (!ai) return NodeStatus::FAILURE;
+            
+            // Set AI state to attack
+            ai->setState(AIState::ATTACK);
+            
+            return NodeStatus::SUCCESS;
+        });
+        
+        // Add condition and action to attack sequence
+        attackSequence->addChild(std::move(canSeePlayerCondition));
+        attackSequence->addChild(std::move(attackAction));
+        
+        // Create sequence for patrolling
+        auto patrolSequence = std::make_unique<SequenceNode>();
+        
+        // Add condition: No player in sight and no noise
+        auto idleCondition = std::make_unique<ConditionNode>([enemy, player]() -> bool {
+            // Always true for this example
+            return true;
+        });
+        
+        // Add action: Patrol or idle
+        auto idleAction = std::make_unique<ActionNode>([enemy](float deltaTime) -> NodeStatus {
+            if (!enemy) return NodeStatus::FAILURE;
+            
+            AIComponent* ai = enemy->getComponent<AIComponent>();
+            if (!ai) return NodeStatus::FAILURE;
+            
+            // Set AI state to patrol
+            ai->setState(AIState::PATROL);
+            
+            return NodeStatus::SUCCESS;
+        });
+        
+        // Add condition and action to patrol sequence
+        patrolSequence->addChild(std::move(idleCondition));
+        patrolSequence->addChild(std::move(idleAction));
+        
+        // Add sequences to root selector
+        rootSelector->addChild(std::move(investigateSequence));
+        rootSelector->addChild(std::move(attackSequence));
+        rootSelector->addChild(std::move(patrolSequence));
+        
+        // Set root node of the tree
+        tree->setRootNode(std::move(rootSelector));
+        
         return tree;
     }
 }

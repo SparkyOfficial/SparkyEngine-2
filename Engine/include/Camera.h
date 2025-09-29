@@ -45,6 +45,9 @@ namespace Sparky {
         // Constructor with scalar values
         Camera(float posX, float posY, float posZ, float upX, float upY, float upZ, float yaw, float pitch);
         
+        // Destructor
+        ~Camera();
+        
         // Returns the view matrix calculated using Euler Angles and the LookAt Matrix
         glm::mat4 GetViewMatrix();
         
@@ -56,6 +59,9 @@ namespace Sparky {
         
         // Processes input received from a mouse scroll-wheel event. Only requires input on the vertical wheel-axis
         void ProcessMouseScroll(float yoffset);
+        
+        // Additional FPS camera method
+        void LookAt(const glm::vec3& target);
 
         // Getters
         glm::vec3 getPosition() const { return Position; }

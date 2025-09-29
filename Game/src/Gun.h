@@ -74,6 +74,7 @@ namespace Sparky {
         // Private helper methods
         glm::vec3 calculateSpreadDirection() const;
         void createBullet(const glm::vec3& direction);
-        void createMuzzleFlash();
+        void createMuzzleFlash(const glm::vec3& direction);
+        void playShootSound();
     };
 }

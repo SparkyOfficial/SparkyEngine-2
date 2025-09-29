@@ -4,94 +4,148 @@
 #include <cmath>
 
 namespace Sparky {
-
-    Animation::Animation(const std::string& name) : name(name), duration(0.0f) {
+    
+    // AnimationTrack implementation
+    AnimationTrack::AnimationTrack(const std::string& name) : name(name) {
+        // Add a default keyframe at time 0
+        Keyframe defaultKeyframe;
+        defaultKeyframe.time = 0.0f;
+        defaultKeyframe.position = glm::vec3(0.0f);
+        defaultKeyframe.rotation = glm::quat(1.0f, 0.0f, 0.0f, 0.0f); // Identity quaternion
+        defaultKeyframe.scale = glm::vec3(1.0f);
+        keyframes.push_back(defaultKeyframe);
     }
-
-    Animation::~Animation() {
+    
+    AnimationTrack::~AnimationTrack() {
     }
-
-    void Animation::addKeyFrame(const KeyFrame& keyFrame) {
-        keyFrames.push_back(keyFrame);
-        
-        // Update duration if this keyframe is later than current duration
-        if (keyFrame.time > duration) {
-            duration = keyFrame.time;
-        }
-        
-        // Sort keyframes by time
-        std::sort(keyFrames.begin(), keyFrames.end(), 
-                  [](const KeyFrame& a, const KeyFrame& b) {
-                      return a.time < b.time;
-                  });
+    
+    void AnimationTrack::addKeyframe(const Keyframe& keyframe) {
+        // Insert the keyframe in the correct time order
+        auto it = std::upper_bound(keyframes.begin(), keyframes.end(), keyframe,
+                                  [](const Keyframe& a, const Keyframe& b) {
+                                      return a.time < b.time;
+                                  });
+        keyframes.insert(it, keyframe);
     }
-
-    void Animation::setDuration(float duration) {
-        this->duration = duration;
+    
+    Keyframe AnimationTrack::getKeyframeAtTime(float time) const {
+        if (keyframes.empty()) {
+            Keyframe emptyKeyframe;
+            emptyKeyframe.time = 0.0f;
+            emptyKeyframe.position = glm::vec3(0.0f);
+            emptyKeyframe.rotation = glm::quat(1.0f, 0.0f, 0.0f, 0.0f);
+            emptyKeyframe.scale = glm::vec3(1.0f);
+            return emptyKeyframe;
+        }
+        
+        // If time is before the first keyframe, return the first keyframe
+        if (time <= keyframes.front().time) {
+            return keyframes.front();
+        }
+        
+        // If time is after the last keyframe, return the last keyframe
+        if (time >= keyframes.back().time) {
+            return keyframes.back();
+        }
+        
+        // Find the two keyframes that bracket the time
+        for (size_t i = 0; i < keyframes.size() - 1; ++i) {
+            if (time >= keyframes[i].time && time <= keyframes[i+1].time) {
+                // Interpolate between these two keyframes
+                float t = (time - keyframes[i].time) / (keyframes[i+1].time - keyframes[i].time);
+                return interpolateKeyframes(keyframes[i], keyframes[i+1], t);
+            }
+        }
+        
+        // Fallback - should not reach here
+        return keyframes.back();
     }
-
-    void Animation::evaluate(float time, glm::vec3& position, glm::vec3& rotation, glm::vec3& scale) const {
-        if (keyFrames.empty()) {
-            position = glm::vec3(0.0f);
-            rotation = glm::vec3(0.0f);
-            scale = glm::vec3(1.0f);
-            return;
-        }
-        
-        // Wrap time if it exceeds duration
-        if (duration > 0.0f) {
-            time = fmod(time, duration);
-        }
-        
-        // Find the keyframes to interpolate between
-        if (keyFrames.size() == 1) {
-            // Only one keyframe, use its values
-            position = keyFrames[0].position;
-            rotation = keyFrames[0].rotation;
-            scale = keyFrames[0].scale;
-            return;
-        }
-        
-        // Find the two keyframes to interpolate between
-        size_t nextIndex = 0;
-        while (nextIndex < keyFrames.size() && keyFrames[nextIndex].time <= time) {
-            nextIndex++;
-        }
-        
-        if (nextIndex == 0) {
-            // Before first keyframe
-            position = keyFrames[0].position;
-            rotation = keyFrames[0].rotation;
-            scale = keyFrames[0].scale;
-            return;
-        }
-        
-        if (nextIndex >= keyFrames.size()) {
-            // After last keyframe
-            position = keyFrames.back().position;
-            rotation = keyFrames.back().rotation;
-            scale = keyFrames.back().scale;
-            return;
-        }
-        
-        // Interpolate between keyframes
-        const KeyFrame& prev = keyFrames[nextIndex - 1];
-        const KeyFrame& next = keyFrames[nextIndex];
-        
-        float t = (time - prev.time) / (next.time - prev.time);
-        KeyFrame interpolated = interpolate(prev, next, t);
-        
-        position = interpolated.position;
-        rotation = interpolated.rotation;
-        scale = interpolated.scale;
-    }
-
-    KeyFrame Animation::interpolate(const KeyFrame& a, const KeyFrame& b, float t) const {
-        KeyFrame result;
+    
+    Keyframe AnimationTrack::interpolateKeyframes(const Keyframe& a, const Keyframe& b, float t) const {
+        Keyframe result;
         result.time = a.time + t * (b.time - a.time);
         result.position = glm::mix(a.position, b.position, t);
-        result.rotation = glm::mix(a.rotation, b.rotation, t);
+        result.rotation = glm::slerp(a.rotation, b.rotation, t);
         result.scale = glm::mix(a.scale, b.scale, t);
         return result;
+    }
+    
+    float AnimationTrack::getDuration() const {
+        if (keyframes.empty()) return 0.0f;
+        return keyframes.back().time;
+    }
+    
+    // Animation implementation
+    Animation::Animation(const std::string& name) : name(name), playing(false), looping(false), 
+                                                   currentTime(0.0f), playbackSpeed(1.0f) {
+        SPARKY_LOG_DEBUG("Animation created: " + name);
+    }
+    
+    Animation::~Animation() {
+        SPARKY_LOG_DEBUG("Animation destroyed: " + name);
+    }
+    
+    void Animation::addTrack(std::unique_ptr<AnimationTrack> track) {
+        tracks.push_back(std::move(track));
+        SPARKY_LOG_DEBUG("Track added to animation: " + name);
+    }
+    
+    AnimationTrack* Animation::getTrack(const std::string& name) const {
+        for (const auto& track : tracks) {
+            if (track->getName() == name) {
+                return track.get();
+            }
+        }
+        return nullptr;
+    }
+    
+    AnimationTrack* Animation::getTrack(size_t index) const {
+        if (index >= tracks.size()) {
+            return nullptr;
+        }
+        return tracks[index].get();
+    }
+    
+    float Animation::getDuration() const {
+        float maxDuration = 0.0f;
+        for (const auto& track : tracks) {
+            maxDuration = std::max(maxDuration, track->getDuration());
+        }
+        return maxDuration;
+    }
+    
+    void Animation::update(float deltaTime) {
+        if (!playing) return;
+        
+        currentTime += deltaTime * playbackSpeed;
+        
+        float duration = getDuration();
+        if (duration > 0.0f) {
+            if (currentTime > duration) {
+                if (looping) {
+                    currentTime = std::fmod(currentTime, duration);
+                } else {
+                    currentTime = duration;
+                    playing = false;
+                }
+            }
+        }
+    }
+    
+    void Animation::play(bool loop) {
+        playing = true;
+        looping = loop;
+        SPARKY_LOG_DEBUG("Animation playing: " + name);
+    }
+    
+    void Animation::pause() {
+        playing = false;
+        SPARKY_LOG_DEBUG("Animation paused: " + name);
+    }
+    
+    void Animation::stop() {
+        playing = false;
+        currentTime = 0.0f;
+        SPARKY_LOG_DEBUG("Animation stopped: " + name);
     }
 }

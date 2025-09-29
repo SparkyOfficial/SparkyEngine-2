@@ -3,6 +3,7 @@
 #include "../include/PhysicsComponent.h"
 #include "../include/Logger.h"
 #include "../include/HealthComponent.h"
+#include "../include/BehaviorTree.h"
 #include <GLFW/glfw3.h>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>

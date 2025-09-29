@@ -5,6 +5,8 @@
 namespace Sparky {
     class InputManager {
     public:
+        static InputManager& getInstance();
+        
         InputManager();
         ~InputManager();
 

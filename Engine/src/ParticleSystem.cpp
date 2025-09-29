@@ -1,220 +1,239 @@
 #include "../include/ParticleSystem.h"
-#include "../include/GameObject.h"
 #include "../include/Logger.h"
+#include "../include/ResourceManager.h"
+#include <glm/gtc/matrix_transform.hpp>
 #include <random>
 #include <algorithm>
-#include <cmath>
 
 namespace Sparky {
-
-    ParticleSystem::ParticleSystem() : 
-        activeParticleCount(0),
-        emissionRate(10.0f),
-        emissionAccumulator(0.0f),
-        minLifetime(1.0f),
-        maxLifetime(3.0f),
-        startColor(1.0f, 1.0f, 1.0f, 1.0f),
-        endColor(1.0f, 1.0f, 1.0f, 0.0f),
-        startSize(0.1f),
-        endSize(0.1f),
-        minSpeed(1.0f),
-        maxSpeed(3.0f),
-        gravity(0.0f, -9.81f, 0.0f),
-        emissionShape(EmissionShape::SPHERE),
-        sphereRadius(0.1f),
-        boxSize(0.1f, 0.1f, 0.1f),
-        playing(true),
-        loop(true) {
-        
-        // Pre-allocate particles
-        particles.resize(1000);
-        for (auto& particle : particles) {
-            particle.active = false;
-        }
+    
+    Particle::Particle() : position(0.0f), velocity(0.0f), color(1.0f), life(0.0f), maxLife(1.0f) {
     }
-
+    
+    ParticleSystem::ParticleSystem() : maxParticles(1000), particleCount(0), 
+                                     emissionRate(100.0f), lastEmissionTime(0.0f),
+                                     particleLifetime(2.0f), startColor(1.0f, 1.0f, 1.0f, 1.0f),
+                                     endColor(1.0f, 1.0f, 1.0f, 0.0f), 
+                                     startSize(0.1f), endSize(0.0f),
+                                     gravity(0.0f, -9.81f, 0.0f), 
+                                     systemActive(true) {
+        particles.resize(maxParticles);
+        SPARKY_LOG_DEBUG("ParticleSystem created with max " + std::to_string(maxParticles) + " particles");
+    }
+    
     ParticleSystem::~ParticleSystem() {
+        SPARKY_LOG_DEBUG("ParticleSystem destroyed");
     }
-
+    
     void ParticleSystem::update(float deltaTime) {
-        if (!playing) return;
+        if (!systemActive) return;
         
         // Emit new particles
         emitParticles(deltaTime);
         
         // Update existing particles
-        updateParticles(deltaTime);
+        for (int i = particleCount - 1; i >= 0; --i) {
+            Particle& particle = particles[i];
+            
+            // Update particle life
+            particle.life -= deltaTime;
+            
+            // Remove dead particles
+            if (particle.life <= 0.0f) {
+                // Move the last particle to this position
+                if (i != particleCount - 1) {
+                    particles[i] = particles[particleCount - 1];
+                }
+                particleCount--;
+                continue;
+            }
+            
+            // Update particle physics
+            particle.velocity += gravity * deltaTime;
+            particle.position += particle.velocity * deltaTime;
+            
+            // Update particle appearance based on life
+            float lifeRatio = particle.life / particle.maxLife;
+            particle.color = glm::mix(endColor, startColor, lifeRatio);
+            particle.size = glm::mix(endSize, startSize, lifeRatio);
+        }
     }
-
+    
     void ParticleSystem::render() {
-        // Particle system doesn't directly render - particles are rendered by the renderer
-        // This method is kept for potential future enhancements
+        // In a full implementation, we would render all particles
+        // For now, we'll just log the particle count
+        if (particleCount > 0) {
+            SPARKY_LOG_DEBUG("Rendering " + std::to_string(particleCount) + " particles");
+        }
     }
-
+    
+    void ParticleSystem::emitParticles(float deltaTime) {
+        // Calculate how many particles to emit
+        float particlesToEmit = emissionRate * deltaTime;
+        int intParticlesToEmit = static_cast<int>(particlesToEmit);
+        
+        // Add fractional particles to a remainder for next frame
+        static float emissionRemainder = 0.0f;
+        emissionRemainder += particlesToEmit - intParticlesToEmit;
+        if (emissionRemainder >= 1.0f) {
+            intParticlesToEmit += static_cast<int>(emissionRemainder);
+            emissionRemainder -= static_cast<int>(emissionRemainder);
+        }
+        
+        // Emit particles
+        for (int i = 0; i < intParticlesToEmit && particleCount < maxParticles; ++i) {
+            emitParticle();
+        }
+    }
+    
+    void ParticleSystem::emitParticle() {
+        if (particleCount >= maxParticles) return;
+        
+        Particle& particle = particles[particleCount];
+        
+        // Initialize particle properties
+        particle.position = emissionPoint;
+        particle.life = particle.maxLife = particleLifetime;
+        particle.size = startSize;
+        particle.color = startColor;
+        
+        // Generate random velocity
+        static std::random_device rd;
+        static std::mt19937 gen(rd());
+        static std::uniform_real_distribution<float> velDis(-1.0f, 1.0f);
+        
+        // Create velocity based on emission direction and spread
+        glm::vec3 baseVelocity = emissionDirection;
+        if (emissionSpread > 0.0f) {
+            // Add random spread
+            glm::vec3 randomOffset(velDis(gen), velDis(gen), velDis(gen));
+            randomOffset = glm::normalize(randomOffset) * emissionSpread;
+            baseVelocity += randomOffset;
+        }
+        
+        particle.velocity = glm::normalize(baseVelocity) * emissionSpeed;
+        
+        particleCount++;
+    }
+    
+    void ParticleSystem::setEmissionPoint(const glm::vec3& point) {
+        emissionPoint = point;
+    }
+    
+    void ParticleSystem::setEmissionDirection(const glm::vec3& direction) {
+        emissionDirection = glm::normalize(direction);
+    }
+    
+    void ParticleSystem::setEmissionSpread(float spread) {
+        emissionSpread = spread;
+    }
+    
+    void ParticleSystem::setEmissionSpeed(float speed) {
+        emissionSpeed = speed;
+    }
+    
     void ParticleSystem::setEmissionRate(float rate) {
         emissionRate = rate;
     }
-
-    void ParticleSystem::setParticleLifetime(float min, float max) {
-        minLifetime = min;
-        maxLifetime = max;
+    
+    void ParticleSystem::setParticleLifetime(float lifetime) {
+        particleLifetime = lifetime;
     }
-
+    
     void ParticleSystem::setStartColor(const glm::vec4& color) {
         startColor = color;
     }
-
+    
     void ParticleSystem::setEndColor(const glm::vec4& color) {
         endColor = color;
     }
-
+    
     void ParticleSystem::setStartSize(float size) {
         startSize = size;
     }
-
+    
     void ParticleSystem::setEndSize(float size) {
         endSize = size;
     }
-
-    void ParticleSystem::setStartSpeed(float min, float max) {
-        minSpeed = min;
-        maxSpeed = max;
+    
+    void ParticleSystem::setGravity(const glm::vec3& grav) {
+        gravity = grav;
     }
-
-    void ParticleSystem::setGravity(const glm::vec3& gravity) {
-        this->gravity = gravity;
+    
+    void ParticleSystem::setActive(bool active) {
+        systemActive = active;
     }
-
-    void ParticleSystem::setEmissionShapeSphere(float radius) {
-        emissionShape = EmissionShape::SPHERE;
-        sphereRadius = radius;
+    
+    bool ParticleSystem::isActive() const {
+        return systemActive;
     }
-
-    void ParticleSystem::setEmissionShapeBox(const glm::vec3& size) {
-        emissionShape = EmissionShape::BOX;
-        boxSize = size;
+    
+    int ParticleSystem::getParticleCount() const {
+        return particleCount;
     }
-
-    void ParticleSystem::play() {
-        playing = true;
-    }
-
-    void ParticleSystem::pause() {
-        playing = false;
-    }
-
-    void ParticleSystem::stop() {
-        playing = false;
-        // Deactivate all particles
-        for (auto& particle : particles) {
-            particle.active = false;
-        }
-        activeParticleCount = 0;
-    }
-
-    void ParticleSystem::reset() {
-        stop();
-        play();
-    }
-
-    void ParticleSystem::emitParticles(float deltaTime) {
-        emissionAccumulator += emissionRate * deltaTime;
+    
+    // Preset particle effects
+    void ParticleSystem::createMuzzleFlash(const glm::vec3& position, const glm::vec3& direction) {
+        // Configure for muzzle flash effect
+        setEmissionPoint(position);
+        setEmissionDirection(direction);
+        setEmissionSpread(0.5f); // Wide spread
+        setEmissionSpeed(2.0f);   // Fast initial speed
+        setEmissionRate(500.0f);  // High emission rate for instant effect
+        setParticleLifetime(0.1f); // Very short lifetime
+        setStartColor(glm::vec4(1.0f, 1.0f, 0.0f, 1.0f)); // Yellow
+        setEndColor(glm::vec4(1.0f, 0.5f, 0.0f, 0.0f));   // Orange fading to transparent
+        setStartSize(0.05f);
+        setEndSize(0.0f);
+        setGravity(glm::vec3(0.0f)); // No gravity
         
-        while (emissionAccumulator >= 1.0f && activeParticleCount < particles.size()) {
-            // Find an inactive particle to activate
-            for (auto& particle : particles) {
-                if (!particle.active) {
-                    initializeParticle(particle);
-                    activeParticleCount++;
-                    emissionAccumulator -= 1.0f;
-                    break;
-                }
-            }
-        }
-    }
-
-    void ParticleSystem::updateParticles(float deltaTime) {
-        for (auto& particle : particles) {
-            if (particle.active) {
-                // Update life
-                particle.life -= deltaTime;
-                
-                if (particle.life <= 0.0f) {
-                    // Particle died
-                    particle.active = false;
-                    activeParticleCount--;
-                    continue;
-                }
-                
-                // Apply gravity
-                particle.acceleration = gravity;
-                
-                // Update velocity
-                particle.velocity += particle.acceleration * deltaTime;
-                
-                // Update position
-                particle.position += particle.velocity * deltaTime;
-                
-                // Update color and size based on life
-                float lifeRatio = particle.life / particle.maxLife;
-                particle.color = glm::mix(endColor, startColor, lifeRatio);
-                particle.size = glm::mix(endSize, startSize, lifeRatio);
-            }
-        }
-    }
-
-    void ParticleSystem::initializeParticle(Particle& particle) {
-        particle.position = owner ? owner->getPosition() : glm::vec3(0.0f);
-        particle.position += getRandomEmissionPosition();
-        particle.velocity = getRandomEmissionVelocity();
-        particle.acceleration = glm::vec3(0.0f);
-        particle.color = startColor;
-        particle.size = startSize;
-        particle.maxLife = minLifetime + static_cast<float>(rand()) / RAND_MAX * (maxLifetime - minLifetime);
-        particle.life = particle.maxLife;
-        particle.active = true;
-    }
-
-    glm::vec3 ParticleSystem::getRandomEmissionPosition() const {
-        static std::random_device rd;
-        static std::mt19937 gen(rd());
-        static std::uniform_real_distribution<float> dis(-1.0f, 1.0f);
-        
-        if (emissionShape == EmissionShape::SPHERE) {
-            // Random point in sphere
-            glm::vec3 point;
-            do {
-                point = glm::vec3(dis(gen), dis(gen), dis(gen)) * sphereRadius;
-            } while (glm::length(point) > sphereRadius);
-            return point;
-        } else {
-            // Random point in box
-            return glm::vec3(
-                dis(gen) * boxSize.x * 0.5f,
-                dis(gen) * boxSize.y * 0.5f,
-                dis(gen) * boxSize.z * 0.5f
-            );
-        }
-    }
-
-    glm::vec3 ParticleSystem::getRandomEmissionVelocity() const {
-        static std::random_device rd;
-        static std::mt19937 gen(rd());
-        static std::uniform_real_distribution<float> dis(-1.0f, 1.0f);
-        
-        glm::vec3 direction;
-        if (emissionShape == EmissionShape::SPHERE) {
-            // Random direction for sphere emission
-            do {
-                direction = glm::vec3(dis(gen), dis(gen), dis(gen));
-            } while (glm::length(direction) == 0.0f);
-            direction = glm::normalize(direction);
-        } else {
-            // Upward direction for box emission with some randomness
-            direction = glm::vec3(dis(gen) * 0.1f, 1.0f, dis(gen) * 0.1f);
+        // Emit a burst of particles
+        for (int i = 0; i < 50; ++i) {
+            emitParticle();
         }
         
-        float speed = minSpeed + dis(gen) * (maxSpeed - minSpeed);
-        return direction * speed;
+        // Turn off continuous emission after burst
+        setEmissionRate(0.0f);
+    }
+    
+    void ParticleSystem::createExplosion(const glm::vec3& position) {
+        // Configure for explosion effect
+        setEmissionPoint(position);
+        setEmissionDirection(glm::vec3(0.0f, 1.0f, 0.0f)); // Upward bias
+        setEmissionSpread(1.0f); // Full spherical spread
+        setEmissionSpeed(10.0f);  // High initial speed
+        setEmissionRate(1000.0f); // Very high emission rate for instant effect
+        setParticleLifetime(1.0f); // Longer lifetime
+        setStartColor(glm::vec4(1.0f, 0.5f, 0.0f, 1.0f)); // Orange
+        setEndColor(glm::vec4(0.5f, 0.0f, 0.0f, 0.0f));   // Dark red fading to transparent
+        setStartSize(0.2f);
+        setEndSize(0.0f);
+        setGravity(glm::vec3(0.0f, -5.0f, 0.0f)); // Some gravity to pull particles down
+        
+        // Emit a burst of particles
+        for (int i = 0; i < 200; ++i) {
+            emitParticle();
+        }
+        
+        // Turn off continuous emission after burst
+        setEmissionRate(0.0f);
+    }
+    
+    void ParticleSystem::createSmoke(const glm::vec3& position) {
+        // Configure for smoke effect
+        setEmissionPoint(position);
+        setEmissionDirection(glm::vec3(0.0f, 1.0f, 0.0f)); // Upward
+        setEmissionSpread(0.2f); // Narrow spread
+        setEmissionSpeed(1.0f);   // Slow initial speed
+        setEmissionRate(50.0f);   // Moderate emission rate
+        setParticleLifetime(3.0f); // Long lifetime
+        setStartColor(glm::vec4(0.5f, 0.5f, 0.5f, 0.8f)); // Gray, semi-transparent
+        setEndColor(glm::vec4(0.8f, 0.8f, 0.8f, 0.0f));   // Light gray fading to transparent
+        setStartSize(0.1f);
+        setEndSize(0.5f); // Particles grow over time
+        setGravity(glm::vec3(0.0f, 0.5f, 0.0f)); // Gentle upward force
+        
+        // Enable continuous emission
+        setActive(true);
     }
 }

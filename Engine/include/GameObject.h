@@ -91,6 +91,11 @@ namespace Sparky {
             );
         }
 
+        // Get all components
+        const std::vector<std::unique_ptr<Component>>& getComponents() const {
+            return components;
+        }
+
         // Virtual methods
         virtual void update(float deltaTime);
         virtual void render();

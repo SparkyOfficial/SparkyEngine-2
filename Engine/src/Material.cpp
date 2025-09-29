@@ -1,6 +1,7 @@
 #include "../include/Material.h"
 #include "../include/Logger.h"
 #include "../include/Texture.h"
+#include "../include/ShaderProgram.h"
 
 namespace Sparky {
 

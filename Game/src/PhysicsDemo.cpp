@@ -70,7 +70,7 @@ namespace Sparky {
         // Add render component
         RenderComponent* groundRender = ground->addComponent<RenderComponent>();
         auto groundMesh = Mesh::createCube(1.0f);
-        groundRender->setMesh(groundMesh.get());
+        groundRender->setMesh(Mesh::createCube(1.0f));
         meshes.push_back(std::move(groundMesh));
         
         // Add rigid body component
@@ -90,7 +90,7 @@ namespace Sparky {
         // Add render component
         RenderComponent* playerRender = player->addComponent<RenderComponent>();
         auto playerMesh = Mesh::createCube(1.0f);
-        playerRender->setMesh(playerMesh.get());
+        playerRender->setMesh(Mesh::createCube(1.0f));
         meshes.push_back(std::move(playerMesh));
         
         // Add rigid body component

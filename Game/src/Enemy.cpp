@@ -1,8 +1,9 @@
 #include "Enemy.h"
 #include "Player.h"
 #include "../../Engine/include/Logger.h"
-#include <glm/glm.hpp>
+#include <GLFW/glfw3.h>
 #include <glm/gtc/matrix_transform.hpp>
+#include <random>
 
 namespace Sparky {
 

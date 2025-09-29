@@ -63,6 +63,12 @@ namespace Sparky {
         // Behavior tree support
         void setBehaviorTree(std::unique_ptr<BehaviorTree> tree);
         BehaviorTree* getBehaviorTree() const { return behaviorTree.get(); }
+        
+        // Additional AI methods for more advanced behavior
+        void fleeFromTarget();
+        void setAggressive(bool aggressive);
+        bool isAggressive() const;
+        void wander();
 
     private:
         AIState currentState;

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <vector>
+#include <memory>
 #include <glm/glm.hpp>
 #include <vulkan/vulkan.h>
 
@@ -39,6 +40,8 @@ namespace Sparky {
         static std::unique_ptr<Mesh> createQuad();
         
         // Getters
+        const std::vector<Vertex>& getVertices() const { return vertices; }
+        const std::vector<uint32_t>& getIndices() const { return indices; }
         size_t getVertexCount() const { return vertices.size(); }
         size_t getIndexCount() const { return indices.size(); }
     };

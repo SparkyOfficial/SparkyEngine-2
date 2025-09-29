@@ -2,11 +2,11 @@ cmake_minimum_required(VERSION 3.20)
 project(SparkyEngine)
 
 # Create the engine library
-add_library(SparkyEngine STATIC
+set(SPARKY_ENGINE_SOURCES
     src/Animation.cpp
+    src/AnimationComponent.cpp
     src/AnimationController.cpp
     src/AssetManager.cpp
-    src/AudioEngine.cpp
     src/BehaviorTree.cpp
     src/BehaviorTreeExample.cpp
     src/Button.cpp
@@ -33,6 +33,7 @@ add_library(SparkyEngine STATIC
     src/Mesh.cpp
     src/MeshRenderer.cpp
     src/ParticleSystem.cpp
+    src/ParticleComponent.cpp
     src/PhysicsComponent.cpp
     src/PhysicsWorld.cpp
     src/PointLight.cpp
@@ -58,6 +59,17 @@ add_library(SparkyEngine STATIC
     src/AIComponent.cpp
 )
 
+# Add audio components only if audio is enabled
+if(ENABLE_AUDIO)
+    list(APPEND SPARKY_ENGINE_SOURCES
+        src/AudioEngine.cpp
+        src/AudioComponent.cpp
+    )
+endif()
+
+# Create the engine library
+add_library(SparkyEngine STATIC ${SPARKY_ENGINE_SOURCES})
+
 # Include directories
 target_include_directories(SparkyEngine PUBLIC 
     ${CMAKE_CURRENT_SOURCE_DIR}/include
@@ -65,6 +77,7 @@ target_include_directories(SparkyEngine PUBLIC
     ${GLFW_INCLUDE_DIRS}
     ${GLM_INCLUDE_DIRS}
     ${JSON_INCLUDE_DIRS}
+    ${CMAKE_CURRENT_SOURCE_DIR}/../external
 )
 
 # Link libraries
@@ -79,62 +92,7 @@ target_compile_definitions(SparkyEngine PRIVATE
     PROJECT_SOURCE_DIR="${PROJECT_SOURCE_DIR}"
 )
 
-# Add STB image implementation
-target_compile_definitions(SparkyEngine PRIVATE 
-    STB_IMAGE_IMPLEMENTATION
-)
-
-# Create physics test executable
-add_executable(physics_test src/physics_test.cpp)
-target_link_libraries(physics_test SparkyEngine 
-    ${VULKAN_LIBRARIES}
-    ${GLFW_LIBRARIES}
-    ${glslang_LIBRARIES}
-)
-target_include_directories(physics_test PRIVATE 
-    ${CMAKE_CURRENT_SOURCE_DIR}/include
-)
-
-# Create animation test executable
-add_executable(animation_test src/animation_test.cpp)
-target_link_libraries(animation_test SparkyEngine 
-    ${VULKAN_LIBRARIES}
-    ${GLFW_LIBRARIES}
-    ${glslang_LIBRARIES}
-)
-target_include_directories(animation_test PRIVATE 
-    ${CMAKE_CURRENT_SOURCE_DIR}/include
-)
-
-# Create particle test executable
-add_executable(particle_test src/particle_test.cpp)
-target_link_libraries(particle_test SparkyEngine 
-    ${VULKAN_LIBRARIES}
-    ${GLFW_LIBRARIES}
-    ${glslang_LIBRARIES}
-)
-target_include_directories(particle_test PRIVATE 
-    ${CMAKE_CURRENT_SOURCE_DIR}/include
-)
-
-# Create texture test executable
-add_executable(texture_test src/texture_test.cpp)
-target_link_libraries(texture_test SparkyEngine 
-    ${VULKAN_LIBRARIES}
-    ${GLFW_LIBRARIES}
-    ${glslang_LIBRARIES}
-)
-target_include_directories(texture_test PRIVATE 
-    ${CMAKE_CURRENT_SOURCE_DIR}/include
-)
-
-# Create STB image test executable
-add_executable(stb_image_test src/stb_image_test.cpp)
-target_link_libraries(stb_image_test SparkyEngine 
-    ${VULKAN_LIBRARIES}
-    ${GLFW_LIBRARIES}
-    ${glslang_LIBRARIES}
-)
-target_include_directories(stb_image_test PRIVATE 
-    ${CMAKE_CURRENT_SOURCE_DIR}/include
-)
+# Add ENABLE_AUDIO definition if audio is enabled
+if(ENABLE_AUDIO)
+    target_compile_definitions(SparkyEngine PRIVATE ENABLE_AUDIO)
+endif()

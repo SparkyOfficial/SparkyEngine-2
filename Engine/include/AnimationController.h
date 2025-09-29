@@ -1,47 +1,61 @@
 #pragma once
 
-#include "Component.h"
-#include <vector>
+#include "AnimationComponent.h"
 #include <string>
+#include <unordered_map>
 #include <memory>
-#include <glm/glm.hpp>
+#include <functional>
+#include <vector>
 
 namespace Sparky {
-    class Animation;
-
-    class AnimationController : public Component {
+    
+    // Forward declaration
+    class AnimationComponent;
+    
+    // Animation state
+    struct AnimationState {
+        std::string name;
+        std::string animationName;
+        float playbackSpeed;
+        bool looping;
+    };
+    
+    // Animation transition
+    struct AnimationTransition {
+        std::string fromState;
+        std::string toState;
+        float transitionTime;
+        std::function<bool()> condition; // Condition for transition
+    };
+    
+    class AnimationController {
     public:
-        AnimationController();
-        virtual ~AnimationController();
-
-        void update(float deltaTime) override;
-        void render() override;
-
-        // Animation management
-        void addAnimation(std::unique_ptr<Animation> animation);
-        bool setAnimation(const std::string& name);
-        void setPlaybackSpeed(float speed);
-        void setLooping(bool looping);
+        AnimationController(AnimationComponent* animationComponent);
+        ~AnimationController();
         
-        // Playback control
-        void play();
-        void pause();
-        void stop();
-        void reset();
-
+        // State management
+        void addState(const AnimationState& state);
+        void addTransition(const AnimationTransition& transition);
+        void setState(const std::string& stateName);
+        const std::string& getCurrentState() const { return currentState; }
+        
+        // Update
+        void update(float deltaTime);
+        
         // Getters
-        bool isPlaying() const { return playing; }
-        float getCurrentTime() const { return currentTime; }
-        const std::string& getCurrentAnimationName() const { return currentAnimationName; }
+        AnimationComponent* getAnimationComponent() const { return animationComponent; }
 
     private:
-        std::vector<std::unique_ptr<Animation>> animations;
-        std::string currentAnimationName;
-        Animation* currentAnimation;
+        AnimationComponent* animationComponent;
+        std::unordered_map<std::string, AnimationState> states;
+        std::vector<AnimationTransition> transitions;
+        std::string currentState;
+        float stateTime;
+        std::string targetState;
+        float transitionTime;
+        float currentTransitionTime;
         
-        float currentTime;
-        float playbackSpeed;
-        bool playing;
-        bool looping;
+        // Private helper methods
+        void applyState(const AnimationState& state);
     };
 }

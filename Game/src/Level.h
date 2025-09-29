@@ -8,7 +8,6 @@
 namespace Sparky {
     class GameObject;
     class Player;
-    class Enemy;
     
     struct LevelObject {
         std::string type;
@@ -41,6 +40,12 @@ namespace Sparky {
         // Get spawned game objects
         const std::vector<std::unique_ptr<GameObject>>& getSpawnedObjects() const { return spawnedObjects; }
         
+        // Additional methods for level management
+        GameObject* findObjectByName(const std::string& name);
+        std::vector<GameObject*> findObjectsByType(const std::string& type);
+        void addSpawnedObject(std::unique_ptr<GameObject> object);
+        void removeSpawnedObject(GameObject* object);
+
     private:
         std::string name;
         std::string description;

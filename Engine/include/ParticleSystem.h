@@ -1,81 +1,81 @@
 #pragma once
 
-#include "Component.h"
 #include <vector>
 #include <glm/glm.hpp>
-#include <memory>
 
 namespace Sparky {
+    
     struct Particle {
         glm::vec3 position;
         glm::vec3 velocity;
-        glm::vec3 acceleration;
         glm::vec4 color;
         float life;
         float maxLife;
         float size;
-        bool active;
+        
+        Particle();
     };
-
-    class ParticleSystem : public Component {
+    
+    class ParticleSystem {
     public:
         ParticleSystem();
-        virtual ~ParticleSystem();
-
-        void update(float deltaTime) override;
-        void render() override;
-
-        // Particle system configuration
+        ~ParticleSystem();
+        
+        void update(float deltaTime);
+        void render();
+        
+        // Configuration methods
+        void setMaxParticles(int max) { maxParticles = max; particles.resize(max); }
+        void setEmissionPoint(const glm::vec3& point);
+        void setEmissionDirection(const glm::vec3& direction);
+        void setEmissionSpread(float spread);
+        void setEmissionSpeed(float speed);
         void setEmissionRate(float rate);
-        void setParticleLifetime(float min, float max);
+        void setParticleLifetime(float lifetime);
         void setStartColor(const glm::vec4& color);
         void setEndColor(const glm::vec4& color);
         void setStartSize(float size);
         void setEndSize(float size);
-        void setStartSpeed(float min, float max);
-        void setGravity(const glm::vec3& gravity);
+        void setGravity(const glm::vec3& grav);
+        void setActive(bool active);
         
-        // Emission shape
-        void setEmissionShapeSphere(float radius);
-        void setEmissionShapeBox(const glm::vec3& size);
+        // Getters
+        bool isActive() const;
+        int getParticleCount() const;
+        int getMaxParticles() const { return maxParticles; }
+        float getEmissionRate() const { return emissionRate; }
+        float getParticleLifetime() const { return particleLifetime; }
         
-        // Control
-        void play();
-        void pause();
-        void stop();
-        void reset();
-
-        bool isPlaying() const { return playing; }
-        size_t getActiveParticleCount() const { return activeParticleCount; }
+        // Preset particle effects
+        void createMuzzleFlash(const glm::vec3& position, const glm::vec3& direction);
+        void createExplosion(const glm::vec3& position);
+        void createSmoke(const glm::vec3& position);
 
     private:
         std::vector<Particle> particles;
-        size_t activeParticleCount;
+        int maxParticles;
+        int particleCount;
         
-        // Configuration
+        // Emission properties
+        glm::vec3 emissionPoint;
+        glm::vec3 emissionDirection;
+        float emissionSpread;
+        float emissionSpeed;
         float emissionRate;
-        float emissionAccumulator;
-        float minLifetime, maxLifetime;
-        glm::vec4 startColor, endColor;
-        float startSize, endSize;
-        float minSpeed, maxSpeed;
+        float lastEmissionTime;
+        
+        // Particle properties
+        float particleLifetime;
+        glm::vec4 startColor;
+        glm::vec4 endColor;
+        float startSize;
+        float endSize;
         glm::vec3 gravity;
         
-        // Emission shape
-        enum class EmissionShape { SPHERE, BOX };
-        EmissionShape emissionShape;
-        float sphereRadius;
-        glm::vec3 boxSize;
+        bool systemActive;
         
-        // State
-        bool playing;
-        bool loop;
-        
-        // Helper methods
+        // Private helper methods
         void emitParticles(float deltaTime);
-        void updateParticles(float deltaTime);
-        void initializeParticle(Particle& particle);
-        glm::vec3 getRandomEmissionPosition() const;
-        glm::vec3 getRandomEmissionVelocity() const;
+        void emitParticle();
     };
 }

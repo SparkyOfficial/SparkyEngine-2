@@ -156,6 +156,12 @@ namespace Sparky {
         }
     }
 
+    void MeshRenderer::renderMeshes() {
+        // This method would be implemented to render all meshes
+        // For now, it's just a placeholder
+        SPARKY_LOG_DEBUG("Rendering all meshes");
+    }
+
     VkBuffer MeshRenderer::getVertexBuffer(const Mesh& mesh) const {
         auto it = vertexBuffers.find(&mesh);
         if (it != vertexBuffers.end()) {

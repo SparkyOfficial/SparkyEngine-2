@@ -3,6 +3,7 @@
 #include <glm/glm.hpp>
 #include <string>
 #include <vector>
+#include <memory>
 
 namespace Sparky {
 
@@ -11,6 +12,9 @@ namespace Sparky {
         POINT,
         SPOT
     };
+
+    // Forward declaration
+    class Light;
 
     // Structure for uniform buffer objects
     struct LightUniformBufferObject {

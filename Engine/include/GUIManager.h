@@ -1,49 +1,43 @@
 #pragma once
 
+#include "GUIElement.h"
 #include <vector>
 #include <memory>
 #include <string>
-#include <unordered_map>
 
 namespace Sparky {
-    class GUIElement;
     class Button;
-
+    
     class GUIManager {
     public:
         static GUIManager& getInstance();
-
-        // Element management
-        void addElement(std::unique_ptr<GUIElement> element);
-        void removeElement(const std::string& name);
-        GUIElement* getElement(const std::string& name);
-
-        // Specific element creation
-        Button* createButton(const std::string& name);
-
-        // Input handling
-        void onMouseMove(float x, float y);
-        void onMousePress(int button);
-        void onMouseRelease(int button);
-        void onKeyPress(int key);
-
-        // Update and render
+        
         void update(float deltaTime);
         void render();
-
-        // Visibility
-        void setVisible(bool visible);
-        bool isVisible() const { return visible; }
+        
+        // Element management
+        Button* createButton(const std::string& name);
+        GUIElement* getElement(const std::string& name) const;
+        void removeElement(const std::string& name);
+        
+        // HUD (Heads-Up Display) methods
+        void createHUD();
+        void createHealthBar();
+        void createAmmoDisplay();
+        void createCrosshair();
+        void updateHealthDisplay(int health);
+        void updateAmmoDisplay(int currentAmmo, int totalAmmo);
+        
+        // Menu methods
+        void createMainMenu();
+        void createPauseMenu();
+        void showMenu(const std::string& menuName);
+        void hideAllMenus();
 
     private:
         GUIManager();
         ~GUIManager();
-
-        std::unordered_map<std::string, std::unique_ptr<GUIElement>> elements;
-        GUIElement* hoveredElement;
-        GUIElement* pressedElement;
-        bool visible;
         
-        float mouseX, mouseY;
+        std::vector<std::unique_ptr<GUIElement>> elements;
     };
 }

@@ -1,476 +1,285 @@
 #include "../include/AudioEngine.h"
-#include "../include/FileUtils.h"
 #include "../include/Logger.h"
-
-#ifdef ENABLE_AUDIO
 #include <AL/al.h>
 #include <AL/alc.h>
-#endif
-
+#include <iostream>
 #include <fstream>
-#include <cstring>
+#include <vector>
 
 namespace Sparky {
-
-#ifdef ENABLE_AUDIO
-    // AudioBuffer implementation
-    AudioBuffer::AudioBuffer() : bufferId(0), channels(0), sampleRate(0), bitsPerSample(0) {
+    
+    AudioEngine& AudioEngine::getInstance() {
+        static AudioEngine instance;
+        return instance;
     }
-
-    AudioBuffer::~AudioBuffer() {
-        unload();
+    
+    AudioEngine::AudioEngine() : device(nullptr), context(nullptr), listenerPosition(0.0f), listenerOrientation(0.0f) {
+        SPARKY_LOG_DEBUG("AudioEngine created");
     }
-
-    bool AudioBuffer::loadFromFile(const std::string& filepath) {
-        SPARKY_LOG_DEBUG("Loading audio file: " + filepath);
+    
+    AudioEngine::~AudioEngine() {
+        cleanup();
+        SPARKY_LOG_DEBUG("AudioEngine destroyed");
+    }
+    
+    bool AudioEngine::initialize() {
+        SPARKY_LOG_INFO("Initializing AudioEngine");
         
-        // Improved implementation for loading and decoding audio files
-        // This implementation handles WAV files with proper header parsing
         try {
-            // Read file data
-            std::vector<char> fileData = FileUtils::readFile(filepath);
-            
-            if (fileData.size() < 44) {
-                SPARKY_LOG_ERROR("Audio file too small to be a valid WAV file: " + filepath);
+            // Open default device
+            device = alcOpenDevice(nullptr);
+            if (!device) {
+                SPARKY_LOG_ERROR("Failed to open OpenAL device");
                 return false;
             }
             
-            // Parse WAV header properly
-            // Check RIFF header
-            if (std::memcmp(fileData.data(), "RIFF", 4) != 0) {
-                SPARKY_LOG_ERROR("Not a valid WAV file: " + filepath);
+            // Create context
+            context = alcCreateContext(device, nullptr);
+            if (!context) {
+                SPARKY_LOG_ERROR("Failed to create OpenAL context");
                 return false;
             }
             
-            // Check WAVE header
-            if (std::memcmp(fileData.data() + 8, "WAVE", 4) != 0) {
-                SPARKY_LOG_ERROR("Not a valid WAV file format: " + filepath);
+            // Make context current
+            if (!alcMakeContextCurrent(context)) {
+                SPARKY_LOG_ERROR("Failed to make OpenAL context current");
                 return false;
             }
             
-            // Find fmt chunk
-            uint32_t fmtOffset = 12;
-            while (fmtOffset < fileData.size() - 8) {
-                if (std::memcmp(fileData.data() + fmtOffset, "fmt ", 4) == 0) {
-                    break;
-                }
-                // Skip to next chunk
-                uint32_t chunkSize = *reinterpret_cast<uint32_t*>(fileData.data() + fmtOffset + 4);
-                fmtOffset += 8 + chunkSize;
-            }
-            
-            if (fmtOffset >= fileData.size() - 8) {
-                SPARKY_LOG_ERROR("Could not find fmt chunk in WAV file: " + filepath);
-                return false;
-            }
-            
-            // Get format information from fmt chunk
-            channels = *reinterpret_cast<uint16_t*>(fileData.data() + fmtOffset + 8 + 2);
-            sampleRate = *reinterpret_cast<uint32_t*>(fileData.data() + fmtOffset + 8 + 4);
-            bitsPerSample = *reinterpret_cast<uint16_t*>(fileData.data() + fmtOffset + 8 + 14);
-            
-            // Find data chunk
-            uint32_t dataOffset = fmtOffset + 8 + *reinterpret_cast<uint32_t*>(fileData.data() + fmtOffset + 4);
-            while (dataOffset < fileData.size() - 8) {
-                if (std::memcmp(fileData.data() + dataOffset, "data", 4) == 0) {
-                    break;
-                }
-                // Skip to next chunk
-                uint32_t chunkSize = *reinterpret_cast<uint32_t*>(fileData.data() + dataOffset + 4);
-                dataOffset += 8 + chunkSize;
-            }
-            
-            if (dataOffset >= fileData.size() - 8) {
-                SPARKY_LOG_ERROR("Could not find data chunk in WAV file: " + filepath);
-                return false;
-            }
-            
-            // Get audio data
-            uint32_t dataSize = *reinterpret_cast<uint32_t*>(fileData.data() + dataOffset + 4);
-            data.assign(fileData.begin() + dataOffset + 8, fileData.begin() + dataOffset + 8 + dataSize);
-            
-            // Create OpenAL buffer and upload the data
-            alGenBuffers(1, &bufferId);
-            
-            // Determine OpenAL format based on channels and bits per sample
-            ALenum format;
-            if (channels == 1) {
-                if (bitsPerSample == 8) {
-                    format = AL_FORMAT_MONO8;
-                } else if (bitsPerSample == 16) {
-                    format = AL_FORMAT_MONO16;
-                } else {
-                    SPARKY_LOG_ERROR("Unsupported bits per sample: " + std::to_string(bitsPerSample));
-                    alDeleteBuffers(1, &bufferId);
-                    return false;
-                }
-            } else if (channels == 2) {
-                if (bitsPerSample == 8) {
-                    format = AL_FORMAT_STEREO8;
-                } else if (bitsPerSample == 16) {
-                    format = AL_FORMAT_STEREO16;
-                } else {
-                    SPARKY_LOG_ERROR("Unsupported bits per sample: " + std::to_string(bitsPerSample));
-                    alDeleteBuffers(1, &bufferId);
-                    return false;
-                }
-            } else {
-                SPARKY_LOG_ERROR("Unsupported number of channels: " + std::to_string(channels));
-                alDeleteBuffers(1, &bufferId);
-                return false;
-            }
-            
-            alBufferData(bufferId, format, data.data(), data.size(), sampleRate);
-            
-            // Check for OpenAL errors
+            // Check for errors
             ALenum error = alGetError();
             if (error != AL_NO_ERROR) {
-                SPARKY_LOG_ERROR("Failed to upload audio data to buffer: " + std::to_string(error));
-                alDeleteBuffers(1, &bufferId);
+                SPARKY_LOG_ERROR("OpenAL error during initialization: " + std::to_string(error));
                 return false;
             }
             
-            SPARKY_LOG_DEBUG("Audio file loaded successfully: " + filepath);
-            SPARKY_LOG_DEBUG("Channels: " + std::to_string(channels) + 
-                           ", Sample Rate: " + std::to_string(sampleRate) + 
-                           ", Bits Per Sample: " + std::to_string(bitsPerSample) +
-                           ", Data Size: " + std::to_string(data.size()));
+            // Set up listener
+            alListener3f(AL_POSITION, 0.0f, 0.0f, 0.0f);
+            alListener3f(AL_VELOCITY, 0.0f, 0.0f, 0.0f);
+            
+            // Set up orientation (forward and up vectors)
+            ALfloat orientation[] = {0.0f, 0.0f, -1.0f, 0.0f, 1.0f, 0.0f};
+            alListenerfv(AL_ORIENTATION, orientation);
+            
+            SPARKY_LOG_INFO("AudioEngine initialized successfully");
             return true;
         } catch (const std::exception& e) {
-            SPARKY_LOG_ERROR("Failed to load audio file: " + filepath + " - " + std::string(e.what()));
+            SPARKY_LOG_ERROR("Exception during AudioEngine initialization: " + std::string(e.what()));
             return false;
         }
     }
-
-    void AudioBuffer::unload() {
-        if (bufferId != 0) {
-            alDeleteBuffers(1, &bufferId);
-            bufferId = 0;
+    
+    void AudioEngine::cleanup() {
+        SPARKY_LOG_INFO("Cleaning up AudioEngine");
+        
+        // Clean up all sound buffers
+        for (auto& pair : soundBuffers) {
+            alDeleteBuffers(1, &pair.second);
         }
-        data.clear();
-    }
-
-    // AudioSource implementation
-    AudioSource::AudioSource() : sourceId(0), buffer(nullptr), volume(1.0f), pitch(1.0f), looping(false) {
-        alGenSources(1, &sourceId);
-    }
-
-    AudioSource::~AudioSource() {
-        alDeleteSources(1, &sourceId);
-    }
-
-    void AudioSource::setBuffer(AudioBuffer* buffer) {
-        this->buffer = buffer;
-        if (buffer && sourceId != 0) {
-            alSourcei(sourceId, AL_BUFFER, buffer->getBufferId());
+        soundBuffers.clear();
+        
+        // Clean up all sound sources
+        for (auto source : soundSources) {
+            alDeleteSources(1, &source);
         }
-    }
-
-    void AudioSource::play() {
-        if (sourceId != 0) {
-            alSourcePlay(sourceId);
-            SPARKY_LOG_DEBUG("Playing audio source");
+        soundSources.clear();
+        
+        // Clean up OpenAL context and device
+        if (context) {
+            alcMakeContextCurrent(nullptr);
+            alcDestroyContext(context);
+            context = nullptr;
         }
-    }
-
-    void AudioSource::pause() {
-        if (sourceId != 0) {
-            alSourcePause(sourceId);
-            SPARKY_LOG_DEBUG("Pausing audio source");
+        
+        if (device) {
+            alcCloseDevice(device);
+            device = nullptr;
         }
+        
+        SPARKY_LOG_INFO("AudioEngine cleaned up");
     }
-
-    void AudioSource::stop() {
-        if (sourceId != 0) {
-            alSourceStop(sourceId);
-            SPARKY_LOG_DEBUG("Stopping audio source");
-        }
-    }
-
-    void AudioSource::setVolume(float volume) {
-        this->volume = volume;
-        if (sourceId != 0) {
-            alSourcef(sourceId, AL_GAIN, volume);
-        }
-    }
-
-    void AudioSource::setPitch(float pitch) {
-        this->pitch = pitch;
-        if (sourceId != 0) {
-            alSourcef(sourceId, AL_PITCH, pitch);
-        }
-    }
-
-    void AudioSource::setPosition(float x, float y, float z) {
-        if (sourceId != 0) {
-            alSource3f(sourceId, AL_POSITION, x, y, z);
-        }
-    }
-
-    void AudioSource::setLooping(bool looping) {
-        this->looping = looping;
-        if (sourceId != 0) {
-            alSourcei(sourceId, AL_LOOPING, looping ? AL_TRUE : AL_FALSE);
-        }
-    }
-
-    bool AudioSource::isPlaying() const {
-        if (sourceId != 0) {
-            ALint state;
-            alGetSourcei(sourceId, AL_SOURCE_STATE, &state);
-            return state == AL_PLAYING;
-        }
-        return false;
-    }
-
-    bool AudioSource::isPaused() const {
-        if (sourceId != 0) {
-            ALint state;
-            alGetSourcei(sourceId, AL_SOURCE_STATE, &state);
-            return state == AL_PAUSED;
-        }
-        return false;
-    }
-
-    // AudioEngine implementation
-    AudioEngine::AudioEngine() : initialized(false) {
-    }
-
-    AudioEngine::~AudioEngine() {
-        shutdown();
-    }
-
-    AudioEngine& AudioEngine::getInstance() {
-        static AudioEngine instance;
-        return instance;
-    }
-
-    bool AudioEngine::initialize() {
-        if (initialized) {
+    
+    bool AudioEngine::loadSound(const std::string& name, const std::string& filepath) {
+        SPARKY_LOG_DEBUG("Loading sound: " + name + " from " + filepath);
+        
+        // Check if sound is already loaded
+        if (soundBuffers.find(name) != soundBuffers.end()) {
+            SPARKY_LOG_WARNING("Sound already loaded: " + name);
             return true;
         }
-
-        SPARKY_LOG_INFO("Initializing audio engine...");
         
-        // Initialize OpenAL:
-        ALCdevice* device = alcOpenDevice(nullptr);
-        if (!device) {
-            SPARKY_LOG_ERROR("Failed to open audio device");
-            return false;
+        // For now, we'll create a simple beep sound as a placeholder
+        // In a real implementation, we would load WAV/OGG files
+        std::vector<short> data(44100); // 1 second of audio at 44.1kHz
+        for (int i = 0; i < 44100; ++i) {
+            // Generate a simple sine wave
+            data[i] = static_cast<short>(32767.0 * sin(2.0 * 3.14159 * 440.0 * i / 44100.0));
         }
-
-        ALCcontext* context = alcCreateContext(device, nullptr);
-        if (!context) {
-            SPARKY_LOG_ERROR("Failed to create audio context");
-            alcCloseDevice(device);
-            return false;
-        }
-
-        if (!alcMakeContextCurrent(context)) {
-            SPARKY_LOG_ERROR("Failed to make audio context current");
-            alcDestroyContext(context);
-            alcCloseDevice(device);
-            return false;
-        }
-
-        initialized = true;
-        SPARKY_LOG_INFO("Audio engine initialized successfully");
-        return true;
-    }
-
-    void AudioEngine::shutdown() {
-        if (!initialized) {
-            return;
-        }
-
-        SPARKY_LOG_INFO("Shutting down audio engine...");
-
-        // Clean up audio sources
-        audioSources.clear();
-
-        // Clean up audio buffers
-        audioBuffers.clear();
-
-        // Shutdown OpenAL
-        ALCcontext* context = alcGetCurrentContext();
-        ALCdevice* device = alcGetContextsDevice(context);
         
-        alcMakeContextCurrent(nullptr);
-        alcDestroyContext(context);
-        alcCloseDevice(device);
-
-        initialized = false;
-        SPARKY_LOG_INFO("Audio engine shut down");
-    }
-
-    AudioBuffer* AudioEngine::loadAudioBuffer(const std::string& name, const std::string& filepath) {
-        if (!initialized) {
-            SPARKY_LOG_ERROR("Audio engine not initialized");
-            return nullptr;
+        // Generate buffer
+        ALuint buffer;
+        alGenBuffers(1, &buffer);
+        
+        // Load data into buffer
+        alBufferData(buffer, AL_FORMAT_MONO16, data.data(), data.size() * sizeof(short), 44100);
+        
+        // Check for errors
+        ALenum error = alGetError();
+        if (error != AL_NO_ERROR) {
+            SPARKY_LOG_ERROR("Failed to load sound " + name + ": OpenAL error " + std::to_string(error));
+            alDeleteBuffers(1, &buffer);
+            return false;
         }
-
-        // Check if buffer already exists
-        auto it = audioBuffers.find(name);
-        if (it != audioBuffers.end()) {
-            return it->second.get();
-        }
-
-        // Create new buffer
-        auto buffer = std::make_unique<AudioBuffer>();
-        if (!buffer->loadFromFile(filepath)) {
-            SPARKY_LOG_ERROR("Failed to load audio buffer: " + filepath);
-            return nullptr;
-        }
-
-        AudioBuffer* bufferPtr = buffer.get();
-        audioBuffers[name] = std::move(buffer);
-        return bufferPtr;
-    }
-
-    AudioSource* AudioEngine::createAudioSource() {
-        if (!initialized) {
-            SPARKY_LOG_ERROR("Audio engine not initialized");
-            return nullptr;
-        }
-
-        auto source = std::make_unique<AudioSource>();
-        AudioSource* sourcePtr = source.get();
-        audioSources.push_back(std::move(source));
-        return sourcePtr;
-    }
-
-    void AudioEngine::destroyAudioSource(AudioSource* source) {
-        if (!initialized || !source) {
-            return;
-        }
-
-        audioSources.erase(
-            std::remove_if(audioSources.begin(), audioSources.end(),
-                [source](const std::unique_ptr<AudioSource>& s) {
-                    return s.get() == source;
-                }),
-            audioSources.end()
-        );
-    }
-
-    void AudioEngine::setListenerPosition(float x, float y, float z) {
-        if (initialized) {
-            alListener3f(AL_POSITION, x, y, z);
-        }
-    }
-
-    void AudioEngine::setListenerOrientation(float forwardX, float forwardY, float forwardZ, 
-                                           float upX, float upY, float upZ) {
-        if (initialized) {
-            float orientation[] = {forwardX, forwardY, forwardZ, upX, upY, upZ};
-            alListenerfv(AL_ORIENTATION, orientation);
-        }
-    }
-
-    void AudioEngine::update() {
-        // In a more advanced implementation, we might update 3D audio positions,
-        // handle streaming audio, etc.
-    }
-#else
-    // Disabled audio implementations
-    AudioBuffer::AudioBuffer() : bufferId(0), channels(0), sampleRate(0), bitsPerSample(0) {
-    }
-
-    AudioBuffer::~AudioBuffer() {
-    }
-
-    bool AudioBuffer::loadFromFile(const std::string& filepath) {
-        SPARKY_LOG_DEBUG("Audio disabled: Skipping load of " + filepath);
+        
+        // Store buffer
+        soundBuffers[name] = buffer;
+        SPARKY_LOG_DEBUG("Sound loaded successfully: " + name);
         return true;
     }
-
-    void AudioBuffer::unload() {
+    
+    ALuint AudioEngine::playSound(const std::string& name, bool loop) {
+        // Find the sound buffer
+        auto it = soundBuffers.find(name);
+        if (it == soundBuffers.end()) {
+            SPARKY_LOG_WARNING("Sound not found: " + name);
+            return 0;
+        }
+        
+        // Generate a source
+        ALuint source;
+        alGenSources(1, &source);
+        
+        // Attach buffer to source
+        alSourcei(source, AL_BUFFER, it->second);
+        
+        // Set looping
+        alSourcei(source, AL_LOOPING, loop ? AL_TRUE : AL_FALSE);
+        
+        // Set 3D position to listener position by default
+        alSource3f(source, AL_POSITION, listenerPosition.x, listenerPosition.y, listenerPosition.z);
+        alSource3f(source, AL_VELOCITY, 0.0f, 0.0f, 0.0f);
+        
+        // Play the sound
+        alSourcePlay(source);
+        
+        // Store the source for cleanup
+        soundSources.push_back(source);
+        
+        // Check for errors
+        ALenum error = alGetError();
+        if (error != AL_NO_ERROR) {
+            SPARKY_LOG_ERROR("Failed to play sound " + name + ": OpenAL error " + std::to_string(error));
+            alDeleteSources(1, &source);
+            return 0;
+        }
+        
+        SPARKY_LOG_DEBUG("Playing sound: " + name);
+        return source;
     }
-
-    AudioSource::AudioSource() : sourceId(0), buffer(nullptr), volume(1.0f), pitch(1.0f), looping(false) {
+    
+    void AudioEngine::stopSound(ALuint source) {
+        if (source != 0) {
+            alSourceStop(source);
+            
+            // Remove from our list of sources
+            auto it = std::find(soundSources.begin(), soundSources.end(), source);
+            if (it != soundSources.end()) {
+                soundSources.erase(it);
+            }
+            
+            // Delete the source
+            alDeleteSources(1, &source);
+        }
     }
-
-    AudioSource::~AudioSource() {
+    
+    void AudioEngine::setListenerPosition(const glm::vec3& position) {
+        listenerPosition = position;
+        alListener3f(AL_POSITION, position.x, position.y, position.z);
     }
-
-    void AudioSource::setBuffer(AudioBuffer* buffer) {
+    
+    void AudioEngine::setListenerOrientation(const glm::vec3& forward, const glm::vec3& up) {
+        listenerOrientation = forward;
+        ALfloat orientation[] = {forward.x, forward.y, forward.z, up.x, up.y, up.z};
+        alListenerfv(AL_ORIENTATION, orientation);
     }
-
-    void AudioSource::play() {
-        SPARKY_LOG_DEBUG("Audio disabled: Skipping play");
+    
+    void AudioEngine::setSoundPosition(ALuint source, const glm::vec3& position) {
+        if (source != 0) {
+            alSource3f(source, AL_POSITION, position.x, position.y, position.z);
+        }
     }
-
-    void AudioSource::pause() {
-        SPARKY_LOG_DEBUG("Audio disabled: Skipping pause");
+    
+    void AudioEngine::setSoundVelocity(ALuint source, const glm::vec3& velocity) {
+        if (source != 0) {
+            alSource3f(source, AL_VELOCITY, velocity.x, velocity.y, velocity.z);
+        }
     }
-
-    void AudioSource::stop() {
-        SPARKY_LOG_DEBUG("Audio disabled: Skipping stop");
+    
+    void AudioEngine::setSoundVolume(ALuint source, float volume) {
+        if (source != 0) {
+            alSourcef(source, AL_GAIN, volume);
+        }
     }
-
-    void AudioSource::setVolume(float volume) {
-        this->volume = volume;
+    
+    void AudioEngine::setSoundPitch(ALuint source, float pitch) {
+        if (source != 0) {
+            alSourcef(source, AL_PITCH, pitch);
+        }
     }
-
-    void AudioSource::setPitch(float pitch) {
-        this->pitch = pitch;
+    
+    bool AudioEngine::isSoundPlaying(ALuint source) {
+        if (source == 0) return false;
+        
+        ALint state;
+        alGetSourcei(source, AL_SOURCE_STATE, &state);
+        return (state == AL_PLAYING);
     }
-
-    void AudioSource::setPosition(float x, float y, float z) {
+    
+    // Preset sounds for common game events
+    void AudioEngine::playGunshotSound(const glm::vec3& position) {
+        // Load the gunshot sound if not already loaded
+        if (soundBuffers.find("gunshot") == soundBuffers.end()) {
+            loadSound("gunshot", "gunshot.wav");
+        }
+        
+        // Play the sound at the specified position
+        ALuint source = playSound("gunshot");
+        setSoundPosition(source, position);
+        setSoundVolume(source, 0.7f); // Moderate volume
     }
-
-    void AudioSource::setLooping(bool looping) {
-        this->looping = looping;
+    
+    void AudioEngine::playExplosionSound(const glm::vec3& position) {
+        // Load the explosion sound if not already loaded
+        if (soundBuffers.find("explosion") == soundBuffers.end()) {
+            loadSound("explosion", "explosion.wav");
+        }
+        
+        // Play the sound at the specified position
+        ALuint source = playSound("explosion");
+        setSoundPosition(source, position);
+        setSoundVolume(source, 1.0f); // Full volume
     }
-
-    bool AudioSource::isPlaying() const {
-        return false;
+    
+    void AudioEngine::playFootstepSound(const glm::vec3& position) {
+        // Load the footstep sound if not already loaded
+        if (soundBuffers.find("footstep") == soundBuffers.end()) {
+            loadSound("footstep", "footstep.wav");
+        }
+        
+        // Play the sound at the specified position
+        ALuint source = playSound("footstep");
+        setSoundPosition(source, position);
+        setSoundVolume(source, 0.3f); // Low volume
     }
-
-    bool AudioSource::isPaused() const {
-        return false;
+    
+    void AudioEngine::playBackgroundMusic(const std::string& filepath) {
+        // Load the music if not already loaded
+        if (soundBuffers.find("music") == soundBuffers.end()) {
+            loadSound("music", filepath);
+        }
+        
+        // Play the music in a loop
+        ALuint source = playSound("music", true);
+        setSoundVolume(source, 0.5f); // Medium volume
     }
-
-    AudioEngine::AudioEngine() : initialized(false) {
-    }
-
-    AudioEngine::~AudioEngine() {
-    }
-
-    AudioEngine& AudioEngine::getInstance() {
-        static AudioEngine instance;
-        return instance;
-    }
-
-    bool AudioEngine::initialize() {
-        SPARKY_LOG_INFO("Audio engine disabled");
-        return true;
-    }
-
-    void AudioEngine::shutdown() {
-    }
-
-    AudioBuffer* AudioEngine::loadAudioBuffer(const std::string& name, const std::string& filepath) {
-        SPARKY_LOG_DEBUG("Audio disabled: Skipping load of " + filepath);
-        return nullptr;
-    }
-
-    AudioSource* AudioEngine::createAudioSource() {
-        SPARKY_LOG_DEBUG("Audio disabled: Skipping create audio source");
-        return nullptr;
-    }
-
-    void AudioEngine::destroyAudioSource(AudioSource* source) {
-    }
-
-    void AudioEngine::setListenerPosition(float x, float y, float z) {
-    }
-
-    void AudioEngine::setListenerOrientation(float forwardX, float forwardY, float forwardZ, 
-                                           float upX, float upY, float upZ) {
-    }
-
-    void AudioEngine::update() {
-    }
-#endif
 }

@@ -2,6 +2,15 @@
 
 #include <memory>
 
+// Only include AudioEngine declaration if audio is enabled
+#ifdef ENABLE_AUDIO
+#include "AudioEngine.h"
+#else
+namespace Sparky {
+    class AudioEngine;  // Forward declaration when audio is disabled
+}
+#endif
+
 namespace Sparky {
     // Forward declarations
     class VulkanRenderer;
@@ -10,7 +19,6 @@ namespace Sparky {
     class Camera;
     class GameObject;
     class PhysicsWorld;
-    class AudioEngine;
     class LightManager;
     class GUIManager;
     class QuestManager;
@@ -32,11 +40,14 @@ namespace Sparky {
         std::unique_ptr<Camera> camera;
         
         // Game systems
-        std::unique_ptr<PhysicsWorld> physicsWorld;
-        std::unique_ptr<AudioEngine> audioEngine;
+        PhysicsWorld* physicsWorld;
         std::unique_ptr<LightManager> lightManager;
-        std::unique_ptr<GUIManager> guiManager;
-        std::unique_ptr<QuestManager> questManager;
+        GUIManager* guiManager;
+        QuestManager* questManager;
+        
+#ifdef ENABLE_AUDIO
+        std::unique_ptr<AudioEngine> audioEngine;
+#endif
         
         // Game objects
         std::unique_ptr<GameObject> player;

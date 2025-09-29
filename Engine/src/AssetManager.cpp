@@ -28,8 +28,9 @@ namespace Sparky {
         
         // For now, just create a simple cube as placeholder
         auto cube = Mesh::createCube(1.0f);
-        mesh->setVertices(cube->getVertices());
-        mesh->setIndices(cube->getIndices());
+        // Directly copy the vertices and indices from the cube
+        mesh->vertices = std::move(cube->vertices);
+        mesh->indices = std::move(cube->indices);
         
         meshes[name] = std::move(mesh);
         SPARKY_LOG_DEBUG("Mesh loaded successfully: " + name);

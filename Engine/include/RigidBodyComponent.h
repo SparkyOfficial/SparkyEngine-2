@@ -40,11 +40,16 @@ namespace Sparky {
         void setFriction(float friction);
         float getFriction() const { return friction; }
 
+        // Gravity
+        void setAffectedByGravity(bool affected);
+        bool isAffectedByGravity() const { return affectedByGravity; }
+
         // Forces and torques
         void addForce(const glm::vec3& force);
         void addForceAtPosition(const glm::vec3& force, const glm::vec3& position);
         void addTorque(const glm::vec3& torque);
         void clearForces();
+        void applyForce(const glm::vec3& force); // Add this method
 
         // Integration methods
         void integrateForces(float deltaTime);
@@ -64,6 +69,8 @@ namespace Sparky {
         
         float restitution; // Bounciness
         float friction;    // Surface friction
+        
+        bool affectedByGravity; // Add this member
         
         float inverseMass;
         glm::mat3 inverseInertiaTensor;

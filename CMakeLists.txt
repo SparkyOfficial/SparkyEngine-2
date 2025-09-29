@@ -61,5 +61,4 @@ add_subdirectory(Game)
 #     ${VULKAN_INCLUDE_DIRS}
 #     ${GLFW_INCLUDE_DIRS}
 #     ${GLM_INCLUDE_DIRS}
-#     ${JSON_INCLUDE_DIRS}
 # )

@@ -1,113 +1,93 @@
 #include "../include/AnimationController.h"
-#include "../include/Animation.h"
-#include "../include/GameObject.h"
 #include "../include/Logger.h"
-#include <algorithm>
 
 namespace Sparky {
-
-    AnimationController::AnimationController() : 
-        currentAnimation(nullptr),
-        currentTime(0.0f),
-        playbackSpeed(1.0f),
-        playing(false),
-        looping(true) {
+    
+    AnimationController::AnimationController(AnimationComponent* animationComponent) 
+        : animationComponent(animationComponent), stateTime(0.0f), 
+          transitionTime(0.0f), currentTransitionTime(0.0f) {
+        SPARKY_LOG_DEBUG("AnimationController created");
     }
-
+    
     AnimationController::~AnimationController() {
+        SPARKY_LOG_DEBUG("AnimationController destroyed");
     }
-
-    void AnimationController::update(float deltaTime) {
-        if (!playing || !currentAnimation || !owner) {
-            return;
+    
+    void AnimationController::addState(const AnimationState& state) {
+        states[state.name] = state;
+        SPARKY_LOG_DEBUG("Animation state added: " + state.name);
+    }
+    
+    void AnimationController::addTransition(const AnimationTransition& transition) {
+        transitions.push_back(transition);
+        SPARKY_LOG_DEBUG("Animation transition added: " + transition.fromState + " -> " + transition.toState);
+    }
+    
+    void AnimationController::setState(const std::string& stateName) {
+        auto it = states.find(stateName);
+        if (it != states.end()) {
+            if (currentState != stateName) {
+                // Check if there's a transition defined
+                for (const auto& transition : transitions) {
+                    if (transition.fromState == currentState && transition.toState == stateName) {
+                        // Start transition
+                        targetState = stateName;
+                        transitionTime = transition.transitionTime;
+                        currentTransitionTime = 0.0f;
+                        SPARKY_LOG_DEBUG("Starting transition: " + currentState + " -> " + stateName);
+                        return;
+                    }
+                }
+                
+                // No transition defined, switch immediately
+                currentState = stateName;
+                stateTime = 0.0f;
+                applyState(it->second);
+                SPARKY_LOG_DEBUG("State changed to: " + stateName);
+            }
+        } else {
+            SPARKY_LOG_WARNING("Animation state not found: " + stateName);
         }
+    }
+    
+    void AnimationController::update(float deltaTime) {
+        stateTime += deltaTime;
         
-        // Update current time
-        currentTime += deltaTime * playbackSpeed;
-        
-        // Handle animation end
-        if (currentAnimation->getDuration() > 0.0f && 
-            currentTime >= currentAnimation->getDuration()) {
-            if (looping) {
-                // Wrap around for looping
-                currentTime = fmod(currentTime, currentAnimation->getDuration());
-            } else {
-                // Stop at the end for non-looping
-                currentTime = currentAnimation->getDuration();
-                playing = false;
+        // Handle ongoing transitions
+        if (!targetState.empty()) {
+            currentTransitionTime += deltaTime;
+            if (currentTransitionTime >= transitionTime) {
+                // Transition complete
+                currentState = targetState;
+                targetState.clear();
+                
+                auto it = states.find(currentState);
+                if (it != states.end()) {
+                    applyState(it->second);
+                }
+                SPARKY_LOG_DEBUG("Transition complete to state: " + currentState);
             }
         }
         
-        // Evaluate animation and apply to owner
-        glm::vec3 position, rotation, scale;
-        currentAnimation->evaluate(currentTime, position, rotation, scale);
-        
-        owner->setPosition(position);
-        owner->setRotation(rotation);
-        owner->setScale(scale);
-    }
-
-    void AnimationController::render() {
-        // Animation controller doesn't need rendering
-    }
-
-    void AnimationController::addAnimation(std::unique_ptr<Animation> animation) {
-        if (!animation) return;
-        
-        // Check if animation with this name already exists
-        const std::string& name = animation->getName();
-        auto it = std::find_if(animations.begin(), animations.end(),
-            [&name](const std::unique_ptr<Animation>& anim) {
-                return anim->getName() == name;
-            });
-        
-        if (it != animations.end()) {
-            // Replace existing animation
-            *it = std::move(animation);
-        } else {
-            // Add new animation
-            animations.push_back(std::move(animation));
+        // Check for automatic transitions based on conditions
+        if (targetState.empty()) { // Only check if not already transitioning
+            for (const auto& transition : transitions) {
+                if (transition.fromState == currentState && transition.condition) {
+                    if (transition.condition()) {
+                        setState(transition.toState);
+                        break;
+                    }
+                }
+            }
         }
     }
-
-    bool AnimationController::setAnimation(const std::string& name) {
-        auto it = std::find_if(animations.begin(), animations.end(),
-            [&name](const std::unique_ptr<Animation>& anim) {
-                return anim->getName() == name;
-            });
-        
-        if (it != animations.end()) {
-            currentAnimation = it->get();
-            currentAnimationName = name;
-            currentTime = 0.0f;
-            return true;
+    
+    void AnimationController::applyState(const AnimationState& state) {
+        if (animationComponent) {
+            animationComponent->playAnimation(state.animationName, state.looping);
+            if (auto anim = animationComponent->getAnimation(state.animationName)) {
+                anim->setPlaybackSpeed(state.playbackSpeed);
+            }
         }
-        
-        return false;
-    }
-
-    void AnimationController::setPlaybackSpeed(float speed) {
-        playbackSpeed = speed;
-    }
-
-    void AnimationController::setLooping(bool looping) {
-        this->looping = looping;
-    }
-
-    void AnimationController::play() {
-        playing = true;
-    }
-
-    void AnimationController::pause() {
-        playing = false;
-    }
-
-    void AnimationController::stop() {
-        playing = false;
-        currentTime = 0.0f;
-    }
-
-    void AnimationController::reset() {
-        currentTime = 0.0f;
     }
 }

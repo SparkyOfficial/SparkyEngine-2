@@ -37,30 +37,9 @@ namespace Sparky {
             return;
         }
         
-        VkDeviceSize bufferSize = sizeof(mesh->vertices[0]) * mesh->vertices.size();
-        
-        VkBuffer stagingBuffer;
-        VkDeviceMemory stagingBufferMemory;
-        VulkanRenderer::createBuffer(physicalDevice, device, bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, 
-                                    VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, 
-                                    stagingBuffer, stagingBufferMemory);
-        
-        void* data;
-        vkMapMemory(device, stagingBufferMemory, 0, bufferSize, 0, &data);
-        memcpy(data, mesh->vertices.data(), (size_t)bufferSize);
-        vkUnmapMemory(device, stagingBufferMemory);
-        
-        VulkanRenderer::createBuffer(physicalDevice, device, bufferSize, 
-                                    VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, 
-                                    VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, 
-                                    mesh->vertexBuffer, mesh->vertexBufferMemory);
-        
-        VulkanRenderer::copyBuffer(device, commandPool, graphicsQueue, stagingBuffer, mesh->vertexBuffer, bufferSize);
-        
-        vkDestroyBuffer(device, stagingBuffer, nullptr);
-        vkFreeMemory(device, stagingBufferMemory, nullptr);
-        
-        SPARKY_LOG_DEBUG("Vertex buffer created for mesh with " + std::to_string(mesh->vertices.size()) + " vertices");
+        // Vertex buffer creation is now handled by the MeshRenderer class
+        // This method is kept for API compatibility but doesn't do anything
+        SPARKY_LOG_WARNING("Vertex buffer creation is now handled by MeshRenderer");
     }
 
     void RenderComponent::createIndexBuffer(VkPhysicalDevice physicalDevice, VkDevice device, VkCommandPool commandPool, VkQueue graphicsQueue) {
@@ -69,30 +48,9 @@ namespace Sparky {
             return;
         }
         
-        VkDeviceSize bufferSize = sizeof(mesh->indices[0]) * mesh->indices.size();
-        
-        VkBuffer stagingBuffer;
-        VkDeviceMemory stagingBufferMemory;
-        VulkanRenderer::createBuffer(physicalDevice, device, bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, 
-                                    VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, 
-                                    stagingBuffer, stagingBufferMemory);
-        
-        void* data;
-        vkMapMemory(device, stagingBufferMemory, 0, bufferSize, 0, &data);
-        memcpy(data, mesh->indices.data(), (size_t)bufferSize);
-        vkUnmapMemory(device, stagingBufferMemory);
-        
-        VulkanRenderer::createBuffer(physicalDevice, device, bufferSize, 
-                                    VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT, 
-                                    VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, 
-                                    mesh->indexBuffer, mesh->indexBufferMemory);
-        
-        VulkanRenderer::copyBuffer(device, commandPool, graphicsQueue, stagingBuffer, mesh->indexBuffer, bufferSize);
-        
-        vkDestroyBuffer(device, stagingBuffer, nullptr);
-        vkFreeMemory(device, stagingBufferMemory, nullptr);
-        
-        SPARKY_LOG_DEBUG("Index buffer created for mesh with " + std::to_string(mesh->indices.size()) + " indices");
+        // Index buffer creation is now handled by the MeshRenderer class
+        // This method is kept for API compatibility but doesn't do anything
+        SPARKY_LOG_WARNING("Index buffer creation is now handled by MeshRenderer");
     }
 
     void RenderComponent::cleanup(VkDevice device) {

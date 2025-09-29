@@ -3,8 +3,11 @@
 #include "../../Engine/include/GameObject.h"
 #include "../../Engine/include/Camera.h"
 #include "../../Engine/include/PhysicsComponent.h"
+#include <memory>
 
 namespace Sparky {
+    class AnimationController;
+    
     class Player : public GameObject {
     public:
         Player();
@@ -47,5 +50,9 @@ namespace Sparky {
         bool mouseLocked;
         float lastX, lastY;
         bool firstMouse;
+        bool isMoving; // For animation state
+        
+        // Animation
+        std::unique_ptr<AnimationController> animationController;
     };
 }

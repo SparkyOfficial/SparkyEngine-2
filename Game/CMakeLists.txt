@@ -20,6 +20,7 @@ add_executable(test_json_level
     src/Platform.cpp
     src/Gun.cpp
     src/Enemy.cpp
+    src/Player.cpp
 )
 
 # Create a test executable for the new components
@@ -56,14 +57,17 @@ target_link_libraries(test_components SparkyEngine
 # Include directories
 target_include_directories(SparkyGame PRIVATE 
     ${CMAKE_CURRENT_SOURCE_DIR}/../Engine/include
+    ${CMAKE_CURRENT_SOURCE_DIR}/../external
 )
 
 # Include directories for test executable
 target_include_directories(test_json_level PRIVATE 
     ${CMAKE_CURRENT_SOURCE_DIR}/../Engine/include
+    ${CMAKE_CURRENT_SOURCE_DIR}/../external
 )
 
 # Include directories for components test executable
 target_include_directories(test_components PRIVATE 
     ${CMAKE_CURRENT_SOURCE_DIR}/../Engine/include
+    ${CMAKE_CURRENT_SOURCE_DIR}/../external
 )

@@ -2,6 +2,11 @@
 #include "../include/Logger.h"
 #include <cmath>
 
+// Define M_PI if it's not already defined
+#ifndef M_PI
+#define M_PI 3.14159265358979323846
+#endif
+
 namespace Sparky {
 
     VkVertexInputBindingDescription Vertex::getBindingDescription() {

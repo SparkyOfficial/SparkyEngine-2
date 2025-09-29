@@ -5,6 +5,13 @@ namespace Sparky {
     
     InputManager* InputManager::instance = nullptr;
 
+    InputManager& InputManager::getInstance() {
+        if (instance == nullptr) {
+            instance = new InputManager();
+        }
+        return *instance;
+    }
+
     InputManager::InputManager() : mouseX(0), mouseY(0), prevMouseX(0), prevMouseY(0), 
                                  scrollX(0), scrollY(0), prevScrollX(0), prevScrollY(0),
                                  window(nullptr), cursorMode(GLFW_CURSOR_NORMAL) {

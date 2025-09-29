@@ -1,90 +1,56 @@
 #pragma once
 
 #include <string>
-#include <vector>
-#include <memory>
 #include <unordered_map>
-
-// Only include audio engine if ENABLE_AUDIO is defined
-#ifdef ENABLE_AUDIO
+#include <vector>
+#include <glm/glm.hpp>
 #include <AL/al.h>
 #include <AL/alc.h>
-#endif
 
 namespace Sparky {
-    class AudioBuffer {
-    public:
-        AudioBuffer();
-        ~AudioBuffer();
-
-        bool loadFromFile(const std::string& filepath);
-        void unload();
-
-        // Getters
-        unsigned int getBufferId() const { return bufferId; }
-        int getChannels() const { return channels; }
-        int getSampleRate() const { return sampleRate; }
-        int getBitsPerSample() const { return bitsPerSample; }
-
-    private:
-        unsigned int bufferId;
-        int channels;
-        int sampleRate;
-        int bitsPerSample;
-        std::vector<char> data;
-    };
-
-    class AudioSource {
-    public:
-        AudioSource();
-        ~AudioSource();
-
-        void setBuffer(AudioBuffer* buffer);
-        void play();
-        void pause();
-        void stop();
-        void setVolume(float volume);
-        void setPitch(float pitch);
-        void setPosition(float x, float y, float z);
-        void setLooping(bool looping);
-
-        // Getters
-        bool isPlaying() const;
-        bool isPaused() const;
-        float getVolume() const { return volume; }
-        float getPitch() const { return pitch; }
-
-    private:
-        unsigned int sourceId;
-        AudioBuffer* buffer;
-        float volume;
-        float pitch;
-        bool looping;
-    };
-
+    
     class AudioEngine {
     public:
         static AudioEngine& getInstance();
-
+        
         bool initialize();
-        void shutdown();
-
-        AudioBuffer* loadAudioBuffer(const std::string& name, const std::string& filepath);
-        AudioSource* createAudioSource();
-        void destroyAudioSource(AudioSource* source);
-
-        void setListenerPosition(float x, float y, float z);
-        void setListenerOrientation(float forwardX, float forwardY, float forwardZ, 
-                                  float upX, float upY, float upZ);
-
-        void update();
+        void cleanup();
+        
+        // Sound management
+        bool loadSound(const std::string& name, const std::string& filepath);
+        ALuint playSound(const std::string& name, bool loop = false);
+        void stopSound(ALuint source);
+        
+        // Listener controls
+        void setListenerPosition(const glm::vec3& position);
+        void setListenerOrientation(const glm::vec3& forward, const glm::vec3& up);
+        const glm::vec3& getListenerPosition() const { return listenerPosition; }
+        const glm::vec3& getListenerOrientation() const { return listenerOrientation; }
+        
+        // Source controls
+        void setSoundPosition(ALuint source, const glm::vec3& position);
+        void setSoundVelocity(ALuint source, const glm::vec3& velocity);
+        void setSoundVolume(ALuint source, float volume);
+        void setSoundPitch(ALuint source, float pitch);
+        bool isSoundPlaying(ALuint source);
+        
+        // Preset sounds for common game events
+        void playGunshotSound(const glm::vec3& position);
+        void playExplosionSound(const glm::vec3& position);
+        void playFootstepSound(const glm::vec3& position);
+        void playBackgroundMusic(const std::string& filepath);
 
     private:
         AudioEngine();
         ~AudioEngine();
-
-        bool initialized;
-        std::unordered_map<std::string, std::unique_ptr<AudioBuffer>> audioBuffers;
-        std::vector<std::unique_ptr<AudioSource>> audioSources;
+        
+        ALCdevice* device;
+        ALCcontext* context;
+        
+        std::unordered_map<std::string, ALuint> soundBuffers;
+        std::vector<ALuint> soundSources;
+        
+        glm::vec3 listenerPosition;
+        glm::vec3 listenerOrientation;
     };
 }

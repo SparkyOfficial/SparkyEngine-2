@@ -17,6 +17,7 @@ namespace Sparky {
         angularDamping(0.0f),
         restitution(0.3f),
         friction(0.5f),
+        affectedByGravity(true), // Initialize to true by default
         inverseMass(1.0f),
         inverseInertiaTensor(1.0f) {
     }
@@ -89,6 +90,14 @@ namespace Sparky {
         this->friction = friction;
     }
 
+    void RigidBodyComponent::setAffectedByGravity(bool affected) {
+        affectedByGravity = affected;
+    }
+
+    void RigidBodyComponent::applyForce(const glm::vec3& force) {
+        totalForce += force;
+    }
+
     void RigidBodyComponent::addForce(const glm::vec3& force) {
         totalForce += force;
     }
@@ -118,7 +127,7 @@ namespace Sparky {
         
         // Apply gravity if inherited from PhysicsComponent
         glm::vec3 gravity = getGravity();
-        if (glm::length(gravity) > 0.0f) {
+        if (glm::length(gravity) > 0.0f && affectedByGravity) {
             totalForce += gravity * (1.0f / inverseMass);
         }
         

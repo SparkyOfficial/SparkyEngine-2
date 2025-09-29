@@ -18,6 +18,7 @@ namespace Sparky {
         void createVertexBuffer(const Mesh& mesh);
         void createIndexBuffer(const Mesh& mesh);
         void renderMesh(const Mesh& mesh, VkCommandBuffer commandBuffer);
+        void renderMeshes(); // Add the missing method
         
         // Getter methods for buffer access by mesh
         VkBuffer getVertexBuffer(const Mesh& mesh) const;

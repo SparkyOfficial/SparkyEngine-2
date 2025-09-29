@@ -6,6 +6,7 @@
 #include "../../Engine/include/Profiler.h"
 #include "../../Engine/include/ExampleState.h"
 #include "../../Engine/include/StateMachine.h"
+#include "../../Engine/include/GUIManager.h"
 #include "ExampleGame.h"
 #include "Player.h"
 #include "Gun.h"
@@ -50,6 +51,19 @@ int main() {
         return -1;
     }
     
+    // Create GUI elements
+    Sparky::GUIManager& guiManager = Sparky::GUIManager::getInstance();
+    
+    // Create HUD
+    guiManager.createHUD();
+    
+    // Create menus
+    guiManager.createMainMenu();
+    guiManager.createPauseMenu();
+    
+    // Show main menu initially
+    guiManager.showMenu("main");
+    
     // Create player
     auto player = std::make_unique<Sparky::Player>();
     player->setPosition(glm::vec3(0.0f, 0.0f, 0.0f));
@@ -74,8 +88,12 @@ int main() {
     SPARKY_LOG_INFO("  Left Mouse Button - Shoot");
     SPARKY_LOG_INFO("  R - Reload");
     SPARKY_LOG_INFO("  ESC - Toggle mouse lock");
+    SPARKY_LOG_INFO("  F1 - Show main menu");
+    SPARKY_LOG_INFO("  F2 - Show pause menu");
+    SPARKY_LOG_INFO("  F3 - Hide menus");
     
     float lastTime = 0.0f;
+    bool gameStarted = false;
     
     // Main game loop
     while (!engine.getWindowManager().shouldClose()) {
@@ -102,11 +120,33 @@ int main() {
         // Update input
         inputManager.update();
         
-        // Update player
-        player->update(deltaTime);
+        // Handle menu controls
+        if (inputManager.isKeyJustPressed(GLFW_KEY_F1)) {
+            guiManager.showMenu("main");
+        }
+        if (inputManager.isKeyJustPressed(GLFW_KEY_F2)) {
+            guiManager.showMenu("pause");
+        }
+        if (inputManager.isKeyJustPressed(GLFW_KEY_F3)) {
+            guiManager.hideAllMenus();
+            gameStarted = true; // Start the game when menus are hidden
+        }
         
-        // Update gun
-        gun->update(deltaTime);
+        // Update game elements only if the game has started
+        if (gameStarted) {
+            // Update player
+            player->update(deltaTime);
+            
+            // Update gun
+            gun->update(deltaTime);
+            
+            // Update health and ammo displays
+            guiManager.updateHealthDisplay(100); // Placeholder value
+            guiManager.updateAmmoDisplay(gun->getAmmo(), gun->getTotalAmmo());
+        }
+        
+        // Update GUI
+        guiManager.update(deltaTime);
         
         // Debug: Log state machine and game update
         if (frameCount % 60 == 0) {
@@ -132,6 +172,9 @@ int main() {
         
         // Render frame
         engine.getRenderer().render();
+        
+        // Render GUI
+        guiManager.render();
         
         if (frameCount % 60 == 0) {
             SPARKY_LOG_DEBUG("Calling game render");

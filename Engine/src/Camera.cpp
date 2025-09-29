@@ -2,6 +2,7 @@
 #include "../include/Logger.h"
 #include <glm/gtc/matrix_transform.hpp>
 #include <string>
+#include <cmath>
 
 namespace Sparky {
 
@@ -132,37 +133,5 @@ namespace Sparky {
         
         // Update the other vectors
         updateCameraVectors();
-    }
-    
-    glm::vec3 Camera::GetRight() const {
-        return Right;
-    }
-    
-    glm::vec3 Camera::GetUp() const {
-        return Up;
-    }
-    
-    glm::vec3 Camera::GetPosition() const {
-        return Position;
-    }
-    
-    float Camera::GetYaw() const {
-        return Yaw;
-    }
-    
-    float Camera::GetPitch() const {
-        return Pitch;
-    }
-    
-    float Camera::GetZoom() const {
-        return Zoom;
-    }
-    
-    float Camera::GetMovementSpeed() const {
-        return MovementSpeed;
-    }
-    
-    float Camera::GetMouseSensitivity() const {
-        return MouseSensitivity;
     }
 }

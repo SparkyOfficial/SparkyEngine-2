@@ -3,7 +3,17 @@
 #include "../../Engine/include/Logger.h"
 #include "../../Engine/include/PhysicsWorld.h"
 #include "../../Engine/include/RigidBodyComponent.h"
+#include "../../Engine/include/RenderComponent.h"
+#include "../../Engine/include/Mesh.h"
+
+// Only include AudioEngine if audio is enabled
+#ifdef ENABLE_AUDIO
 #include "../../Engine/include/AudioEngine.h"
+#include "../../Engine/include/AudioComponent.h"
+#endif
+
+#include "../../Engine/include/ParticleComponent.h"
+#include "../../Engine/include/ParticleSystem.h"
 #include <glm/gtc/matrix_transform.hpp>
 #include <random>
 
@@ -15,6 +25,29 @@ namespace Sparky {
                 recoil(0.5f), recoilRecovery(1.0f), currentRecoil(0.0f),
                 muzzleVelocity(500.0f), weaponType("Assault Rifle") {
         setName("Gun");
+        
+        // Add a particle component for muzzle flash effects
+        auto particleComponent = addComponent<ParticleComponent>();
+        auto particleSystem = std::make_unique<ParticleSystem>();
+        
+        // Configure the particle system for muzzle flashes
+        particleSystem->setParticleLifetime(0.1f);
+        particleSystem->setStartColor(glm::vec4(1.0f, 1.0f, 0.0f, 1.0f)); // Yellow
+        particleSystem->setEndColor(glm::vec4(1.0f, 0.5f, 0.0f, 0.0f));   // Orange fading
+        particleSystem->setStartSize(0.05f);
+        particleSystem->setEndSize(0.0f);
+        particleSystem->setEmissionRate(0.0f); // No continuous emission
+        particleSystem->setGravity(glm::vec3(0.0f));
+        
+        particleComponent->setParticleSystem(std::move(particleSystem));
+        
+        // Add an audio component for sound effects
+#ifdef ENABLE_AUDIO
+        auto audioComponent = addComponent<AudioComponent>();
+        // Pre-load gunshot sound
+        audioComponent->loadSound("gunshot", "gunshot.wav");
+#endif
+
         SPARKY_LOG_INFO("Gun created with " + std::to_string(currentAmmo) + " ammo");
     }
 
@@ -97,10 +130,10 @@ namespace Sparky {
         createBullet(shotDirection);
         
         // Play shooting sound
-        // AudioEngine::getInstance().playSound("gunshot.wav");
+        playShootSound();
         
         // Create muzzle flash effect
-        createMuzzleFlash();
+        createMuzzleFlash(shotDirection);
         
         // Log the shot
         SPARKY_LOG_INFO("Gun fired! Ammo: " + std::to_string(currentAmmo) + 
@@ -162,7 +195,7 @@ namespace Sparky {
     void Gun::createBullet(const glm::vec3& direction) {
         // Create a bullet object
         auto bullet = std::make_unique<GameObject>("Bullet");
-        bullet->setPosition(camera->GetPosition() + camera->Front * 0.5f); // Start slightly in front of camera
+        bullet->setPosition(camera->getPosition() + camera->Front * 0.5f); // Start slightly in front of camera
         
         // Add a render component
         auto renderComponent = bullet->addComponent<RenderComponent>();
@@ -187,10 +220,13 @@ namespace Sparky {
                         std::to_string(direction.z * muzzleVelocity));
     }
     
-    void Gun::createMuzzleFlash() {
-        // In a full implementation, we would create a particle effect
-        // or a bright light at the end of the gun barrel
-        SPARKY_LOG_DEBUG("Muzzle flash created");
+    void Gun::createMuzzleFlash(const glm::vec3& direction) {
+        // Get the particle component
+        ParticleComponent* particleComponent = getComponent<ParticleComponent>();
+        if (particleComponent) {
+            // Emit a muzzle flash in the direction the gun is pointing
+            particleComponent->emitMuzzleFlash(direction);
+        }
     }
     
     // Getters and setters for new properties
@@ -206,3 +242,23 @@ namespace Sparky {
     const std::string& Gun::getWeaponType() const { return weaponType; }
     void Gun::setWeaponType(const std::string& type) { weaponType = type; }
 }
+
+#ifdef ENABLE_AUDIO
+void Sparky::Gun::playShootSound() {
+    // Get the audio component
+    AudioComponent* audioComponent = getComponent<AudioComponent>();
+    if (audioComponent) {
+        // Play the gunshot sound
+        audioComponent->playGunshot();
+    } else {
+        // Fallback to global audio engine
+        if (camera) {
+            AudioEngine::getInstance().playGunshotSound(camera->getPosition());
+        }
+    }
+}
+#else
+void Sparky::Gun::playShootSound() {
+    // Audio disabled - do nothing
+}
+#endif

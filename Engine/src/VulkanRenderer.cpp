@@ -34,8 +34,22 @@
 #include "../include/RenderComponent.h"
 #include "../include/Material.h"
 #include "../include/Light.h"
-#include "../include/stb_image.h"
-#include <nlohmann/json.hpp>
+#include "../external/stb/stb_image.h"
+
+// Add the missing TOSTRING macro
+#define TOSTRING(x) #x
+
+// Only include JSON if available
+#ifdef __has_include
+    #if __has_include(<nlohmann/json.hpp>)
+        #include <nlohmann/json.hpp>
+        #define HAS_JSON 1
+    #else
+        #define HAS_JSON 0
+    #endif
+#else
+    #define HAS_JSON 0
+#endif
 
 // Debug callback function
 static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
@@ -1516,7 +1530,7 @@ namespace Sparky {
         UniformBufferObject ubo{};
         
         // Get matrices from the actual game camera
-        ubo.view = engine->getCamera().getViewMatrix();
+        ubo.view = engine->getCamera().GetViewMatrix();
         ubo.proj = glm::perspective(glm::radians(45.0f), swapChainExtent.width / (float) swapChainExtent.height, 0.1f, 100.0f); // Increase range
         ubo.proj[1][1] *= -1; // Y-flip for Vulkan
     

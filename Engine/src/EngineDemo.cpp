@@ -5,13 +5,18 @@
 #include "../include/Camera.h"
 #include "../include/GameObject.h"
 #include "../include/PhysicsWorld.h"
-#include "../include/AudioEngine.h"
 #include "../include/LightManager.h"
+#include "../include/Button.h"
 #include "../include/GUIManager.h"
 #include "../include/QuestManager.h"
 #include "../include/Logger.h"
 #include "../include/Config.h"
 #include <GLFW/glfw3.h>
+
+// Only include AudioEngine if audio is enabled
+#ifdef ENABLE_AUDIO
+#include "../include/AudioEngine.h"
+#endif
 
 namespace Sparky {
 
@@ -47,16 +52,24 @@ namespace Sparky {
             camera = std::make_unique<Camera>();
             
             // Initialize game systems
-            physicsWorld = std::make_unique<PhysicsWorld>();
+            physicsWorld = &PhysicsWorld::getInstance();
+            
+#ifdef ENABLE_AUDIO
             audioEngine = std::make_unique<AudioEngine>();
+#endif
+            
             lightManager = std::make_unique<LightManager>();
-            guiManager = std::make_unique<GUIManager>();
-            questManager = std::make_unique<QuestManager>();
+            guiManager = &GUIManager::getInstance();
+            questManager = &QuestManager::getInstance();
             
             // Setup scene
             setupScene();
             setupLighting();
+            
+#ifdef ENABLE_AUDIO
             setupAudio();
+#endif
+            
             setupGUI();
             setupQuests();
             
@@ -109,11 +122,15 @@ namespace Sparky {
         if (!initialized) return;
         
         // Clean up systems
-        questManager.reset();
-        guiManager.reset();
+        questManager = nullptr;
+        guiManager = nullptr;
         lightManager.reset();
+        
+#ifdef ENABLE_AUDIO
         audioEngine.reset();
-        physicsWorld.reset();
+#endif
+        
+        physicsWorld = nullptr;
         
         // Clean up core systems
         camera.reset();
@@ -145,16 +162,19 @@ namespace Sparky {
         SPARKY_LOG_DEBUG("Setting up lighting");
         
         // Create a directional light
-        auto dirLight = lightManager->createDirectionalLight("Sun");
+        auto dirLight = std::make_unique<Light>();
         if (dirLight) {
             dirLight->setDirection(glm::vec3(-0.5f, -1.0f, -0.5f));
-            dirLight->setColor(glm::vec3(1.0f, 1.0f, 1.0f));
-            dirLight->setIntensity(1.0f);
+            dirLight->setAmbient(glm::vec3(0.2f, 0.2f, 0.2f));
+            dirLight->setDiffuse(glm::vec3(0.8f, 0.8f, 0.8f));
+            dirLight->setSpecular(glm::vec3(1.0f, 1.0f, 1.0f));
+            lightManager->setDirectionalLight(std::move(dirLight));
         }
         
         SPARKY_LOG_DEBUG("Lighting setup complete");
     }
 
+#ifdef ENABLE_AUDIO
     void EngineDemo::setupAudio() {
         SPARKY_LOG_DEBUG("Setting up audio");
         
@@ -166,6 +186,11 @@ namespace Sparky {
         
         SPARKY_LOG_DEBUG("Audio setup complete");
     }
+#else
+    void EngineDemo::setupAudio() {
+        SPARKY_LOG_DEBUG("Audio setup skipped (audio disabled)");
+    }
+#endif
 
     void EngineDemo::setupGUI() {
         SPARKY_LOG_DEBUG("Setting up GUI");

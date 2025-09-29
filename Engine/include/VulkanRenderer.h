@@ -17,9 +17,13 @@ namespace Sparky {
 namespace Sparky {
     // Uniform buffer object structure
     struct UniformBufferObject {
-        glm::mat4 model;
         glm::mat4 view;
         glm::mat4 proj;
+    };
+
+    // Add push constant structure
+    struct PushConstantData {
+        glm::mat4 model;
     };
 
     struct QueueFamilyIndices {

@@ -907,7 +907,8 @@ namespace Sparky {
         rasterizer.rasterizerDiscardEnable = VK_FALSE;
         rasterizer.polygonMode = VK_POLYGON_MODE_FILL;
         rasterizer.lineWidth = 1.0f;
-        rasterizer.cullMode = VK_CULL_MODE_BACK_BIT;
+        // Temporarily disable backface culling for debugging
+        rasterizer.cullMode = VK_CULL_MODE_NONE; // VK_CULL_MODE_BACK_BIT;
         rasterizer.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
         rasterizer.depthBiasEnable = VK_FALSE;
 
@@ -948,11 +949,18 @@ namespace Sparky {
         dynamicState.dynamicStateCount = static_cast<uint32_t>(dynamicStates.size());
         dynamicState.pDynamicStates = dynamicStates.data();
 
-        // Pipeline layout
+        // Pipeline layout with push constant range
+        VkPushConstantRange pushConstantRange{};
+        pushConstantRange.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+        pushConstantRange.offset = 0;
+        pushConstantRange.size = sizeof(PushConstantData);
+
         VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
         pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
         pipelineLayoutInfo.setLayoutCount = 1;
         pipelineLayoutInfo.pSetLayouts = &descriptorSetLayout;
+        pipelineLayoutInfo.pushConstantRangeCount = 1;
+        pipelineLayoutInfo.pPushConstantRanges = &pushConstantRange;
 
         if (vkCreatePipelineLayout(device, &pipelineLayoutInfo, nullptr, &pipelineLayout) != VK_SUCCESS) {
             throw std::runtime_error("failed to create pipeline layout!");
@@ -1377,6 +1385,22 @@ namespace Sparky {
         
         vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipeline);
         
+        // Set Viewport
+        VkViewport viewport{};
+        viewport.x = 0.0f;
+        viewport.y = 0.0f;
+        viewport.width = static_cast<float>(swapChainExtent.width);
+        viewport.height = static_cast<float>(swapChainExtent.height);
+        viewport.minDepth = 0.0f;
+        viewport.maxDepth = 1.0f;
+        vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
+
+        // Set Scissor
+        VkRect2D scissor{};
+        scissor.offset = {0, 0};
+        scissor.extent = swapChainExtent;
+        vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
+        
         // Bind descriptor sets
         vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSets[imageIndex], 0, nullptr);
         
@@ -1408,6 +1432,19 @@ namespace Sparky {
                                            ", Indices: " + std::to_string(mesh->getIndices().size()));
                         }
                         
+                        // Create and pass Push Constant for this object's model matrix
+                        PushConstantData pushData;
+                        pushData.model = gameObject->getTransformMatrix(); // Get the object's transform matrix
+
+                        vkCmdPushConstants(
+                            commandBuffer,
+                            pipelineLayout,
+                            VK_SHADER_STAGE_VERTEX_BIT,
+                            0,
+                            sizeof(PushConstantData),
+                            &pushData
+                        );
+                        
                         // Get the vertex and index buffers from the mesh renderer for this specific mesh
                         VkBuffer vertexBuffer = meshRenderer.getVertexBuffer(*mesh);
                         VkBuffer indexBuffer = meshRenderer.getIndexBuffer(*mesh);
@@ -1423,7 +1460,7 @@ namespace Sparky {
                             VkBuffer vertexBuffers[] = {vertexBuffer};
                             VkDeviceSize offsets[] = {0};
                             vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
-                        
+                    
                             // Bind index buffer if it exists
                             if (indexBuffer != VK_NULL_HANDLE && mesh->getIndices().size() > 0) {
                                 vkCmdBindIndexBuffer(commandBuffer, indexBuffer, 0, VK_INDEX_TYPE_UINT32);
@@ -1519,17 +1556,16 @@ namespace Sparky {
     }
     
     void VulkanRenderer::updateUniformBuffer(uint32_t currentImage) {
-        static auto startTime = std::chrono::high_resolution_clock::now();
-        
-        auto currentTime = std::chrono::high_resolution_clock::now();
-        float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
-        
+        if (!engine) return; // Check that we have a reference to the engine
+
         UniformBufferObject ubo{};
-        ubo.model = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-        ubo.view = glm::lookAt(glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-        ubo.proj = glm::perspective(glm::radians(45.0f), swapChainExtent.width / (float) swapChainExtent.height, 0.1f, 10.0f);
-        ubo.proj[1][1] *= -1; // Flip Y coordinate for Vulkan
         
+        // Get matrices from the actual game camera
+        ubo.view = engine->getCamera().getViewMatrix();
+        ubo.proj = glm::perspective(glm::radians(45.0f), swapChainExtent.width / (float) swapChainExtent.height, 0.1f, 100.0f); // Increase range
+        ubo.proj[1][1] *= -1; // Y-flip for Vulkan
+    
+        // model is no longer needed here
         memcpy(uniformBuffersMapped[currentImage], &ubo, sizeof(ubo));
     }
     

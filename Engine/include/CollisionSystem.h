@@ -19,6 +19,10 @@ namespace Sparky {
         static bool checkCollision(GameObject* objectA, GameObject* objectB);
         static bool checkAABBCollision(const glm::vec3& posA, const glm::vec3& sizeA, 
                                       const glm::vec3& posB, const glm::vec3& sizeB);
+        static bool checkSphereCollision(const glm::vec3& posA, float radiusA,
+                                       const glm::vec3& posB, float radiusB);
+        static bool checkSphereAABBCollision(const glm::vec3& spherePos, float sphereRadius,
+                                           const glm::vec3& boxPos, const glm::vec3& boxSize);
         static std::vector<Collision> detectCollisions(const std::vector<GameObject*>& objects);
         
         // Resolve collisions

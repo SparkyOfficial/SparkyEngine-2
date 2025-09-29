@@ -24,44 +24,117 @@ namespace Sparky {
     bool AudioBuffer::loadFromFile(const std::string& filepath) {
         SPARKY_LOG_DEBUG("Loading audio file: " + filepath);
         
-        // In a real implementation, we would load and decode the audio file
-        // For now, we'll create a placeholder implementation
+        // Improved implementation for loading and decoding audio files
+        // This implementation handles WAV files with proper header parsing
         try {
             // Read file data
             std::vector<char> fileData = FileUtils::readFile(filepath);
-            
-            // For this example, we'll assume it's a WAV file and parse the header
-            // In a real implementation, we would use a library like dr_wav or similar
             
             if (fileData.size() < 44) {
                 SPARKY_LOG_ERROR("Audio file too small to be a valid WAV file: " + filepath);
                 return false;
             }
             
-            // Parse WAV header (simplified)
+            // Parse WAV header properly
             // Check RIFF header
             if (std::memcmp(fileData.data(), "RIFF", 4) != 0) {
                 SPARKY_LOG_ERROR("Not a valid WAV file: " + filepath);
                 return false;
             }
             
-            // Get format information
-            channels = *reinterpret_cast<int16_t*>(fileData.data() + 22);
-            sampleRate = *reinterpret_cast<int32_t*>(fileData.data() + 24);
-            bitsPerSample = *reinterpret_cast<int16_t*>(fileData.data() + 34);
+            // Check WAVE header
+            if (std::memcmp(fileData.data() + 8, "WAVE", 4) != 0) {
+                SPARKY_LOG_ERROR("Not a valid WAV file format: " + filepath);
+                return false;
+            }
             
-            // Get audio data (after 44-byte header)
-            data.assign(fileData.begin() + 44, fileData.end());
+            // Find fmt chunk
+            uint32_t fmtOffset = 12;
+            while (fmtOffset < fileData.size() - 8) {
+                if (std::memcmp(fileData.data() + fmtOffset, "fmt ", 4) == 0) {
+                    break;
+                }
+                // Skip to next chunk
+                uint32_t chunkSize = *reinterpret_cast<uint32_t*>(fileData.data() + fmtOffset + 4);
+                fmtOffset += 8 + chunkSize;
+            }
             
-            // In a real implementation, we would create an OpenAL buffer and upload the data
+            if (fmtOffset >= fileData.size() - 8) {
+                SPARKY_LOG_ERROR("Could not find fmt chunk in WAV file: " + filepath);
+                return false;
+            }
+            
+            // Get format information from fmt chunk
+            channels = *reinterpret_cast<uint16_t*>(fileData.data() + fmtOffset + 8 + 2);
+            sampleRate = *reinterpret_cast<uint32_t*>(fileData.data() + fmtOffset + 8 + 4);
+            bitsPerSample = *reinterpret_cast<uint16_t*>(fileData.data() + fmtOffset + 8 + 14);
+            
+            // Find data chunk
+            uint32_t dataOffset = fmtOffset + 8 + *reinterpret_cast<uint32_t*>(fileData.data() + fmtOffset + 4);
+            while (dataOffset < fileData.size() - 8) {
+                if (std::memcmp(fileData.data() + dataOffset, "data", 4) == 0) {
+                    break;
+                }
+                // Skip to next chunk
+                uint32_t chunkSize = *reinterpret_cast<uint32_t*>(fileData.data() + dataOffset + 4);
+                dataOffset += 8 + chunkSize;
+            }
+            
+            if (dataOffset >= fileData.size() - 8) {
+                SPARKY_LOG_ERROR("Could not find data chunk in WAV file: " + filepath);
+                return false;
+            }
+            
+            // Get audio data
+            uint32_t dataSize = *reinterpret_cast<uint32_t*>(fileData.data() + dataOffset + 4);
+            data.assign(fileData.begin() + dataOffset + 8, fileData.begin() + dataOffset + 8 + dataSize);
+            
+            // Create OpenAL buffer and upload the data
             alGenBuffers(1, &bufferId);
-            ALenum format = (channels == 1) ? AL_FORMAT_MONO16 : AL_FORMAT_STEREO16;
+            
+            // Determine OpenAL format based on channels and bits per sample
+            ALenum format;
+            if (channels == 1) {
+                if (bitsPerSample == 8) {
+                    format = AL_FORMAT_MONO8;
+                } else if (bitsPerSample == 16) {
+                    format = AL_FORMAT_MONO16;
+                } else {
+                    SPARKY_LOG_ERROR("Unsupported bits per sample: " + std::to_string(bitsPerSample));
+                    alDeleteBuffers(1, &bufferId);
+                    return false;
+                }
+            } else if (channels == 2) {
+                if (bitsPerSample == 8) {
+                    format = AL_FORMAT_STEREO8;
+                } else if (bitsPerSample == 16) {
+                    format = AL_FORMAT_STEREO16;
+                } else {
+                    SPARKY_LOG_ERROR("Unsupported bits per sample: " + std::to_string(bitsPerSample));
+                    alDeleteBuffers(1, &bufferId);
+                    return false;
+                }
+            } else {
+                SPARKY_LOG_ERROR("Unsupported number of channels: " + std::to_string(channels));
+                alDeleteBuffers(1, &bufferId);
+                return false;
+            }
+            
             alBufferData(bufferId, format, data.data(), data.size(), sampleRate);
+            
+            // Check for OpenAL errors
+            ALenum error = alGetError();
+            if (error != AL_NO_ERROR) {
+                SPARKY_LOG_ERROR("Failed to upload audio data to buffer: " + std::to_string(error));
+                alDeleteBuffers(1, &bufferId);
+                return false;
+            }
             
             SPARKY_LOG_DEBUG("Audio file loaded successfully: " + filepath);
             SPARKY_LOG_DEBUG("Channels: " + std::to_string(channels) + 
                            ", Sample Rate: " + std::to_string(sampleRate) + 
-                           ", Bits Per Sample: " + std::to_string(bitsPerSample));
+                           ", Bits Per Sample: " + std::to_string(bitsPerSample) +
+                           ", Data Size: " + std::to_string(data.size()));
             return true;
         } catch (const std::exception& e) {
             SPARKY_LOG_ERROR("Failed to load audio file: " + filepath + " - " + std::string(e.what()));

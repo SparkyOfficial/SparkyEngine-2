@@ -3,6 +3,7 @@
 #include "../../Engine/include/GameObject.h"
 #include <vector>
 #include <string>
+#include <glm/glm.hpp>
 
 namespace Sparky {
     class Platform;
@@ -35,5 +36,14 @@ namespace Sparky {
         
         // Level geometry
         void createTestLevel();
+        
+        // JSON parsing helpers
+        void parseLevelFromJSON(const std::string& jsonContent);
+        size_t findMatchingBracket(const std::string& content, size_t startPos);
+        void parsePlatformsFromArray(const std::string& arrayContent);
+        void parsePlatformFromObject(const std::string& objContent);
+        void parseGunsFromArray(const std::string& arrayContent);
+        void parseGunFromObject(const std::string& objContent);
+        glm::vec3 parseVector3FromArray(const std::string& arrayContent);
     };
 }

@@ -16,6 +16,7 @@ namespace Sparky {
     class AudioEngine;
     class BehaviorTree;
     class Mesh;
+    class RenderSystem;
 
     class ExampleGame {
     public:
@@ -35,6 +36,7 @@ namespace Sparky {
 
     private:
         Engine* engine;
+        RenderSystem* renderSystem;
         bool initialized;
         bool paused;
 
@@ -64,8 +66,13 @@ namespace Sparky {
         // Game state
         int score;
         int health;
-        
+
         // Private methods
+        void handleInput(float deltaTime);
+        void updateAI(float deltaTime);
+        void checkCollisions();
+        void updateUI();
+        
         void createLevel();
         void createPlayer();
         void createEnemy();
@@ -73,9 +80,5 @@ namespace Sparky {
         void createQuests();
         void setupAudio();
         void setupGUI();
-        void handleInput(float deltaTime);
-        void updateAI(float deltaTime);
-        void checkCollisions();
-        void updateUI();
     };
 }

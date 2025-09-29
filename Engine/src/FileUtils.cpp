@@ -28,6 +28,10 @@ namespace Sparky {
         file.read(buffer.data(), fileSize);
         file.close();
 
+        // Log first part of file content for debugging
+        std::string content(buffer.data(), std::min(fileSize, (size_t)200));
+        SPARKY_LOG_DEBUG("File content preview: " + content);
+        
         SPARKY_LOG_DEBUG("File read successfully, size: " + std::to_string(fileSize) + " bytes");
         return buffer;
     }

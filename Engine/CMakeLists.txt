@@ -47,6 +47,7 @@ set(ENGINE_SOURCES
     src/ScriptComponent.cpp
     src/BehaviorTree.cpp
     src/BehaviorTreeExample.cpp
+    src/RenderSystem.cpp
 )
 
 # Only include AudioEngine if audio is enabled
@@ -55,6 +56,9 @@ if(ENABLE_AUDIO)
 endif()
 
 add_library(SparkyEngine STATIC ${ENGINE_SOURCES})
+
+# Pass the project source directory to the code
+target_compile_definitions(SparkyEngine PRIVATE PROJECT_SOURCE_DIR="${PROJECT_SOURCE_DIR}")
 
 # Include directories
 target_include_directories(SparkyEngine PUBLIC 

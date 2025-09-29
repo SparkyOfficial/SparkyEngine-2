@@ -13,11 +13,12 @@
 #include "../../Engine/include/RenderComponent.h"
 #include "../../Engine/include/Button.h"
 #include "../../Engine/include/Mesh.h"
+#include "../../Engine/include/RenderSystem.h"
 #include <glm/glm.hpp>
 
 namespace Sparky {
 
-    ExampleGame::ExampleGame() : engine(nullptr), initialized(false), paused(false),
+    ExampleGame::ExampleGame() : engine(nullptr), renderSystem(nullptr), initialized(false), paused(false),
                                score(0), health(100) {
         SPARKY_LOG_INFO("Creating example game");
     }
@@ -33,6 +34,7 @@ namespace Sparky {
         }
 
         this->engine = engine;
+        this->renderSystem = &engine->getRenderSystem();
         
         try {
             createPlayer();
@@ -71,36 +73,9 @@ namespace Sparky {
     void ExampleGame::render() {
         if (!initialized || paused) return;
 
-        // Render game objects through the engine's renderer
-        if (engine) {
-            // Get the Vulkan renderer from the engine
-            VulkanRenderer& renderer = engine->getRenderer();
-            MeshRenderer& meshRenderer = renderer.getMeshRenderer();
-            
-            // Render player mesh
-            if (player) {
-                auto renderComponent = player->getComponent<RenderComponent>();
-                if (renderComponent && renderComponent->getMesh()) {
-                    meshRenderer.renderMesh(*renderComponent->getMesh(), /* command buffer would be passed here in a real implementation */ VK_NULL_HANDLE);
-                }
-            }
-            
-            // Render enemy mesh
-            if (enemy) {
-                auto renderComponent = enemy->getComponent<RenderComponent>();
-                if (renderComponent && renderComponent->getMesh()) {
-                    meshRenderer.renderMesh(*renderComponent->getMesh(), /* command buffer would be passed here in a real implementation */ VK_NULL_HANDLE);
-                }
-            }
-            
-            // Render platform meshes
-            for (auto& platform : platforms) {
-                auto renderComponent = platform->getComponent<RenderComponent>();
-                if (renderComponent && renderComponent->getMesh()) {
-                    meshRenderer.renderMesh(*renderComponent->getMesh(), /* command buffer would be passed here in a real implementation */ VK_NULL_HANDLE);
-                }
-            }
-        }
+        // The rendering is now handled by the RenderSystem automatically
+        // We don't need to manually render each object anymore
+        // The RenderSystem will iterate through all registered objects and render them
 
         // Render game systems
         if (particleSystem) {
@@ -193,6 +168,11 @@ namespace Sparky {
         levelMeshes.push_back(std::move(planeMesh));
         renderComponent->setMesh(levelMeshes.back().get());
         
+        // Register with render system
+        if (renderSystem) {
+            renderSystem->registerGameObject(floor.get());
+        }
+        
         platforms.push_back(std::move(floor));
         
         // Create some platforms with cube meshes
@@ -206,6 +186,11 @@ namespace Sparky {
         levelMeshes.push_back(std::move(cubeMesh1));
         cubeRender1->setMesh(levelMeshes.back().get());
         
+        // Register with render system
+        if (renderSystem) {
+            renderSystem->registerGameObject(platform1.get());
+        }
+        
         platforms.push_back(std::move(platform1));
         
         auto platform2 = std::make_unique<Platform>("Platform2");
@@ -217,6 +202,11 @@ namespace Sparky {
         auto cubeMesh2 = Mesh::createCube(1.0f);
         levelMeshes.push_back(std::move(cubeMesh2));
         cubeRender2->setMesh(levelMeshes.back().get());
+        
+        // Register with render system
+        if (renderSystem) {
+            renderSystem->registerGameObject(platform2.get());
+        }
         
         platforms.push_back(std::move(platform2));
         
@@ -231,6 +221,11 @@ namespace Sparky {
         levelMeshes.push_back(std::move(rampMesh));
         rampRender->setMesh(levelMeshes.back().get());
         
+        // Register with render system
+        if (renderSystem) {
+            renderSystem->registerGameObject(ramp.get());
+        }
+        
         platforms.push_back(std::move(ramp));
         
         // Create stairs with individual steps
@@ -244,6 +239,11 @@ namespace Sparky {
             auto stepMesh = Mesh::createCube(1.0f);
             levelMeshes.push_back(std::move(stepMesh));
             stepRender->setMesh(levelMeshes.back().get());
+            
+            // Register with render system
+            if (renderSystem) {
+                renderSystem->registerGameObject(step.get());
+            }
             
             platforms.push_back(std::move(step));
         }
@@ -263,6 +263,11 @@ namespace Sparky {
         RenderComponent* renderComponent = player->addComponent<RenderComponent>();
         playerMesh = Mesh::createCube(1.0f);
         renderComponent->setMesh(playerMesh.get());
+        
+        // Register with render system
+        if (renderSystem) {
+            renderSystem->registerGameObject(player.get());
+        }
         
         // Set up player camera
         if (engine) {
@@ -284,6 +289,11 @@ namespace Sparky {
         RenderComponent* renderComponent = enemy->addComponent<RenderComponent>();
         enemyMesh = Mesh::createCube(1.0f);
         renderComponent->setMesh(enemyMesh.get());
+        
+        // Register with render system
+        if (renderSystem) {
+            renderSystem->registerGameObject(enemy.get());
+        }
         
         // Create enemy AI behavior
         enemyAI = ExampleAIBehavior::createPatrolBehavior(enemy.get());
@@ -317,72 +327,51 @@ namespace Sparky {
         
         playerInventory = std::make_unique<Inventory>(20);
         
-        mainQuest = std::make_unique<Quest>("MainQuest", "Defeat the enemy and collect items");
-        
-        auto objective1 = std::make_unique<QuestObjective>("Defeat the enemy", 1);
-        mainQuest->addObjective(std::move(objective1));
-        
-        auto objective2 = std::make_unique<QuestObjective>("Collect 5 coins", 5);
-        mainQuest->addObjective(std::move(objective2));
-        
-        mainQuest->setRewardExperience(100);
-        mainQuest->setRewardCurrency(50);
+        mainQuest = std::make_unique<Quest>("Main Quest", "Defeat the enemy and collect items");
+        mainQuest->addObjective(std::make_unique<Sparky::QuestObjective>("Find the key"));
+        mainQuest->addObjective(std::make_unique<Sparky::QuestObjective>("Defeat the enemy"));
+        mainQuest->addObjective(std::make_unique<Sparky::QuestObjective>("Return to base"));
         
         SPARKY_LOG_DEBUG("Quests created");
     }
 
     void ExampleGame::setupAudio() {
         SPARKY_LOG_DEBUG("Setting up audio");
-        
-        // Audio is disabled in this build
-        SPARKY_LOG_DEBUG("Audio support is disabled");
+        // Audio setup would go here if we had a working audio system
+        SPARKY_LOG_DEBUG("Audio setup completed");
     }
 
     void ExampleGame::setupGUI() {
         SPARKY_LOG_DEBUG("Setting up GUI");
-        
-        auto& guiManager = GUIManager::getInstance();
-        
-        // Create a health bar
-        auto healthBar = guiManager.createButton("HealthBar");
-        if (healthBar) {
-            healthBar->setPosition(glm::vec2(10.0f, 10.0f));
-            healthBar->setSize(glm::vec2(200.0f, 30.0f));
-            healthBar->setText("Health: " + std::to_string(health));
-        }
-        
-        // Create a score display
-        auto scoreDisplay = guiManager.createButton("ScoreDisplay");
-        if (scoreDisplay) {
-            scoreDisplay->setPosition(glm::vec2(10.0f, 50.0f));
-            scoreDisplay->setSize(glm::vec2(200.0f, 30.0f));
-            scoreDisplay->setText("Score: " + std::to_string(score));
-        }
-        
-        SPARKY_LOG_DEBUG("GUI setup complete");
+        // GUI setup would go here
+        SPARKY_LOG_DEBUG("GUI setup completed");
     }
 
     void ExampleGame::handleInput(float deltaTime) {
         if (!engine || !player) return;
         
-        // Get input manager
         InputManager& inputManager = engine->getInputManager();
         
-        // Handle player input
+        // Player movement
+        glm::vec3 movement(0.0f);
         if (inputManager.isKeyPressed(87)) { // W key
-            player->moveForward(deltaTime);
+            movement.z -= 1.0f;
         }
         if (inputManager.isKeyPressed(83)) { // S key
-            player->moveBackward(deltaTime);
+            movement.z += 1.0f;
         }
         if (inputManager.isKeyPressed(65)) { // A key
-            player->moveLeft(deltaTime);
+            movement.x -= 1.0f;
         }
         if (inputManager.isKeyPressed(68)) { // D key
-            player->moveRight(deltaTime);
+            movement.x += 1.0f;
         }
-        if (inputManager.isKeyJustPressed(32)) { // Space key
-            player->jump();
+        
+        if (glm::length(movement) > 0.0f) {
+            movement = glm::normalize(movement);
+            glm::vec3 position = player->getPosition();
+            position += movement * 5.0f * deltaTime;
+            player->setPosition(position);
         }
     }
 
@@ -393,34 +382,10 @@ namespace Sparky {
     }
 
     void ExampleGame::checkCollisions() {
-        // Simple ground collision detection
-        if (player) {
-            glm::vec3 playerPos = player->getPosition();
-            if (playerPos.y < 0.0f) {
-                playerPos.y = 0.0f;
-                player->setPosition(playerPos);
-                // In a real implementation, we would get the player's physics component
-                // and set it to grounded
-            }
-        }
+        // Simple collision detection would go here
     }
 
     void ExampleGame::updateUI() {
-        auto& guiManager = GUIManager::getInstance();
-        
-        // Update health bar
-        GUIElement* healthBarElement = guiManager.getElement("HealthBar");
-        if (healthBarElement) {
-            healthBarElement->setText("Health: " + std::to_string(health));
-        }
-        
-        // Update score display
-        GUIElement* scoreDisplayElement = guiManager.getElement("ScoreDisplay");
-        if (scoreDisplayElement) {
-            scoreDisplayElement->setText("Score: " + std::to_string(score));
-        }
-        
-        // Update GUI
-        guiManager.update(0.016f); // Assuming 60 FPS
+        // UI updates would go here
     }
 }

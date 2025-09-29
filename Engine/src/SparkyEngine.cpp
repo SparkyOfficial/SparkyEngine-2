@@ -32,6 +32,10 @@ namespace Sparky {
             return false;
         }
 
+        // Initialize render system
+        SPARKY_LOG_INFO("Initializing render system...");
+        renderSystem.initialize(&renderer);
+
         isRunning = true;
         SPARKY_LOG_INFO("Sparky Engine initialized successfully");
         return true;
@@ -72,6 +76,7 @@ namespace Sparky {
     void Engine::shutdown() {
         if (isRunning) {
             SPARKY_LOG_INFO("Shutting down Sparky Engine...");
+            renderSystem.cleanup();
             renderer.cleanup();
             windowManager.cleanup();
             isRunning = false;

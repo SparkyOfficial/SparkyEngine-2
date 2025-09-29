@@ -29,6 +29,46 @@
 #include "../include/ShaderCompiler.h"
 #include "../include/FileUtils.h"
 
+// Debug callback function
+static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
+    VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
+    VkDebugUtilsMessageTypeFlagsEXT messageType,
+    const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
+    void* pUserData) {
+
+    std::string message = pCallbackData->pMessage;
+    
+    if (messageSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT) {
+        SPARKY_LOG_ERROR("Vulkan validation layer: " + message);
+    } else if (messageSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT) {
+        SPARKY_LOG_WARNING("Vulkan validation layer: " + message);
+    } else if (messageSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT) {
+        SPARKY_LOG_INFO("Vulkan validation layer: " + message);
+    } else if (messageSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT) {
+        SPARKY_LOG_DEBUG("Vulkan validation layer: " + message);
+    }
+
+    return VK_FALSE;
+}
+
+// Helper function to load the debug messenger extension
+static VkResult CreateDebugUtilsMessengerEXT(VkInstance instance, const VkDebugUtilsMessengerCreateInfoEXT* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkDebugUtilsMessengerEXT* pDebugMessenger) {
+    auto func = (PFN_vkCreateDebugUtilsMessengerEXT) vkGetInstanceProcAddr(instance, "vkCreateDebugUtilsMessengerEXT");
+    if (func != nullptr) {
+        return func(instance, pCreateInfo, pAllocator, pDebugMessenger);
+    } else {
+        return VK_ERROR_EXTENSION_NOT_PRESENT;
+    }
+}
+
+// Helper function to destroy the debug messenger extension
+static void DestroyDebugUtilsMessengerEXT(VkInstance instance, VkDebugUtilsMessengerEXT debugMessenger, const VkAllocationCallbacks* pAllocator) {
+    auto func = (PFN_vkDestroyDebugUtilsMessengerEXT) vkGetInstanceProcAddr(instance, "vkDestroyDebugUtilsMessengerEXT");
+    if (func != nullptr) {
+        func(instance, debugMessenger, pAllocator);
+    }
+}
+
 namespace Sparky {
 
     VulkanRenderer::VulkanRenderer() : instance(nullptr), physicalDevice(nullptr), device(nullptr), 
@@ -37,7 +77,7 @@ namespace Sparky {
                                        graphicsPipeline(nullptr), commandPool(nullptr), windowHandle(nullptr),
                                        currentFrame(0), imageAvailableSemaphore(nullptr), renderFinishedSemaphore(nullptr),
                                        inFlightFence(nullptr), descriptorSetLayout(nullptr), depthImage(nullptr),
-                                       depthImageMemory(nullptr), depthImageView(nullptr) {
+                                       depthImageMemory(nullptr), depthImageView(nullptr), debugMessenger(nullptr) {
     }
 
     VulkanRenderer::~VulkanRenderer() {
@@ -610,15 +650,133 @@ namespace Sparky {
         std::vector<uint32_t> fragShaderCode;
         
         try {
+            // Use the project source directory to build absolute paths to shaders
+            // Convert the macro to a string
+            #define STRINGIFY(x) #x
+            #define TOSTRING(x) STRINGIFY(x)
+            std::string project_root = TOSTRING(PROJECT_SOURCE_DIR);
+            
+            // Remove any quotes from the path
+            if (!project_root.empty() && project_root.front() == '"') {
+                project_root = project_root.substr(1);
+            }
+            if (!project_root.empty() && project_root.back() == '"') {
+                project_root = project_root.substr(0, project_root.length() - 1);
+            }
+            
+            // Build absolute paths to the shaders
+            std::string vertShaderPath = project_root + "/Engine/shaders/basic.vert";
+            std::string fragShaderPath = project_root + "/Engine/shaders/basic.frag";
+            std::string vertSPVPath = project_root + "/Engine/shaders/basic.vert.spv";
+            std::string fragSPVPath = project_root + "/Engine/shaders/basic.frag.spv";
+            
+            // Try alternative paths if the first one doesn't work
+            std::vector<std::string> vertShaderPaths = {
+                vertShaderPath,
+                project_root + "/shaders/basic.vert",
+                "../Engine/shaders/basic.vert",
+                "../../Engine/shaders/basic.vert",
+                "Engine/shaders/basic.vert"
+            };
+            
+            std::vector<std::string> fragShaderPaths = {
+                fragShaderPath,
+                project_root + "/shaders/basic.frag",
+                "../Engine/shaders/basic.frag",
+                "../../Engine/shaders/basic.frag",
+                "Engine/shaders/basic.frag"
+            };
+            
+            std::vector<std::string> vertSPVPaths = {
+                vertSPVPath,
+                project_root + "/shaders/basic.vert.spv",
+                "../Engine/shaders/basic.vert.spv",
+                "../../Engine/shaders/basic.vert.spv",
+                "Engine/shaders/basic.vert.spv"
+            };
+            
+            std::vector<std::string> fragSPVPaths = {
+                fragSPVPath,
+                project_root + "/shaders/basic.frag.spv",
+                "../Engine/shaders/basic.frag.spv",
+                "../../Engine/shaders/basic.frag.spv",
+                "Engine/shaders/basic.frag.spv"
+            };
+            
+            std::string vertShaderPathFound, fragShaderPathFound;
+            std::string vertSPVPathFound, fragSPVPathFound;
+            bool vertShaderFound = false, fragShaderFound = false;
+            bool vertSPVFound = false, fragSPVFound = false;
+            
+            // Try to find vertex shader
+            for (const auto& path : vertShaderPaths) {
+                SPARKY_LOG_INFO("Trying vertex shader path: " + path);
+                if (Sparky::FileUtils::fileExists(path)) {
+                    vertShaderPathFound = path;
+                    vertShaderFound = true;
+                    SPARKY_LOG_INFO("Found vertex shader at: " + path);
+                    break;
+                }
+            }
+            
+            // Try to find fragment shader
+            for (const auto& path : fragShaderPaths) {
+                SPARKY_LOG_INFO("Trying fragment shader path: " + path);
+                if (Sparky::FileUtils::fileExists(path)) {
+                    fragShaderPathFound = path;
+                    fragShaderFound = true;
+                    SPARKY_LOG_INFO("Found fragment shader at: " + path);
+                    break;
+                }
+            }
+            
+            // Try to find vertex SPIR-V
+            for (const auto& path : vertSPVPaths) {
+                SPARKY_LOG_INFO("Trying vertex SPIR-V path: " + path);
+                if (Sparky::FileUtils::fileExists(path)) {
+                    vertSPVPathFound = path;
+                    vertSPVFound = true;
+                    SPARKY_LOG_INFO("Found vertex SPIR-V at: " + path);
+                    break;
+                }
+            }
+            
+            // Try to find fragment SPIR-V
+            for (const auto& path : fragSPVPaths) {
+                SPARKY_LOG_INFO("Trying fragment SPIR-V path: " + path);
+                if (Sparky::FileUtils::fileExists(path)) {
+                    fragSPVPathFound = path;
+                    fragSPVFound = true;
+                    SPARKY_LOG_INFO("Found fragment SPIR-V at: " + path);
+                    break;
+                }
+            }
+            
+            if (!vertShaderFound || !fragShaderFound) {
+                SPARKY_LOG_ERROR("Failed to find shader files");
+                throw std::runtime_error("Failed to find shader files");
+            }
+            
+            if (!vertSPVFound || !fragSPVFound) {
+                SPARKY_LOG_ERROR("Failed to find SPIR-V files");
+                throw std::runtime_error("Failed to find SPIR-V files");
+            }
+            
             // Read vertex shader source
-            std::vector<char> vertSource = FileUtils::readFile("../Engine/shaders/basic.vert");
+            std::vector<char> vertSource = FileUtils::readFile(vertShaderPathFound);
             std::string vertSourceStr(vertSource.begin(), vertSource.end());
-            vertShaderCode = ShaderCompiler::compileGLSLToSPIRV(vertSourceStr, 0); // 0 = vertex shader
+            SPARKY_LOG_DEBUG("Vertex shader source length: " + std::to_string(vertSourceStr.length()));
             
             // Read fragment shader source
-            std::vector<char> fragSource = FileUtils::readFile("../Engine/shaders/basic.frag");
+            std::vector<char> fragSource = FileUtils::readFile(fragShaderPathFound);
             std::string fragSourceStr(fragSource.begin(), fragSource.end());
-            fragShaderCode = ShaderCompiler::compileGLSLToSPIRV(fragSourceStr, 1); // 1 = fragment shader
+            SPARKY_LOG_DEBUG("Fragment shader source length: " + std::to_string(fragSourceStr.length()));
+            
+            // Compile shaders with fallback
+            vertShaderCode = ShaderCompiler::compileGLSLToSPIRVWithFallback(vertSourceStr, vertSPVPathFound, 0); // 0 = vertex shader
+            fragShaderCode = ShaderCompiler::compileGLSLToSPIRVWithFallback(fragSourceStr, fragSPVPathFound, 1); // 1 = fragment shader
+            
+            SPARKY_LOG_INFO("Shaders compiled successfully");
         } catch (const std::exception& e) {
             SPARKY_LOG_ERROR("Failed to compile shaders: " + std::string(e.what()));
             throw std::runtime_error("Failed to compile shaders");

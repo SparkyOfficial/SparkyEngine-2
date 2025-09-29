@@ -11,6 +11,9 @@ add_executable(SparkyGame
     src/ExampleGame.cpp
 )
 
+# Pass the project source directory to the code
+target_compile_definitions(SparkyGame PRIVATE PROJECT_SOURCE_DIR="${PROJECT_SOURCE_DIR}")
+
 # Link with the engine library
 target_link_libraries(SparkyGame SparkyEngine 
     ${VULKAN_LIBRARIES}

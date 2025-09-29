@@ -83,6 +83,13 @@ int main() {
             break;
         }
         
+        // Debug output to see what's happening
+        static int frameCount = 0;
+        frameCount++;
+        if (frameCount % 60 == 0) { // Print every 60 frames
+            SPARKY_LOG_DEBUG("Frame: " + std::to_string(frameCount) + ", Delta time: " + std::to_string(deltaTime));
+        }
+        
         // Update state machine
         stateMachine.update(deltaTime);
         
@@ -93,7 +100,7 @@ int main() {
         engine.getRenderer().render();
         game.render();
     }
-    
+
     // End the game
     game.endGame();
     

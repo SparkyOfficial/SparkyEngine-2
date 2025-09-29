@@ -90,7 +90,8 @@ namespace Sparky {
         resources.maxTextureImageUnits = 16;
         resources.maxFragmentUniformComponents = 1024;
         resources.maxDrawBuffers = 8;
-        EShMessages messages = static_cast<EShMessages>(EShMsgSpvRules | EShMsgVulkanRules);
+        // Use EShMsgDefault instead of EShMsgSpvRules | EShMsgVulkanRules to disable separate shader objects
+        EShMessages messages = EShMsgDefault;
         
         // Preprocess
         const int defaultVersion = 450;
@@ -107,6 +108,8 @@ namespace Sparky {
         // Parse with more lenient settings
         if (!shader.parse(&resources, 450, false, messages)) {
             SPARKY_LOG_ERROR("GLSL parsing failed: " + std::string(shader.getInfoLog()));
+            // Log the actual shader source for debugging
+            SPARKY_LOG_ERROR("Shader source: " + source);
             throw std::runtime_error("GLSL parsing failed: " + std::string(shader.getInfoLog()));
         }
         

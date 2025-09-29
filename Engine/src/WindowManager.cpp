@@ -34,6 +34,10 @@ namespace Sparky {
             return false;
         }
 
+        // Set up framebuffer resize callback
+        glfwSetWindowUserPointer(window, this);
+        glfwSetFramebufferSizeCallback(window, framebufferResizeCallback);
+
         return true;
     }
 
@@ -50,5 +54,11 @@ namespace Sparky {
 
     void WindowManager::pollEvents() {
         glfwPollEvents();
+    }
+    
+    // Static callback function for framebuffer resize
+    void WindowManager::framebufferResizeCallback(GLFWwindow* window, int width, int height) {
+        auto app = reinterpret_cast<WindowManager*>(glfwGetWindowUserPointer(window));
+        app->framebufferResized = true;
     }
 }

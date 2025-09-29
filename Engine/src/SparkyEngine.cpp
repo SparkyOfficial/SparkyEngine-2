@@ -27,6 +27,7 @@ namespace Sparky {
 
         // Initialize renderer
         SPARKY_LOG_INFO("Initializing renderer...");
+        renderer.setEngine(this);  // Set the engine reference
         if (!renderer.initialize(windowManager.getWindowHandle())) {
             SPARKY_LOG_ERROR("Failed to initialize renderer");
             return false;

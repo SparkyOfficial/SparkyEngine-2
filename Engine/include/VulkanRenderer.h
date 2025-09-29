@@ -11,6 +11,7 @@
 // Forward declaration
 namespace Sparky {
     class RenderSystem;
+    class Engine;  // Add forward declaration
 }
 
 namespace Sparky {
@@ -44,7 +45,11 @@ namespace Sparky {
         bool initialize(void* windowHandle);
         void cleanup();
         void render();
+        void renderMeshes();  // Add this method
         MeshRenderer& getMeshRenderer() { return meshRenderer; }
+        
+        // Setter for engine reference
+        void setEngine(Engine* engine) { this->engine = engine; }
 
         // Getters for other classes to use
         VkDevice getDevice() const { return device; }
@@ -105,6 +110,9 @@ namespace Sparky {
 
         // Window handle
         void* windowHandle;
+        
+        // Engine reference
+        Engine* engine;  // Add this member
         
         // Debug messenger
         VkDebugUtilsMessengerEXT debugMessenger;

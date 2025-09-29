@@ -17,6 +17,12 @@ namespace Sparky {
         // Getters
         int getWidth() const { return width; }
         int getHeight() const { return height; }
+        
+        // Framebuffer resize flag
+        bool framebufferResized = false;
+        
+        // Static callback function for framebuffer resize
+        static void framebufferResizeCallback(GLFWwindow* window, int width, int height);
 
     private:
         GLFWwindow* window;

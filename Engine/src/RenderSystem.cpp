@@ -32,7 +32,27 @@ namespace Sparky {
         auto it = std::find(gameObjects.begin(), gameObjects.end(), gameObject);
         if (it == gameObjects.end()) {
             gameObjects.push_back(gameObject);
-            SPARKY_LOG_DEBUG("Registered game object: " + gameObject->getName());
+            SPARKY_LOG_INFO("Registered game object: " + gameObject->getName());
+            
+            // Create vertex and index buffers for the mesh if it has a render component
+            if (renderer) {
+                RenderComponent* renderComponent = gameObject->getComponent<RenderComponent>();
+                if (renderComponent && renderComponent->getMesh()) {
+                    MeshRenderer& meshRenderer = renderer->getMeshRenderer();
+                    const Mesh* mesh = renderComponent->getMesh();
+                    
+                    SPARKY_LOG_INFO("Creating vertex buffer for mesh with " + std::to_string(mesh->getVertices().size()) + " vertices");
+                    
+                    // Create vertex buffer
+                    meshRenderer.createVertexBuffer(*mesh);
+                    
+                    // Create index buffer if the mesh has indices
+                    if (!mesh->getIndices().empty()) {
+                        SPARKY_LOG_INFO("Creating index buffer for mesh with " + std::to_string(mesh->getIndices().size()) + " indices");
+                        meshRenderer.createIndexBuffer(*mesh);
+                    }
+                }
+            }
         }
     }
 
@@ -44,7 +64,7 @@ namespace Sparky {
         auto it = std::find(gameObjects.begin(), gameObjects.end(), gameObject);
         if (it != gameObjects.end()) {
             gameObjects.erase(it);
-            SPARKY_LOG_DEBUG("Unregistered game object: " + gameObject->getName());
+            SPARKY_LOG_INFO("Unregistered game object: " + gameObject->getName());
         }
     }
 
@@ -61,6 +81,8 @@ namespace Sparky {
 
         // Get the mesh renderer from the Vulkan renderer
         MeshRenderer& meshRenderer = renderer->getMeshRenderer();
+        
+        SPARKY_LOG_INFO("RenderSystem rendering " + std::to_string(gameObjects.size()) + " game objects");
 
         // Render all registered game objects that have render components
         for (GameObject* gameObject : gameObjects) {
@@ -78,10 +100,9 @@ namespace Sparky {
         // Get the render component from the game object
         RenderComponent* renderComponent = gameObject->getComponent<RenderComponent>();
         if (renderComponent && renderComponent->getMesh()) {
-            // In a real implementation, we would pass the actual command buffer
-            // For now, we'll use VK_NULL_HANDLE as a placeholder
-            MeshRenderer& meshRenderer = renderer->getMeshRenderer();
-            meshRenderer.renderMesh(*renderComponent->getMesh(), VK_NULL_HANDLE);
+            SPARKY_LOG_INFO("Rendering game object: " + gameObject->getName());
+            // We don't actually render here anymore - the VulkanRenderer handles this in recordCommandBuffer
+            // This method is kept for future expansion if needed
         }
     }
 }

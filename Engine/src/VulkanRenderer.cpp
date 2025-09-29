@@ -28,6 +28,10 @@
 #include "../include/MeshRenderer.h"
 #include "../include/ShaderCompiler.h"
 #include "../include/FileUtils.h"
+#include "../include/SparkyEngine.h"
+#include "../include/RenderSystem.h"
+#include "../include/GameObject.h"
+#include "../include/RenderComponent.h"
 
 // Debug callback function
 static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
@@ -222,15 +226,30 @@ namespace Sparky {
         createGraphicsPipeline();
         createDepthResources();
         createFramebuffers();
+        createUniformBuffers();
+        createDescriptorPool();
+        createDescriptorSets();
+        createCommandBuffers();
+        
+        // Re-register framebuffer resize callback
+        glfwSetFramebufferSizeCallback(static_cast<GLFWwindow*>(windowHandle), WindowManager::framebufferResizeCallback);
     }
 
     void VulkanRenderer::render() {
         vkWaitForFences(device, 1, &inFlightFence, VK_TRUE, UINT64_MAX);
         
+        // Check if framebuffer was resized
+        if (engine && engine->getWindowManager().framebufferResized) {
+            engine->getWindowManager().framebufferResized = false;
+            recreateSwapChain();
+            return; // Skip this frame
+        }
+        
         uint32_t imageIndex;
         VkResult result = vkAcquireNextImageKHR(device, swapChain, UINT64_MAX, imageAvailableSemaphore, VK_NULL_HANDLE, &imageIndex);
         
-        if (result == VK_ERROR_OUT_OF_DATE_KHR) {
+        if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR || (engine && engine->getWindowManager().framebufferResized)) {
+            if (engine) engine->getWindowManager().framebufferResized = false;
             recreateSwapChain();
             return;
         } else if (result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR) {
@@ -276,7 +295,8 @@ namespace Sparky {
         
         result = vkQueuePresentKHR(presentQueue, &presentInfo);
         
-        if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR) {
+        if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR || (engine && engine->getWindowManager().framebufferResized)) {
+            if (engine) engine->getWindowManager().framebufferResized = false;
             recreateSwapChain();
         } else if (result != VK_SUCCESS) {
             throw std::runtime_error("failed to present swap chain image!");
@@ -757,26 +777,52 @@ namespace Sparky {
                 throw std::runtime_error("Failed to find shader files");
             }
             
-            if (!vertSPVFound || !fragSPVFound) {
-                SPARKY_LOG_ERROR("Failed to find SPIR-V files");
-                throw std::runtime_error("Failed to find SPIR-V files");
-            }
-            
             // Read vertex shader source
             std::vector<char> vertSource = FileUtils::readFile(vertShaderPathFound);
             std::string vertSourceStr(vertSource.begin(), vertSource.end());
             SPARKY_LOG_DEBUG("Vertex shader source length: " + std::to_string(vertSourceStr.length()));
+            SPARKY_LOG_DEBUG("Vertex shader source: " + vertSourceStr);
             
             // Read fragment shader source
             std::vector<char> fragSource = FileUtils::readFile(fragShaderPathFound);
             std::string fragSourceStr(fragSource.begin(), fragSource.end());
             SPARKY_LOG_DEBUG("Fragment shader source length: " + std::to_string(fragSourceStr.length()));
+            SPARKY_LOG_DEBUG("Fragment shader source: " + fragSourceStr);
             
-            // Compile shaders with fallback
-            vertShaderCode = ShaderCompiler::compileGLSLToSPIRVWithFallback(vertSourceStr, vertSPVPathFound, 0); // 0 = vertex shader
-            fragShaderCode = ShaderCompiler::compileGLSLToSPIRVWithFallback(fragSourceStr, fragSPVPathFound, 1); // 1 = fragment shader
-            
-            SPARKY_LOG_INFO("Shaders compiled successfully");
+            // Compile shaders - try to compile GLSL to SPIR-V first
+            try {
+                vertShaderCode = ShaderCompiler::compileGLSLToSPIRV(vertSourceStr, 0); // 0 = vertex shader
+                fragShaderCode = ShaderCompiler::compileGLSLToSPIRV(fragSourceStr, 1); // 1 = fragment shader
+                
+                // Save compiled SPIR-V to files for future use
+                std::ofstream vertSPVFile(vertSPVPath, std::ios::binary);
+                if (vertSPVFile.is_open()) {
+                    vertSPVFile.write(reinterpret_cast<const char*>(vertShaderCode.data()), vertShaderCode.size() * sizeof(uint32_t));
+                    vertSPVFile.close();
+                    SPARKY_LOG_INFO("Vertex shader compiled and saved to: " + vertSPVPath);
+                }
+                
+                std::ofstream fragSPVFile(fragSPVPath, std::ios::binary);
+                if (fragSPVFile.is_open()) {
+                    fragSPVFile.write(reinterpret_cast<const char*>(fragShaderCode.data()), fragShaderCode.size() * sizeof(uint32_t));
+                    fragSPVFile.close();
+                    SPARKY_LOG_INFO("Fragment shader compiled and saved to: " + fragSPVPath);
+                }
+                
+                SPARKY_LOG_INFO("Shaders compiled successfully");
+            } catch (const std::exception& compileError) {
+                SPARKY_LOG_WARNING("GLSL compilation failed: " + std::string(compileError.what()));
+                
+                // If compilation fails, try to load pre-compiled SPIR-V
+                if (vertSPVFound && fragSPVFound) {
+                    vertShaderCode = ShaderCompiler::loadSPIRVFromFile(vertSPVPathFound);
+                    fragShaderCode = ShaderCompiler::loadSPIRVFromFile(fragSPVPathFound);
+                    SPARKY_LOG_INFO("Loaded pre-compiled SPIR-V files");
+                } else {
+                    SPARKY_LOG_ERROR("Failed to find SPIR-V files");
+                    throw std::runtime_error("Failed to compile or load shaders: " + std::string(compileError.what()));
+                }
+            }
         } catch (const std::exception& e) {
             SPARKY_LOG_ERROR("Failed to compile shaders: " + std::string(e.what()));
             throw std::runtime_error("Failed to compile shaders");
@@ -1301,21 +1347,43 @@ namespace Sparky {
         // Bind descriptor sets
         vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSets[imageIndex], 0, nullptr);
         
-        // Render meshes if we have any
-        // Iterate through all scene objects and render their meshes
-        // For now, we'll just demonstrate the concept by rendering a test cube if the mesh renderer has buffers
-        if (meshRenderer.getVertexBuffer() && meshRenderer.getIndexBuffer()) {
-            // Bind vertex buffer
-            VkBuffer vertexBuffers[] = {meshRenderer.getVertexBuffer()};
-            VkDeviceSize offsets[] = {0};
-            vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
+        // Render meshes from the render system if we have an engine reference
+        if (engine) {
+            RenderSystem& renderSystem = engine->getRenderSystem();
             
-            // Bind index buffer
-            vkCmdBindIndexBuffer(commandBuffer, meshRenderer.getIndexBuffer(), 0, VK_INDEX_TYPE_UINT32);
+            // Render all registered game objects
+            const auto& gameObjects = renderSystem.getGameObjects();
+            SPARKY_LOG_DEBUG("Rendering " + std::to_string(gameObjects.size()) + " game objects");
             
-            // Draw indexed
-            // We would normally get the index count from the mesh, but for now we'll use a placeholder
-            vkCmdDrawIndexed(commandBuffer, 36, 1, 0, 0, 0);
+            for (GameObject* gameObject : gameObjects) {
+                if (gameObject) {
+                    RenderComponent* renderComponent = gameObject->getComponent<RenderComponent>();
+                    if (renderComponent && renderComponent->getMesh()) {
+                        const Mesh* mesh = renderComponent->getMesh();
+                        SPARKY_LOG_DEBUG("Rendering mesh with " + std::to_string(mesh->getVertices().size()) + " vertices and " + std::to_string(mesh->getIndices().size()) + " indices");
+                        
+                        // Get the vertex and index buffers from the mesh renderer
+                        VkBuffer vertexBuffer = meshRenderer.getVertexBuffer();
+                        VkBuffer indexBuffer = meshRenderer.getIndexBuffer();
+                        
+                        if (vertexBuffer != VK_NULL_HANDLE) {
+                            // Bind vertex buffer
+                            VkBuffer vertexBuffers[] = {vertexBuffer};
+                            VkDeviceSize offsets[] = {0};
+                            vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
+                        
+                            // Bind index buffer if it exists
+                            if (indexBuffer != VK_NULL_HANDLE && mesh->getIndices().size() > 0) {
+                                vkCmdBindIndexBuffer(commandBuffer, indexBuffer, 0, VK_INDEX_TYPE_UINT32);
+                                vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(mesh->getIndices().size()), 1, 0, 0, 0);
+                            } else if (mesh->getVertices().size() > 0) {
+                                // Draw without index buffer
+                                vkCmdDraw(commandBuffer, static_cast<uint32_t>(mesh->getVertices().size()), 1, 0, 0);
+                            }
+                        }
+                    }
+                }
+            }
         }
 
         vkCmdEndRenderPass(commandBuffer);

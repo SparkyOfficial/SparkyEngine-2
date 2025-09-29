@@ -36,6 +36,8 @@ namespace Sparky {
         this->engine = engine;
         this->renderSystem = &engine->getRenderSystem();
         
+        SPARKY_LOG_DEBUG("Engine and renderSystem pointers set");
+        
         try {
             createPlayer();
             createLevel();
@@ -76,6 +78,11 @@ namespace Sparky {
         // The rendering is now handled by the RenderSystem automatically
         // We don't need to manually render each object anymore
         // The RenderSystem will iterate through all registered objects and render them
+        
+        // Actually call the RenderSystem to render
+        if (renderSystem) {
+            renderSystem->render();
+        }
 
         // Render game systems
         if (particleSystem) {
@@ -171,6 +178,7 @@ namespace Sparky {
         // Register with render system
         if (renderSystem) {
             renderSystem->registerGameObject(floor.get());
+            SPARKY_LOG_DEBUG("Registered floor with render system");
         }
         
         platforms.push_back(std::move(floor));
@@ -189,6 +197,7 @@ namespace Sparky {
         // Register with render system
         if (renderSystem) {
             renderSystem->registerGameObject(platform1.get());
+            SPARKY_LOG_DEBUG("Registered platform1 with render system");
         }
         
         platforms.push_back(std::move(platform1));
@@ -267,6 +276,7 @@ namespace Sparky {
         // Register with render system
         if (renderSystem) {
             renderSystem->registerGameObject(player.get());
+            SPARKY_LOG_DEBUG("Registered player with render system");
         }
         
         // Set up player camera

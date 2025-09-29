@@ -1,5 +1,7 @@
 #include "../include/MeshRenderer.h"
+#include "../include/Logger.h"
 #include <cstring>
+#include <string>
 
 namespace Sparky {
 
@@ -39,12 +41,14 @@ namespace Sparky {
 
     void MeshRenderer::createVertexBuffer(const Mesh& mesh) {
         VkDeviceSize bufferSize = sizeof(mesh.getVertices()[0]) * mesh.getVertices().size();
+        
+        SPARKY_LOG_DEBUG("Creating vertex buffer with size: " + std::to_string(bufferSize) + " bytes");
 
         VkBuffer stagingBuffer;
         VkDeviceMemory stagingBufferMemory;
         createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, 
-                     VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, 
-                     stagingBuffer, stagingBufferMemory);
+                 VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, 
+                 stagingBuffer, stagingBufferMemory);
 
         void* data;
         vkMapMemory(device, stagingBufferMemory, 0, bufferSize, 0, &data);
@@ -52,22 +56,26 @@ namespace Sparky {
         vkUnmapMemory(device, stagingBufferMemory);
 
         createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, 
-                     VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, vertexBuffer, vertexBufferMemory);
+                 VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, vertexBuffer, vertexBufferMemory);
 
         copyBuffer(stagingBuffer, vertexBuffer, bufferSize);
 
         vkDestroyBuffer(device, stagingBuffer, nullptr);
         vkFreeMemory(device, stagingBufferMemory, nullptr);
+        
+        SPARKY_LOG_DEBUG("Vertex buffer created successfully");
     }
 
     void MeshRenderer::createIndexBuffer(const Mesh& mesh) {
         VkDeviceSize bufferSize = sizeof(mesh.getIndices()[0]) * mesh.getIndices().size();
+        
+        SPARKY_LOG_DEBUG("Creating index buffer with size: " + std::to_string(bufferSize) + " bytes");
 
         VkBuffer stagingBuffer;
         VkDeviceMemory stagingBufferMemory;
         createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, 
-                     VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, 
-                     stagingBuffer, stagingBufferMemory);
+                 VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, 
+                 stagingBuffer, stagingBufferMemory);
 
         void* data;
         vkMapMemory(device, stagingBufferMemory, 0, bufferSize, 0, &data);
@@ -75,12 +83,14 @@ namespace Sparky {
         vkUnmapMemory(device, stagingBufferMemory);
 
         createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT, 
-                     VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, indexBuffer, indexBufferMemory);
+                 VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, indexBuffer, indexBufferMemory);
 
         copyBuffer(stagingBuffer, indexBuffer, bufferSize);
 
         vkDestroyBuffer(device, stagingBuffer, nullptr);
         vkFreeMemory(device, stagingBufferMemory, nullptr);
+        
+        SPARKY_LOG_DEBUG("Index buffer created successfully");
     }
 
     void MeshRenderer::renderMesh(const Mesh& mesh, VkCommandBuffer commandBuffer) {

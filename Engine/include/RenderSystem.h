@@ -19,6 +19,9 @@ namespace Sparky {
         
         void update(float deltaTime);
         void render();
+        
+        // Getter for game objects
+        const std::vector<GameObject*>& getGameObjects() const { return gameObjects; }
 
     private:
         VulkanRenderer* renderer;

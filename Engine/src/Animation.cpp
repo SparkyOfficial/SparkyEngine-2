@@ -5,115 +5,93 @@
 
 namespace Sparky {
 
-    Animation::Animation(const std::string& name) 
-        : name(name), duration(0.0f), currentTime(0.0f), isPlaying(false), loop(false) {
-        SPARKY_LOG_DEBUG("Creating Animation: " + name);
+    Animation::Animation(const std::string& name) : name(name), duration(0.0f) {
     }
 
     Animation::~Animation() {
-        SPARKY_LOG_DEBUG("Destroying Animation: " + name);
     }
 
     void Animation::addKeyFrame(const KeyFrame& keyFrame) {
         keyFrames.push_back(keyFrame);
-        duration = std::max(duration, keyFrame.time);
-        SPARKY_LOG_DEBUG("Added keyframe at time: " + std::to_string(keyFrame.time));
-    }
-
-    void Animation::play() {
-        isPlaying = true;
-        currentTime = 0.0f;
-        SPARKY_LOG_DEBUG("Playing animation: " + name);
-    }
-
-    void Animation::stop() {
-        isPlaying = false;
-        currentTime = 0.0f;
-        SPARKY_LOG_DEBUG("Stopping animation: " + name);
-    }
-
-    void Animation::update(float deltaTime) {
-        if (!isPlaying) return;
-
-        currentTime += deltaTime;
-
-        if (currentTime >= duration) {
-            if (loop) {
-                currentTime = fmod(currentTime, duration);
-                SPARKY_LOG_DEBUG("Looping animation: " + name);
-            } else {
-                currentTime = duration;
-                isPlaying = false;
-                SPARKY_LOG_DEBUG("Animation finished: " + name);
-            }
+        
+        // Update duration if this keyframe is later than current duration
+        if (keyFrame.time > duration) {
+            duration = keyFrame.time;
         }
+        
+        // Sort keyframes by time
+        std::sort(keyFrames.begin(), keyFrames.end(), 
+                  [](const KeyFrame& a, const KeyFrame& b) {
+                      return a.time < b.time;
+                  });
     }
 
-    bool Animation::isFinished() const {
-        return !isPlaying && currentTime >= duration;
+    void Animation::setDuration(float duration) {
+        this->duration = duration;
     }
 
-    glm::vec3 Animation::interpolatePosition(float time) const {
+    void Animation::evaluate(float time, glm::vec3& position, glm::vec3& rotation, glm::vec3& scale) const {
         if (keyFrames.empty()) {
-            return glm::vec3(0.0f);
+            position = glm::vec3(0.0f);
+            rotation = glm::vec3(0.0f);
+            scale = glm::vec3(1.0f);
+            return;
         }
-
+        
+        // Wrap time if it exceeds duration
+        if (duration > 0.0f) {
+            time = fmod(time, duration);
+        }
+        
+        // Find the keyframes to interpolate between
+        if (keyFrames.size() == 1) {
+            // Only one keyframe, use its values
+            position = keyFrames[0].position;
+            rotation = keyFrames[0].rotation;
+            scale = keyFrames[0].scale;
+            return;
+        }
+        
         // Find the two keyframes to interpolate between
-        for (size_t i = 0; i < keyFrames.size() - 1; ++i) {
-            if (time >= keyFrames[i].time && time <= keyFrames[i + 1].time) {
-                float t = (time - keyFrames[i].time) / (keyFrames[i + 1].time - keyFrames[i].time);
-                return glm::mix(keyFrames[i].position, keyFrames[i + 1].position, t);
-            }
+        size_t nextIndex = 0;
+        while (nextIndex < keyFrames.size() && keyFrames[nextIndex].time <= time) {
+            nextIndex++;
         }
-
-        // If time is before the first keyframe or after the last, return the closest one
-        if (time <= keyFrames.front().time) {
-            return keyFrames.front().position;
-        } else {
-            return keyFrames.back().position;
+        
+        if (nextIndex == 0) {
+            // Before first keyframe
+            position = keyFrames[0].position;
+            rotation = keyFrames[0].rotation;
+            scale = keyFrames[0].scale;
+            return;
         }
+        
+        if (nextIndex >= keyFrames.size()) {
+            // After last keyframe
+            position = keyFrames.back().position;
+            rotation = keyFrames.back().rotation;
+            scale = keyFrames.back().scale;
+            return;
+        }
+        
+        // Interpolate between keyframes
+        const KeyFrame& prev = keyFrames[nextIndex - 1];
+        const KeyFrame& next = keyFrames[nextIndex];
+        
+        float t = (time - prev.time) / (next.time - prev.time);
+        KeyFrame interpolated = interpolate(prev, next, t);
+        
+        position = interpolated.position;
+        rotation = interpolated.rotation;
+        scale = interpolated.scale;
     }
 
-    glm::vec3 Animation::interpolateRotation(float time) const {
-        if (keyFrames.empty()) {
-            return glm::vec3(0.0f);
-        }
-
-        // Find the two keyframes to interpolate between
-        for (size_t i = 0; i < keyFrames.size() - 1; ++i) {
-            if (time >= keyFrames[i].time && time <= keyFrames[i + 1].time) {
-                float t = (time - keyFrames[i].time) / (keyFrames[i + 1].time - keyFrames[i].time);
-                return glm::mix(keyFrames[i].rotation, keyFrames[i + 1].rotation, t);
-            }
-        }
-
-        // If time is before the first keyframe or after the last, return the closest one
-        if (time <= keyFrames.front().time) {
-            return keyFrames.front().rotation;
-        } else {
-            return keyFrames.back().rotation;
-        }
+    KeyFrame Animation::interpolate(const KeyFrame& a, const KeyFrame& b, float t) const {
+        KeyFrame result;
+        result.time = a.time + t * (b.time - a.time);
+        result.position = glm::mix(a.position, b.position, t);
+        result.rotation = glm::mix(a.rotation, b.rotation, t);
+        result.scale = glm::mix(a.scale, b.scale, t);
+        return result;
     }
-
-    glm::vec3 Animation::interpolateScale(float time) const {
-        if (keyFrames.empty()) {
-            return glm::vec3(1.0f);
-        }
-
-        // Find the two keyframes to interpolate between
-        for (size_t i = 0; i < keyFrames.size() - 1; ++i) {
-            if (time >= keyFrames[i].time && time <= keyFrames[i + 1].time) {
-                float t = (time - keyFrames[i].time) / (keyFrames[i + 1].time - keyFrames[i].time);
-                return glm::mix(keyFrames[i].scale, keyFrames[i + 1].scale, t);
-            }
-        }
-
-        // If time is before the first keyframe or after the last, return the closest one
-        if (time <= keyFrames.front().time) {
-            return keyFrames.front().scale;
-        } else {
-            return keyFrames.back().scale;
-        }
-    }
-
 }

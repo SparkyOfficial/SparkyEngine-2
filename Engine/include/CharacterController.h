@@ -1,57 +1,40 @@
 #pragma once
 
+#include "Component.h"
+#include "RigidBodyComponent.h"
 #include <glm/glm.hpp>
 
 namespace Sparky {
-    class GameObject;
-
-    class CharacterController {
+    class CharacterController : public Component {
     public:
-        CharacterController(GameObject* character);
-        ~CharacterController();
+        CharacterController();
+        virtual ~CharacterController();
+
+        void update(float deltaTime) override;
+        void render() override;
 
         // Movement
-        void move(const glm::vec3& direction, float deltaTime);
+        void move(const glm::vec3& direction);
         void jump();
-        void crouch();
-        void stand();
-
-        // Properties
-        void setWalkSpeed(float speed);
-        void setRunSpeed(float speed);
+        void setMoveSpeed(float speed);
         void setJumpForce(float force);
-        void setGravity(float gravity);
-
-        float getWalkSpeed() const { return walkSpeed; }
-        float getRunSpeed() const { return runSpeed; }
-        float getJumpForce() const { return jumpForce; }
-        float getGravity() const { return gravity; }
-
-        // State
+        
+        // Ground detection
         bool isGrounded() const { return grounded; }
-        bool isRunning() const { return running; }
-        bool isCrouching() const { return crouching; }
-
-        // Update
-        void update(float deltaTime);
+        
+        // Physics properties
+        void setRigidBody(RigidBodyComponent* rigidBody);
+        RigidBodyComponent* getRigidBody() const { return rigidBody; }
 
     private:
-        GameObject* character;
-
-        // Movement properties
-        float walkSpeed;
-        float runSpeed;
+        RigidBodyComponent* rigidBody;
+        float moveSpeed;
         float jumpForce;
-        float gravity;
-        float verticalVelocity;
-
-        // State
         bool grounded;
-        bool running;
-        bool crouching;
-
-        // Dimensions
-        float height;
-        float crouchHeight;
+        float groundCheckDistance;
+        
+        // Movement state
+        glm::vec3 moveDirection;
+        bool jumpRequested;
     };
 }

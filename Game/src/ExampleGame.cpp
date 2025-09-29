@@ -149,7 +149,7 @@ namespace Sparky {
         
         // Start particle system
         if (particleSystem) {
-            particleSystem->start();
+            particleSystem->play();
         }
         
         // Start quest

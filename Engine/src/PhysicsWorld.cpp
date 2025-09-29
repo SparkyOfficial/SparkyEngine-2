@@ -1,9 +1,11 @@
 #include "../include/PhysicsWorld.h"
 #include "../include/PhysicsComponent.h"
+#include "../include/RigidBodyComponent.h"
 #include "../include/GameObject.h"
 #include "../include/Logger.h"
 #include "../include/Profiler.h"
 #include <algorithm>
+#include <cmath>
 
 namespace Sparky {
 
@@ -35,39 +37,21 @@ namespace Sparky {
     void PhysicsWorld::update(float deltaTime) {
         SPARKY_PROFILE("PhysicsUpdate");
         
+        // Broadphase collision detection
+        broadphase();
+        
         // Update all physics components
         for (auto component : components) {
             if (component && component->getOwner()) {
-                // Apply gravity
-                glm::vec3 acceleration = component->getAcceleration();
-                acceleration += gravity * component->getMass();
-                component->setAcceleration(acceleration);
-
-                // Update velocity
-                glm::vec3 velocity = component->getVelocity();
-                velocity += acceleration * deltaTime;
-                component->setVelocity(velocity);
-
-                // Update position
-                glm::vec3 position = component->getOwner()->getPosition();
-                position += velocity * deltaTime;
-                component->getOwner()->setPosition(position);
-
-                // Reset acceleration for next frame
-                component->setAcceleration(glm::vec3(0.0f));
+                component->update(deltaTime);
             }
         }
 
-        // Check for collisions
-        for (size_t i = 0; i < components.size(); i++) {
-            for (size_t j = i + 1; j < components.size(); j++) {
-                if (checkCollision(components[i], components[j])) {
-                    // Handle collision response
-                    // In a more advanced implementation, we would calculate proper collision response
-                    SPARKY_LOG_DEBUG("Collision detected between physics components");
-                }
-            }
-        }
+        // Detect collisions
+        std::vector<CollisionData> collisions = detectCollisions();
+        
+        // Resolve collisions
+        resolveCollisions(collisions);
     }
 
     void PhysicsWorld::setGravity(const glm::vec3& gravity) {
@@ -116,6 +100,29 @@ namespace Sparky {
         return result;
     }
 
+    std::vector<CollisionData> PhysicsWorld::detectCollisions() {
+        std::vector<CollisionData> collisions;
+        
+        // Check potential collisions from broadphase
+        for (const auto& pair : broadphasePairs) {
+            CollisionData collision;
+            if (checkCollision(pair.first, pair.second)) {
+                collision.componentA = pair.first;
+                collision.componentB = pair.second;
+                collision.resolved = false;
+                // For simplicity, we'll use a basic contact point calculation
+                collision.contactPoint = (pair.first->getOwner()->getPosition() + 
+                                        pair.second->getOwner()->getPosition()) * 0.5f;
+                collision.normal = glm::normalize(pair.second->getOwner()->getPosition() - 
+                                                pair.first->getOwner()->getPosition());
+                collision.penetrationDepth = 0.1f; // Simplified value
+                collisions.push_back(collision);
+            }
+        }
+        
+        return collisions;
+    }
+
     bool PhysicsWorld::checkCollision(PhysicsComponent* componentA, PhysicsComponent* componentB) {
         if (!componentA || !componentB || !componentA->getOwner() || !componentB->getOwner()) {
             return false;
@@ -142,8 +149,84 @@ namespace Sparky {
         return xOverlap && yOverlap && zOverlap;
     }
 
+    void PhysicsWorld::resolveCollisions(const std::vector<CollisionData>& collisions) {
+        for (auto& collision : collisions) {
+            if (!collision.resolved) {
+                resolveCollision(const_cast<CollisionData&>(collision));
+            }
+        }
+    }
+
+    void PhysicsWorld::resolveCollision(CollisionData& collision) {
+        // Get the rigid body components if they exist
+        RigidBodyComponent* rbA = dynamic_cast<RigidBodyComponent*>(collision.componentA);
+        RigidBodyComponent* rbB = dynamic_cast<RigidBodyComponent*>(collision.componentB);
+        
+        // If both are rigid bodies, apply collision response
+        if (rbA && rbB) {
+            // Calculate relative velocity
+            glm::vec3 relativeVelocity = rbA->getLinearVelocity() - rbB->getLinearVelocity();
+            
+            // Calculate velocity along the normal
+            float velocityAlongNormal = glm::dot(relativeVelocity, collision.normal);
+            
+            // Do not resolve if objects are separating
+            if (velocityAlongNormal > 0) {
+                return;
+            }
+            
+            // Calculate restitution (bounciness)
+            float restitution = (rbA->getRestitution() + rbB->getRestitution()) * 0.5f;
+            
+            // Calculate impulse scalar
+            float impulseScalar = -(1 + restitution) * velocityAlongNormal;
+            impulseScalar /= 2.0f; // Simplified mass calculation
+            
+            // Apply impulse
+            glm::vec3 impulse = impulseScalar * collision.normal;
+            rbA->setLinearVelocity(rbA->getLinearVelocity() + impulse);
+            rbB->setLinearVelocity(rbB->getLinearVelocity() - impulse);
+            
+            // Positional correction to prevent sinking
+            const float percent = 0.2f; // Penetration percentage to correct
+            const float slop = 0.01f;   // Penetration allowance
+            glm::vec3 correction = (glm::max(collision.penetrationDepth - slop, 0.0f) / 2.0f) * percent * collision.normal;
+            
+            if (rbA->getBodyType() == BodyType::DYNAMIC) {
+                glm::vec3 posA = rbA->getOwner()->getPosition();
+                rbA->getOwner()->setPosition(posA + correction);
+            }
+            
+            if (rbB->getBodyType() == BodyType::DYNAMIC) {
+                glm::vec3 posB = rbB->getOwner()->getPosition();
+                rbB->getOwner()->setPosition(posB - correction);
+            }
+        }
+        
+        collision.resolved = true;
+    }
+
     void PhysicsWorld::addConstraint() {
         // Future implementation for physics constraints
         // Constraints could include joints, springs, etc.
+    }
+    
+    void PhysicsWorld::broadphase() {
+        // Simple broadphase: check all pairs (in a real engine, this would use spatial partitioning)
+        broadphasePairs.clear();
+        
+        for (size_t i = 0; i < components.size(); i++) {
+            for (size_t j = i + 1; j < components.size(); j++) {
+                // Simple distance check for broadphase
+                glm::vec3 posA = components[i]->getOwner()->getPosition();
+                glm::vec3 posB = components[j]->getOwner()->getPosition();
+                float distance = glm::length(posA - posB);
+                
+                // If objects are close enough, add to potential collision pairs
+                if (distance < 10.0f) { // Arbitrary distance threshold
+                    broadphasePairs.push_back({components[i], components[j]});
+                }
+            }
+        }
     }
 }

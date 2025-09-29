@@ -1,36 +1,47 @@
 #pragma once
 
-#include <string>
-#include <unordered_map>
+#include "Component.h"
 #include <vector>
+#include <string>
 #include <memory>
-#include "Animation.h"
+#include <glm/glm.hpp>
 
 namespace Sparky {
+    class Animation;
 
-    struct AnimationState {
-        Animation* animation;
-        float blendWeight;
-    };
-
-    class AnimationController {
-    private:
-        std::unordered_map<std::string, std::unique_ptr<Animation>> animations;
-        std::vector<AnimationState> activeStates;
-        bool isPlaying;
-
+    class AnimationController : public Component {
     public:
         AnimationController();
-        ~AnimationController();
+        virtual ~AnimationController();
 
-        void addAnimation(const std::string& name, std::unique_ptr<Animation> animation);
-        void playAnimation(const std::string& name);
-        void blendAnimation(const std::string& name, float blendWeight);
-        void stopAnimation();
-        void update(float deltaTime);
+        void update(float deltaTime) override;
+        void render() override;
 
-        bool getIsPlaying() const;
-        Animation* getAnimation(const std::string& name);
+        // Animation management
+        void addAnimation(std::unique_ptr<Animation> animation);
+        bool setAnimation(const std::string& name);
+        void setPlaybackSpeed(float speed);
+        void setLooping(bool looping);
+        
+        // Playback control
+        void play();
+        void pause();
+        void stop();
+        void reset();
+
+        // Getters
+        bool isPlaying() const { return playing; }
+        float getCurrentTime() const { return currentTime; }
+        const std::string& getCurrentAnimationName() const { return currentAnimationName; }
+
+    private:
+        std::vector<std::unique_ptr<Animation>> animations;
+        std::string currentAnimationName;
+        Animation* currentAnimation;
+        
+        float currentTime;
+        float playbackSpeed;
+        bool playing;
+        bool looping;
     };
-
 }

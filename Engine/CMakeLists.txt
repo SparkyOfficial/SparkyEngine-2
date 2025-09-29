@@ -17,6 +17,7 @@ set(ENGINE_SOURCES
     src/GameObject.cpp
     src/RenderComponent.cpp
     src/PhysicsComponent.cpp
+    src/RigidBodyComponent.cpp
     src/PhysicsWorld.cpp
     src/CollisionSystem.cpp
     src/Timer.cpp
@@ -120,3 +121,36 @@ if(ENABLE_AUDIO)
         target_compile_definitions(SparkyEngine PRIVATE ENABLE_AUDIO)
     endif()
 endif()
+
+# Create physics test executable
+add_executable(physics_test src/physics_test.cpp)
+target_link_libraries(physics_test SparkyEngine 
+    ${VULKAN_LIBRARIES}
+    ${GLFW_LIBRARIES}
+    ${glslang_LIBRARIES}
+)
+target_include_directories(physics_test PRIVATE 
+    ${CMAKE_CURRENT_SOURCE_DIR}/include
+)
+
+# Create animation test executable
+add_executable(animation_test src/animation_test.cpp)
+target_link_libraries(animation_test SparkyEngine 
+    ${VULKAN_LIBRARIES}
+    ${GLFW_LIBRARIES}
+    ${glslang_LIBRARIES}
+)
+target_include_directories(animation_test PRIVATE 
+    ${CMAKE_CURRENT_SOURCE_DIR}/include
+)
+
+# Create particle test executable
+add_executable(particle_test src/particle_test.cpp)
+target_link_libraries(particle_test SparkyEngine 
+    ${VULKAN_LIBRARIES}
+    ${GLFW_LIBRARIES}
+    ${glslang_LIBRARIES}
+)
+target_include_directories(particle_test PRIVATE 
+    ${CMAKE_CURRENT_SOURCE_DIR}/include
+)

@@ -9,6 +9,7 @@ add_executable(SparkyGame
     src/Gun.cpp
     src/Level.cpp
     src/ExampleGame.cpp
+    src/PhysicsDemo.cpp
 )
 
 # Pass the project source directory to the code

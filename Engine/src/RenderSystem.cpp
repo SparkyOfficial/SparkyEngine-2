@@ -82,18 +82,24 @@ namespace Sparky {
         // Get the mesh renderer from the Vulkan renderer
         MeshRenderer& meshRenderer = renderer->getMeshRenderer();
         
-        // Reduce logging verbosity - only log every 60 frames
+        // Log the number of game objects
         static int frameCount = 0;
         frameCount++;
-        if (frameCount % 60 == 0) {
-            SPARKY_LOG_DEBUG("RenderSystem rendering " + std::to_string(gameObjects.size()) + " game objects");
+        if (frameCount % 60 == 0) { // Log every 60 frames
+            SPARKY_LOG_DEBUG("RenderSystem has " + std::to_string(gameObjects.size()) + " game objects registered");
         }
 
         // Render all registered game objects that have render components
+        int objectsProcessed = 0;
         for (GameObject* gameObject : gameObjects) {
             if (gameObject) {
+                objectsProcessed++;
                 renderGameObject(gameObject);
             }
+        }
+        
+        if (frameCount % 60 == 0) {
+            SPARKY_LOG_DEBUG("RenderSystem processed " + std::to_string(objectsProcessed) + " game objects");
         }
     }
 
@@ -105,14 +111,22 @@ namespace Sparky {
         // Get the render component from the game object
         RenderComponent* renderComponent = gameObject->getComponent<RenderComponent>();
         if (renderComponent && renderComponent->getMesh()) {
-            // Reduce logging verbosity - only log every 300 frames
+            // Log object rendering
             static int frameCount = 0;
             frameCount++;
-            if (frameCount % 300 == 0) {
-                SPARKY_LOG_DEBUG("Rendering game object: " + gameObject->getName());
+            if (frameCount % 300 == 0) { // Log every 300 frames
+                SPARKY_LOG_DEBUG("Rendering game object: " + gameObject->getName() + 
+                               " with " + std::to_string(renderComponent->getMesh()->getVertices().size()) + " vertices");
             }
             // We don't actually render here anymore - the VulkanRenderer handles this in recordCommandBuffer
             // This method is kept for future expansion if needed
+        } else {
+            // Log if object doesn't have a render component
+            static int frameCount = 0;
+            frameCount++;
+            if (frameCount % 300 == 0) {
+                SPARKY_LOG_DEBUG("Skipping game object: " + gameObject->getName() + " (no render component or mesh)");
+            }
         }
     }
 }

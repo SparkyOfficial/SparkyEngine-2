@@ -1,12 +1,16 @@
 #include "../include/Camera.h"
+#include "../include/Logger.h"
 #include <glm/gtc/matrix_transform.hpp>
+#include <string>
 
 namespace Sparky {
 
-    Camera::Camera() : position(0.0f, 0.0f, 0.0f), front(0.0f, 0.0f, -1.0f), up(0.0f, 1.0f, 0.0f), 
+    Camera::Camera() : position(0.0f, 0.0f, 5.0f), front(0.0f, 0.0f, -1.0f), up(0.0f, 1.0f, 0.0f), 
                        right(1.0f, 0.0f, 0.0f), worldUp(0.0f, 1.0f, 0.0f), yaw(-90.0f), pitch(0.0f),
                        speed(2.5f), sensitivity(0.1f), zoom(45.0f) {
         updateCameraVectors();
+        SPARKY_LOG_DEBUG("Camera created at position (" + std::to_string(position.x) + ", " + 
+                        std::to_string(position.y) + ", " + std::to_string(position.z) + ")");
     }
 
     Camera::~Camera() {
@@ -14,6 +18,8 @@ namespace Sparky {
 
     void Camera::setPosition(const glm::vec3& position) {
         this->position = position;
+        SPARKY_LOG_DEBUG("Camera position set to (" + std::to_string(position.x) + ", " + 
+                        std::to_string(position.y) + ", " + std::to_string(position.z) + ")");
     }
 
     void Camera::setFront(const glm::vec3& front) {

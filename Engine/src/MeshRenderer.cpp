@@ -6,8 +6,7 @@
 namespace Sparky {
 
     MeshRenderer::MeshRenderer() : physicalDevice(nullptr), device(nullptr), commandPool(nullptr), 
-                                   graphicsQueue(nullptr), vertexBuffer(nullptr), vertexBufferMemory(nullptr),
-                                   indexBuffer(nullptr), indexBufferMemory(nullptr) {
+                                   graphicsQueue(nullptr) {
     }
 
     MeshRenderer::~MeshRenderer() {
@@ -22,21 +21,36 @@ namespace Sparky {
     }
 
     void MeshRenderer::cleanup() {
-        if (indexBufferMemory) {
-            vkFreeMemory(device, indexBufferMemory, nullptr);
+        // Clean up all vertex buffers
+        for (auto& pair : vertexBufferMemories) {
+            if (pair.second) {
+                vkFreeMemory(device, pair.second, nullptr);
+            }
         }
         
-        if (indexBuffer) {
-            vkDestroyBuffer(device, indexBuffer, nullptr);
+        for (auto& pair : vertexBuffers) {
+            if (pair.second) {
+                vkDestroyBuffer(device, pair.second, nullptr);
+            }
         }
         
-        if (vertexBufferMemory) {
-            vkFreeMemory(device, vertexBufferMemory, nullptr);
+        // Clean up all index buffers
+        for (auto& pair : indexBufferMemories) {
+            if (pair.second) {
+                vkFreeMemory(device, pair.second, nullptr);
+            }
         }
         
-        if (vertexBuffer) {
-            vkDestroyBuffer(device, vertexBuffer, nullptr);
+        for (auto& pair : indexBuffers) {
+            if (pair.second) {
+                vkDestroyBuffer(device, pair.second, nullptr);
+            }
         }
+        
+        vertexBuffers.clear();
+        vertexBufferMemories.clear();
+        indexBuffers.clear();
+        indexBufferMemories.clear();
     }
 
     void MeshRenderer::createVertexBuffer(const Mesh& mesh) {
@@ -55,6 +69,8 @@ namespace Sparky {
         memcpy(data, mesh.getVertices().data(), (size_t)bufferSize);
         vkUnmapMemory(device, stagingBufferMemory);
 
+        VkBuffer vertexBuffer;
+        VkDeviceMemory vertexBufferMemory;
         createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, 
                  VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, vertexBuffer, vertexBufferMemory);
 
@@ -63,10 +79,19 @@ namespace Sparky {
         vkDestroyBuffer(device, stagingBuffer, nullptr);
         vkFreeMemory(device, stagingBufferMemory, nullptr);
         
-        SPARKY_LOG_DEBUG("Vertex buffer created successfully");
+        // Store the buffers for this mesh
+        vertexBuffers[&mesh] = vertexBuffer;
+        vertexBufferMemories[&mesh] = vertexBufferMemory;
+        
+        SPARKY_LOG_DEBUG("Vertex buffer created successfully for mesh at " + std::to_string(reinterpret_cast<uint64_t>(&mesh)));
     }
 
     void MeshRenderer::createIndexBuffer(const Mesh& mesh) {
+        if (mesh.getIndices().empty()) {
+            SPARKY_LOG_DEBUG("Skipping index buffer creation - no indices");
+            return;
+        }
+        
         VkDeviceSize bufferSize = sizeof(mesh.getIndices()[0]) * mesh.getIndices().size();
         
         SPARKY_LOG_DEBUG("Creating index buffer with size: " + std::to_string(bufferSize) + " bytes");
@@ -82,6 +107,8 @@ namespace Sparky {
         memcpy(data, mesh.getIndices().data(), (size_t)bufferSize);
         vkUnmapMemory(device, stagingBufferMemory);
 
+        VkBuffer indexBuffer;
+        VkDeviceMemory indexBufferMemory;
         createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT, 
                  VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, indexBuffer, indexBufferMemory);
 
@@ -90,7 +117,11 @@ namespace Sparky {
         vkDestroyBuffer(device, stagingBuffer, nullptr);
         vkFreeMemory(device, stagingBufferMemory, nullptr);
         
-        SPARKY_LOG_DEBUG("Index buffer created successfully");
+        // Store the buffers for this mesh
+        indexBuffers[&mesh] = indexBuffer;
+        indexBufferMemories[&mesh] = indexBufferMemory;
+        
+        SPARKY_LOG_DEBUG("Index buffer created successfully for mesh at " + std::to_string(reinterpret_cast<uint64_t>(&mesh)));
     }
 
     void MeshRenderer::renderMesh(const Mesh& mesh, VkCommandBuffer commandBuffer) {
@@ -99,19 +130,46 @@ namespace Sparky {
             return;
         }
         
+        // Get the vertex buffer for this mesh
+        auto vertexBufferIt = vertexBuffers.find(&mesh);
+        if (vertexBufferIt == vertexBuffers.end()) {
+            SPARKY_LOG_WARNING("No vertex buffer found for mesh");
+            return;
+        }
+        
+        VkBuffer vertexBuffer = vertexBufferIt->second;
+        
         // Bind vertex buffer
         VkBuffer vertexBuffers[] = {vertexBuffer};
         VkDeviceSize offsets[] = {0};
         vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
 
         // Bind index buffer if it exists
-        if (indexBuffer && mesh.getIndices().size() > 0) {
+        auto indexBufferIt = indexBuffers.find(&mesh);
+        if (indexBufferIt != indexBuffers.end() && mesh.getIndices().size() > 0) {
+            VkBuffer indexBuffer = indexBufferIt->second;
             vkCmdBindIndexBuffer(commandBuffer, indexBuffer, 0, VK_INDEX_TYPE_UINT32);
             vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(mesh.getIndices().size()), 1, 0, 0, 0);
         } else {
             // Draw without index buffer
             vkCmdDraw(commandBuffer, static_cast<uint32_t>(mesh.getVertices().size()), 1, 0, 0);
         }
+    }
+
+    VkBuffer MeshRenderer::getVertexBuffer(const Mesh& mesh) const {
+        auto it = vertexBuffers.find(&mesh);
+        if (it != vertexBuffers.end()) {
+            return it->second;
+        }
+        return VK_NULL_HANDLE;
+    }
+
+    VkBuffer MeshRenderer::getIndexBuffer(const Mesh& mesh) const {
+        auto it = indexBuffers.find(&mesh);
+        if (it != indexBuffers.end()) {
+            return it->second;
+        }
+        return VK_NULL_HANDLE;
     }
 
     void MeshRenderer::createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer& buffer, VkDeviceMemory& bufferMemory) {

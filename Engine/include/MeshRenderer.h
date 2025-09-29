@@ -3,6 +3,7 @@
 #include <vulkan/vulkan.h>
 #include <stdexcept>
 #include <vector>
+#include <unordered_map>
 #include "Mesh.h"
 
 namespace Sparky {
@@ -18,9 +19,9 @@ namespace Sparky {
         void createIndexBuffer(const Mesh& mesh);
         void renderMesh(const Mesh& mesh, VkCommandBuffer commandBuffer);
         
-        // Getter methods for buffer access
-        VkBuffer getVertexBuffer() const { return vertexBuffer; }
-        VkBuffer getIndexBuffer() const { return indexBuffer; }
+        // Getter methods for buffer access by mesh
+        VkBuffer getVertexBuffer(const Mesh& mesh) const;
+        VkBuffer getIndexBuffer(const Mesh& mesh) const;
 
     private:
         VkPhysicalDevice physicalDevice;
@@ -28,10 +29,11 @@ namespace Sparky {
         VkCommandPool commandPool;
         VkQueue graphicsQueue;
         
-        VkBuffer vertexBuffer;
-        VkDeviceMemory vertexBufferMemory;
-        VkBuffer indexBuffer;
-        VkDeviceMemory indexBufferMemory;
+        // Store buffers for each mesh
+        std::unordered_map<const Mesh*, VkBuffer> vertexBuffers;
+        std::unordered_map<const Mesh*, VkDeviceMemory> vertexBufferMemories;
+        std::unordered_map<const Mesh*, VkBuffer> indexBuffers;
+        std::unordered_map<const Mesh*, VkDeviceMemory> indexBufferMemories;
 
         void createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer& buffer, VkDeviceMemory& bufferMemory);
         void copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size);

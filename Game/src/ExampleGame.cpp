@@ -91,6 +91,12 @@ namespace Sparky {
         
         // Actually call the RenderSystem to render
         if (renderSystem) {
+            // Debug: Log render system call
+            static int frameCount = 0;
+            frameCount++;
+            if (frameCount % 60 == 0) {
+                SPARKY_LOG_DEBUG("Calling RenderSystem::render() with " + std::to_string(renderSystem->getGameObjects().size()) + " objects");
+            }
             renderSystem->render();
         }
 
@@ -99,7 +105,12 @@ namespace Sparky {
             particleSystem->render();
         }
 
-        SPARKY_LOG_DEBUG("Game rendered");
+        // Debug: Log that game render completed
+        static int frameCount = 0;
+        frameCount++;
+        if (frameCount % 60 == 0) {
+            SPARKY_LOG_DEBUG("Game render completed");
+        }
     }
 
     void ExampleGame::shutdown() {

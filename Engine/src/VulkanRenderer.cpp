@@ -830,7 +830,30 @@ namespace Sparky {
             }
         } catch (const std::exception& e) {
             SPARKY_LOG_ERROR("Failed to compile shaders: " + std::string(e.what()));
-            throw std::runtime_error("Failed to compile shaders");
+            // Try to load pre-compiled SPIR-V files as a last resort
+            try {
+                std::string project_root = TOSTRING(PROJECT_SOURCE_DIR);
+                if (!project_root.empty() && project_root.front() == '"') {
+                    project_root = project_root.substr(1);
+                }
+                if (!project_root.empty() && project_root.back() == '"') {
+                    project_root = project_root.substr(0, project_root.length() - 1);
+                }
+                
+                std::string vertSPVPath = project_root + "/Engine/shaders/basic.vert.spv";
+                std::string fragSPVPath = project_root + "/Engine/shaders/basic.frag.spv";
+                
+                if (Sparky::FileUtils::fileExists(vertSPVPath) && Sparky::FileUtils::fileExists(fragSPVPath)) {
+                    vertShaderCode = ShaderCompiler::loadSPIRVFromFile(vertSPVPath);
+                    fragShaderCode = ShaderCompiler::loadSPIRVFromFile(fragSPVPath);
+                    SPARKY_LOG_INFO("Loaded pre-compiled SPIR-V files as emergency fallback");
+                } else {
+                    throw std::runtime_error("Failed to compile shaders and no pre-compiled SPIR-V files found");
+                }
+            } catch (const std::exception& fallbackError) {
+                SPARKY_LOG_ERROR("Emergency fallback also failed: " + std::string(fallbackError.what()));
+                throw std::runtime_error("Failed to compile shaders: " + std::string(e.what()));
+            }
         }
 
         VkShaderModule vertShaderModule = createShaderModule(vertShaderCode);
@@ -861,6 +884,9 @@ namespace Sparky {
         vertexInputInfo.vertexAttributeDescriptionCount = static_cast<uint32_t>(attributeDescriptions.size());
         vertexInputInfo.pVertexBindingDescriptions = &bindingDescription;
         vertexInputInfo.pVertexAttributeDescriptions = attributeDescriptions.data();
+        
+        SPARKY_LOG_DEBUG("Vertex input state - bindings: " + std::to_string(vertexInputInfo.vertexBindingDescriptionCount) + 
+                        ", attributes: " + std::to_string(vertexInputInfo.vertexAttributeDescriptionCount));
 
         // Input assembly
         VkPipelineInputAssemblyStateCreateInfo inputAssembly{};
@@ -1340,9 +1366,9 @@ namespace Sparky {
         renderPassInfo.renderArea.extent = swapChainExtent;
         
         std::array<VkClearValue, 2> clearValues{};
-        // Change clear color to dark blue instead of black to see if render pass is working
-        clearValues[0].color = {{0.0f, 0.0f, 0.2f, 1.0f}}; // Dark blue
-        clearValues[1].depthStencil = {1.0f, 0};
+        // Change clear color back to black for better contrast
+        clearValues[0].color = {{0.0f, 0.0f, 0.0f, 1.0f}}; // Black
+        clearValues[1].depthStencil = {1.0f, 0}; // Clear depth to 1.0 (far plane)
         
         renderPassInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());
         renderPassInfo.pClearValues = clearValues.data();
@@ -1360,18 +1386,37 @@ namespace Sparky {
             
             // Render all registered game objects
             const auto& gameObjects = renderSystem.getGameObjects();
-            // SPARKY_LOG_DEBUG("Rendering " + std::to_string(gameObjects.size()) + " game objects");
             
+            // Debug: Log the number of objects to render
+            static int frameCount = 0;
+            frameCount++;
+            if (frameCount % 60 == 0) { // Log every 60 frames
+                SPARKY_LOG_DEBUG("VulkanRenderer attempting to render " + std::to_string(gameObjects.size()) + " game objects");
+            }
+            
+            int objectsRendered = 0;
             for (GameObject* gameObject : gameObjects) {
                 if (gameObject) {
                     RenderComponent* renderComponent = gameObject->getComponent<RenderComponent>();
                     if (renderComponent && renderComponent->getMesh()) {
                         const Mesh* mesh = renderComponent->getMesh();
-                        // SPARKY_LOG_DEBUG("Rendering mesh with " + std::to_string(mesh->getVertices().size()) + " vertices and " + std::to_string(mesh->getIndices().size()) + " indices");
                         
-                        // Get the vertex and index buffers from the mesh renderer
-                        VkBuffer vertexBuffer = meshRenderer.getVertexBuffer();
-                        VkBuffer indexBuffer = meshRenderer.getIndexBuffer();
+                        // Debug: Log mesh info
+                        if (frameCount % 60 == 0) {
+                            SPARKY_LOG_DEBUG("VulkanRenderer rendering object: " + gameObject->getName() + 
+                                           ", Vertices: " + std::to_string(mesh->getVertices().size()) + 
+                                           ", Indices: " + std::to_string(mesh->getIndices().size()));
+                        }
+                        
+                        // Get the vertex and index buffers from the mesh renderer for this specific mesh
+                        VkBuffer vertexBuffer = meshRenderer.getVertexBuffer(*mesh);
+                        VkBuffer indexBuffer = meshRenderer.getIndexBuffer(*mesh);
+                        
+                        // Debug: Log buffer handles
+                        if (frameCount % 60 == 0) {
+                            SPARKY_LOG_DEBUG("Buffer handles - Vertex: " + std::to_string(reinterpret_cast<uint64_t>(vertexBuffer)) + 
+                                           ", Index: " + std::to_string(reinterpret_cast<uint64_t>(indexBuffer)));
+                        }
                         
                         if (vertexBuffer != VK_NULL_HANDLE) {
                             // Bind vertex buffer
@@ -1383,14 +1428,33 @@ namespace Sparky {
                             if (indexBuffer != VK_NULL_HANDLE && mesh->getIndices().size() > 0) {
                                 vkCmdBindIndexBuffer(commandBuffer, indexBuffer, 0, VK_INDEX_TYPE_UINT32);
                                 vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(mesh->getIndices().size()), 1, 0, 0, 0);
+                                objectsRendered++;
+                                if (frameCount % 60 == 0) {
+                                    SPARKY_LOG_DEBUG("DrawIndexed called for " + gameObject->getName());
+                                }
                             } else if (mesh->getVertices().size() > 0) {
                                 // Draw without index buffer
                                 vkCmdDraw(commandBuffer, static_cast<uint32_t>(mesh->getVertices().size()), 1, 0, 0);
+                                objectsRendered++;
+                                if (frameCount % 60 == 0) {
+                                    SPARKY_LOG_DEBUG("Draw called for " + gameObject->getName());
+                                }
+                            }
+                        } else {
+                            if (frameCount % 60 == 0) {
+                                SPARKY_LOG_DEBUG("Skipping " + gameObject->getName() + " - vertex buffer is null");
                             }
                         }
                     }
                 }
             }
+            
+            // Debug: Log how many objects were actually rendered
+            if (frameCount % 60 == 0) {
+                SPARKY_LOG_DEBUG("VulkanRenderer successfully rendered " + std::to_string(objectsRendered) + " objects");
+            }
+        } else {
+            SPARKY_LOG_DEBUG("VulkanRenderer has no engine reference");
         }
 
         vkCmdEndRenderPass(commandBuffer);
@@ -1461,21 +1525,9 @@ namespace Sparky {
         float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
         
         UniformBufferObject ubo{};
-        // Create a more visible model matrix - scale up and position closer to camera
-        ubo.model = glm::mat4(1.0f);
-        ubo.model = glm::translate(ubo.model, glm::vec3(0.0f, 0.0f, 0.0f)); // Position at origin
-        ubo.model = glm::scale(ubo.model, glm::vec3(1.0f, 1.0f, 1.0f)); // Scale to normal size
-        
-        // Use the actual camera from the engine instead of hardcoded values
-        if (engine) {
-            const Camera& camera = engine->getCamera();
-            ubo.view = camera.getViewMatrix();
-        } else {
-            // Fallback to hardcoded camera if no engine is available
-            ubo.view = glm::lookAt(glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
-        }
-        
-        ubo.proj = glm::perspective(glm::radians(45.0f), swapChainExtent.width / (float) swapChainExtent.height, 0.1f, 100.0f);
+        ubo.model = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+        ubo.view = glm::lookAt(glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+        ubo.proj = glm::perspective(glm::radians(45.0f), swapChainExtent.width / (float) swapChainExtent.height, 0.1f, 10.0f);
         ubo.proj[1][1] *= -1; // Flip Y coordinate for Vulkan
         
         memcpy(uniformBuffersMapped[currentImage], &ubo, sizeof(ubo));

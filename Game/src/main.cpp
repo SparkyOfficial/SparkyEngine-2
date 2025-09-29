@@ -68,6 +68,13 @@ int main() {
         float deltaTime = currentTime - lastTime;
         lastTime = currentTime;
         
+        // Debug: Log frame information
+        static int frameCount = 0;
+        frameCount++;
+        if (frameCount % 60 == 0) { // Log every 60 frames
+            SPARKY_LOG_DEBUG("Main loop frame " + std::to_string(frameCount) + ", Delta time: " + std::to_string(deltaTime));
+        }
+        
         // Poll events
         engine.getWindowManager().pollEvents();
         
@@ -83,24 +90,35 @@ int main() {
             break;
         }
         
+        // Debug: Log state machine and game update
+        if (frameCount % 60 == 0) {
+            SPARKY_LOG_DEBUG("Updating state machine and game");
+        }
+        
         // Update state machine
         stateMachine.update(deltaTime);
         
         // Update game
         game.update(deltaTime);
         
-        // Update camera to ensure it's properly positioned
-        static bool cameraInitialized = false;
-        if (!cameraInitialized) {
-            Sparky::Camera& camera = engine.getCamera();
-            camera.setPosition(glm::vec3(0.0f, 5.0f, 10.0f));
-            camera.setFront(glm::normalize(glm::vec3(0.0f, -0.3f, -1.0f)));
-            cameraInitialized = true;
-            SPARKY_LOG_DEBUG("Camera manually initialized");
+        // Debug: Log render system info
+        if (frameCount % 60 == 0) {
+            Sparky::RenderSystem& renderSystem = engine.getRenderSystem();
+            SPARKY_LOG_DEBUG("RenderSystem has " + std::to_string(renderSystem.getGameObjects().size()) + " game objects");
+        }
+        
+        // Debug: Log render calls
+        if (frameCount % 60 == 0) {
+            SPARKY_LOG_DEBUG("Calling engine renderer");
         }
         
         // Render frame
         engine.getRenderer().render();
+        
+        if (frameCount % 60 == 0) {
+            SPARKY_LOG_DEBUG("Calling game render");
+        }
+        
         game.render();
     }
 

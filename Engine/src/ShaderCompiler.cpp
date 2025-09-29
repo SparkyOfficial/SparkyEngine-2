@@ -66,79 +66,84 @@ namespace Sparky {
         SPARKY_LOG_DEBUG("Shader source length: " + std::to_string(source.length()));
         SPARKY_LOG_DEBUG("First 200 chars of shader: " + source.substr(0, std::min(200, (int)source.length())));
         
-        initializeGlslang();
-        
-        EShLanguage stage = static_cast<EShLanguage>(shaderType);
-        glslang::TShader shader(stage);
-        glslang::TProgram program;
-        const char* shaderStrings[1];
-        shaderStrings[0] = source.c_str();
-        int shaderLengths[1];
-        shaderLengths[0] = static_cast<int>(source.length());
-        
-        shader.setStringsWithLengths(shaderStrings, shaderLengths, 1);
-        shader.setEntryPoint("main");
-        shader.setSourceEntryPoint("main");
-        
-        TBuiltInResource resources = *GetDefaultResources();
-        // Set more conservative limits
-        resources.maxVertexAttribs = 16;
-        resources.maxVertexUniformComponents = 1024;
-        resources.maxVaryingFloats = 16;
-        resources.maxVertexTextureImageUnits = 16;
-        resources.maxCombinedTextureImageUnits = 16;
-        resources.maxTextureImageUnits = 16;
-        resources.maxFragmentUniformComponents = 1024;
-        resources.maxDrawBuffers = 8;
-        // Use EShMsgDefault instead of EShMsgSpvRules | EShMsgVulkanRules to disable separate shader objects
-        EShMessages messages = EShMsgDefault;
-        
-        // Preprocess
-        const int defaultVersion = 450;
-        std::string preprocessedGLSL;
-        glslang::TShader::ForbidIncluder includer;  // Create a simple includer
-        if (!shader.preprocess(&resources, defaultVersion, ECoreProfile, false, false, messages, &preprocessedGLSL, includer)) {
-            SPARKY_LOG_ERROR("GLSL preprocessing failed: " + std::string(shader.getInfoLog()));
-            throw std::runtime_error("GLSL preprocessing failed: " + std::string(shader.getInfoLog()));
+        try {
+            initializeGlslang();
+            
+            EShLanguage stage = static_cast<EShLanguage>(shaderType);
+            glslang::TShader shader(stage);
+            glslang::TProgram program;
+            const char* shaderStrings[1];
+            shaderStrings[0] = source.c_str();
+            int shaderLengths[1];
+            shaderLengths[0] = static_cast<int>(source.length());
+            
+            shader.setStringsWithLengths(shaderStrings, shaderLengths, 1);
+            shader.setEntryPoint("main");
+            shader.setSourceEntryPoint("main");
+            
+            TBuiltInResource resources = *GetDefaultResources();
+            // Set more conservative limits
+            resources.maxVertexAttribs = 16;
+            resources.maxVertexUniformComponents = 1024;
+            resources.maxVaryingFloats = 16;
+            resources.maxVertexTextureImageUnits = 16;
+            resources.maxCombinedTextureImageUnits = 16;
+            resources.maxTextureImageUnits = 16;
+            resources.maxFragmentUniformComponents = 1024;
+            resources.maxDrawBuffers = 8;
+            // Use EShMsgDefault instead of EShMsgSpvRules | EShMsgVulkanRules to disable separate shader objects
+            EShMessages messages = EShMsgDefault;
+            
+            // Preprocess
+            const int defaultVersion = 450;
+            std::string preprocessedGLSL;
+            glslang::TShader::ForbidIncluder includer;  // Create a simple includer
+            if (!shader.preprocess(&resources, defaultVersion, ECoreProfile, false, false, messages, &preprocessedGLSL, includer)) {
+                SPARKY_LOG_ERROR("GLSL preprocessing failed: " + std::string(shader.getInfoLog()));
+                throw std::runtime_error("GLSL preprocessing failed: " + std::string(shader.getInfoLog()));
+            }
+            
+            const char* preprocessedCStr = preprocessedGLSL.c_str();
+            shader.setStrings(&preprocessedCStr, 1);
+            
+            // Parse with more lenient settings
+            if (!shader.parse(&resources, 450, false, messages)) {
+                SPARKY_LOG_ERROR("GLSL parsing failed: " + std::string(shader.getInfoLog()));
+                // Log the actual shader source for debugging
+                SPARKY_LOG_ERROR("Shader source: " + source);
+                throw std::runtime_error("GLSL parsing failed: " + std::string(shader.getInfoLog()));
+            }
+            
+            // Add to program
+            program.addShader(&shader);
+            
+            // Link with more lenient settings
+            if (!program.link(messages)) {
+                SPARKY_LOG_ERROR("GLSL linking failed: " + std::string(program.getInfoLog()));
+                throw std::runtime_error("GLSL linking failed: " + std::string(program.getInfoLog()));
+            }
+            
+            // Map IO with more lenient settings
+            if (!program.mapIO()) {
+                SPARKY_LOG_ERROR("GLSL mapIO failed: " + std::string(program.getInfoLog()));
+                throw std::runtime_error("GLSL mapIO failed: " + std::string(program.getInfoLog()));
+            }
+            
+            // Generate SPIR-V
+            std::vector<uint32_t> spirv;
+            glslang::SpvOptions spvOptions;
+            spvOptions.generateDebugInfo = false;
+            spvOptions.stripDebugInfo = true;  // Strip debug info to reduce complexity
+            spvOptions.disableOptimizer = false;
+            spvOptions.optimizeSize = true;
+            glslang::GlslangToSpv(*program.getIntermediate(stage), spirv, &spvOptions);
+            
+            SPARKY_LOG_DEBUG("Shader compiled to SPIR-V with " + std::to_string(spirv.size()) + " words");
+            return spirv;
+        } catch (const std::exception& e) {
+            SPARKY_LOG_ERROR("Exception during shader compilation: " + std::string(e.what()));
+            throw;
         }
-        
-        const char* preprocessedCStr = preprocessedGLSL.c_str();
-        shader.setStrings(&preprocessedCStr, 1);
-        
-        // Parse with more lenient settings
-        if (!shader.parse(&resources, 450, false, messages)) {
-            SPARKY_LOG_ERROR("GLSL parsing failed: " + std::string(shader.getInfoLog()));
-            // Log the actual shader source for debugging
-            SPARKY_LOG_ERROR("Shader source: " + source);
-            throw std::runtime_error("GLSL parsing failed: " + std::string(shader.getInfoLog()));
-        }
-        
-        // Add to program
-        program.addShader(&shader);
-        
-        // Link with more lenient settings
-        if (!program.link(messages)) {
-            SPARKY_LOG_ERROR("GLSL linking failed: " + std::string(program.getInfoLog()));
-            throw std::runtime_error("GLSL linking failed: " + std::string(program.getInfoLog()));
-        }
-        
-        // Map IO with more lenient settings
-        if (!program.mapIO()) {
-            SPARKY_LOG_ERROR("GLSL mapIO failed: " + std::string(program.getInfoLog()));
-            throw std::runtime_error("GLSL mapIO failed: " + std::string(program.getInfoLog()));
-        }
-        
-        // Generate SPIR-V
-        std::vector<uint32_t> spirv;
-        glslang::SpvOptions spvOptions;
-        spvOptions.generateDebugInfo = false;
-        spvOptions.stripDebugInfo = true;  // Strip debug info to reduce complexity
-        spvOptions.disableOptimizer = false;
-        spvOptions.optimizeSize = true;
-        glslang::GlslangToSpv(*program.getIntermediate(stage), spirv, &spvOptions);
-        
-        SPARKY_LOG_DEBUG("Shader compiled to SPIR-V with " + std::to_string(spirv.size()) + " words");
-        return spirv;
 #else
         // Return empty vector if glslang is not available
         SPARKY_LOG_WARNING("glslang not available, returning empty SPIR-V");

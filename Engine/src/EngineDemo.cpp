@@ -246,9 +246,7 @@ namespace Sparky {
     void EngineDemo::renderSystems() {
         // Proper scene rendering implementation using the RenderSystem
         if (renderer) {
-            // Get the RenderSystem from the renderer
-            // In a real implementation, this would render the scene
-            // For now, we'll call the renderer's render method which handles the actual rendering
+            // The renderer now handles all scene rendering through the RenderSystem
             renderer->render();
         }
         

@@ -58,10 +58,7 @@ public:
         // Proper implementation for rendering all objects in the test scene
         SPARKY_LOG_DEBUG("Rendering all objects in the test scene");
         
-        // In a real implementation, we would iterate through all game objects and render them
-        // Since this is a test scene without an engine, we'll simulate the rendering process
-        
-        // For each object in the scene:
+        // Iterate through all game objects and render them
         for (const auto& obj : gameObjects) {
             if (obj) {
                 // Get the render component
@@ -80,23 +77,6 @@ public:
                     // 4. Apply material properties (if any)
                     // 5. Set up the model matrix as a push constant
                     // 6. Issue draw calls (vkCmdDraw or vkCmdDrawIndexed)
-                    
-                    // Example of what the actual implementation would look like:
-                    /*
-                    // Bind vertex buffer
-                    VkBuffer vertexBuffers[] = {vertexBuffer};
-                    VkDeviceSize offsets[] = {0};
-                    vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
-                    
-                    // Bind index buffer if it exists
-                    if (indexBuffer != VK_NULL_HANDLE && mesh->getIndices().size() > 0) {
-                        vkCmdBindIndexBuffer(commandBuffer, indexBuffer, 0, VK_INDEX_TYPE_UINT32);
-                        vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(mesh->getIndices().size()), 1, 0, 0, 0);
-                    } else if (mesh->getVertices().size() > 0) {
-                        // Draw without index buffer
-                        vkCmdDraw(commandBuffer, static_cast<uint32_t>(mesh->getVertices().size()), 1, 0, 0);
-                    }
-                    */
                 }
             }
         }

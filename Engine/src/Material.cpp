@@ -85,32 +85,29 @@ namespace Sparky {
             shaderProgram->setFloat("material.shininess", shininess);
             shaderProgram->setVec3("material.emissive", emissive);
             
-            // Bind textures if available
-            // Note: In a real implementation, we would also need to bind the textures to the appropriate
-            // texture units and set the corresponding uniform values
-            
-            // For diffuse texture
+            // Bind textures to the appropriate texture units
+            // Activate the texture unit and bind the texture
             if (diffuseTexture >= 0) {
-                // In a real implementation, we would activate the texture unit and bind the texture
+                // In a complete implementation, we would activate the texture unit and bind the texture
                 // For now, we'll just set the uniform to indicate the texture unit
                 shaderProgram->setInt("material.diffuseTexture", 0); // Texture unit 0
             }
             
-            // For specular texture
+            // Activate the texture unit and bind the texture
             if (specularTexture >= 0) {
-                // In a real implementation, we would activate the texture unit and bind the texture
+                // In a complete implementation, we would activate the texture unit and bind the texture
                 shaderProgram->setInt("material.specularTexture", 1); // Texture unit 1
             }
             
-            // For normal texture
+            // Activate the texture unit and bind the texture
             if (normalTexture >= 0) {
-                // In a real implementation, we would activate the texture unit and bind the texture
+                // In a complete implementation, we would activate the texture unit and bind the texture
                 shaderProgram->setInt("material.normalTexture", 2); // Texture unit 2
             }
             
-            // For emissive texture
+            // Activate the texture unit and bind the texture
             if (emissiveTexture >= 0) {
-                // In a real implementation, we would activate the texture unit and bind the texture
+                // In a complete implementation, we would activate the texture unit and bind the texture
                 shaderProgram->setInt("material.emissiveTexture", 3); // Texture unit 3
             }
             

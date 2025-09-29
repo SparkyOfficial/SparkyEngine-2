@@ -5,10 +5,17 @@
 #include <string>
 #include <glm/glm.hpp>
 
+// Forward declarations
 namespace Sparky {
     class Platform;
     class Gun;
+}
 
+// Include JSON library
+#include <nlohmann/json.hpp>
+using json = nlohmann::json;
+
+namespace Sparky {
     class Level : public GameObject {
     public:
         Level(const std::string& name);
@@ -38,12 +45,8 @@ namespace Sparky {
         void createTestLevel();
         
         // JSON parsing helpers
-        void parseLevelFromJSON(const std::string& jsonContent);
-        size_t findMatchingBracket(const std::string& content, size_t startPos);
-        void parsePlatformsFromArray(const std::string& arrayContent);
-        void parsePlatformFromObject(const std::string& objContent);
-        void parseGunsFromArray(const std::string& arrayContent);
-        void parseGunFromObject(const std::string& objContent);
+        void parsePlatformFromJSON(const json& platformData);
+        void parseGunFromJSON(const json& gunData);
         glm::vec3 parseVector3FromArray(const std::string& arrayContent);
     };
 }

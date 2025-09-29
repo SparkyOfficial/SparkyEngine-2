@@ -9,6 +9,10 @@
 #include <map>
 #include <iostream>
 
+// Using the nlohmann/json library for proper JSON parsing
+#include <nlohmann/json.hpp>
+using json = nlohmann::json;
+
 namespace Sparky {
 
     Level::Level(const std::string& name) : GameObject() {
@@ -52,11 +56,11 @@ namespace Sparky {
     }
 
     void Level::loadLevelFromFile(const std::string& filename) {
-        // Proper implementation for parsing JSON file and creating entities
+        // Parse the JSON file using a proper JSON library
         SPARKY_LOG_INFO("Loading level from file: " + filename);
         
         try {
-            // Open the JSON file
+            // Open and parse the JSON file
             std::ifstream file(filename);
             if (!file.is_open()) {
                 SPARKY_LOG_ERROR("Failed to open level file: " + filename);
@@ -65,14 +69,27 @@ namespace Sparky {
                 return;
             }
             
-            // Read the entire file content
-            std::stringstream buffer;
-            buffer << file.rdbuf();
-            std::string content = buffer.str();
+            // Parse JSON using nlohmann/json library
+            json jsonData;
+            file >> jsonData;
             file.close();
             
-            // Parse the JSON content (simplified parser)
-            parseLevelFromJSON(content);
+            // Clear existing level
+            unloadLevel();
+            
+            // Parse platforms
+            if (jsonData.contains("platforms") && jsonData["platforms"].is_array()) {
+                for (const auto& platformData : jsonData["platforms"]) {
+                    parsePlatformFromJSON(platformData);
+                }
+            }
+            
+            // Parse guns
+            if (jsonData.contains("guns") && jsonData["guns"].is_array()) {
+                for (const auto& gunData : jsonData["guns"]) {
+                    parseGunFromJSON(gunData);
+                }
+            }
             
             SPARKY_LOG_INFO("Level loaded successfully from: " + filename);
         } catch (const std::exception& e) {
@@ -147,107 +164,12 @@ namespace Sparky {
         addGun(pistol);
     }
     
-    // Helper function to parse simple JSON
-    void Level::parseLevelFromJSON(const std::string& jsonContent) {
-        // This is a simplified JSON parser for demonstration purposes
-        // In a real implementation, you would use a proper JSON library like nlohmann/json
-        
-        SPARKY_LOG_DEBUG("Parsing level from JSON content");
-        
-        // Clear existing level
-        unloadLevel();
-        
-        // Simple parsing approach - look for object definitions
-        // This is a very basic implementation that looks for specific patterns
-        
-        // Look for platforms
-        size_t pos = 0;
-        while ((pos = jsonContent.find("\"platforms\"", pos)) != std::string::npos) {
-            // Find the start of the platforms array
-            size_t arrayStart = jsonContent.find('[', pos);
-            if (arrayStart != std::string::npos) {
-                // Find the end of the platforms array
-                size_t arrayEnd = findMatchingBracket(jsonContent, arrayStart);
-                if (arrayEnd != std::string::npos) {
-                    // Parse each platform in the array
-                    parsePlatformsFromArray(jsonContent.substr(arrayStart + 1, arrayEnd - arrayStart - 1));
-                }
-            }
-            pos = arrayStart;
-        }
-        
-        // Look for guns
-        pos = 0;
-        while ((pos = jsonContent.find("\"guns\"", pos)) != std::string::npos) {
-            // Find the start of the guns array
-            size_t arrayStart = jsonContent.find('[', pos);
-            if (arrayStart != std::string::npos) {
-                // Find the end of the guns array
-                size_t arrayEnd = findMatchingBracket(jsonContent, arrayStart);
-                if (arrayEnd != std::string::npos) {
-                    // Parse each gun in the array
-                    parseGunsFromArray(jsonContent.substr(arrayStart + 1, arrayEnd - arrayStart - 1));
-                }
-            }
-            pos = arrayStart;
-        }
-        
-        SPARKY_LOG_DEBUG("Parsed " + std::to_string(platforms.size()) + " platforms and " + 
-                        std::to_string(guns.size()) + " guns from JSON");
-    }
-    
-    // Helper function to find matching closing bracket
-    size_t Level::findMatchingBracket(const std::string& content, size_t startPos) {
-        int bracketCount = 1;
-        for (size_t i = startPos + 1; i < content.length(); i++) {
-            if (content[i] == '[' || content[i] == '{') {
-                bracketCount++;
-            } else if (content[i] == ']' || content[i] == '}') {
-                bracketCount--;
-                if (bracketCount == 0) {
-                    return i;
-                }
-            }
-        }
-        return std::string::npos;
-    }
-    
-    // Helper function to parse platforms from JSON array
-    void Level::parsePlatformsFromArray(const std::string& arrayContent) {
-        // Split the array content by objects
-        size_t pos = 0;
-        while (pos < arrayContent.length()) {
-            // Find the start of an object
-            size_t objStart = arrayContent.find('{', pos);
-            if (objStart == std::string::npos) break;
-            
-            // Find the end of the object
-            size_t objEnd = findMatchingBracket(arrayContent, objStart);
-            if (objEnd == std::string::npos) break;
-            
-            // Parse the object
-            parsePlatformFromObject(arrayContent.substr(objStart + 1, objEnd - objStart - 1));
-            
-            pos = objEnd + 1;
-        }
-    }
-    
-    // Helper function to parse a single platform from JSON object
-    void Level::parsePlatformFromObject(const std::string& objContent) {
+    // Helper function to parse a single platform from JSON data
+    void Level::parsePlatformFromJSON(const json& platformData) {
         // Extract name
         std::string name = "Platform";
-        size_t namePos = objContent.find("\"name\"");
-        if (namePos != std::string::npos) {
-            size_t colonPos = objContent.find(':', namePos);
-            if (colonPos != std::string::npos) {
-                size_t quoteStart = objContent.find('"', colonPos);
-                if (quoteStart != std::string::npos) {
-                    size_t quoteEnd = objContent.find('"', quoteStart + 1);
-                    if (quoteEnd != std::string::npos) {
-                        name = objContent.substr(quoteStart + 1, quoteEnd - quoteStart - 1);
-                    }
-                }
-            }
+        if (platformData.contains("name") && platformData["name"].is_string()) {
+            name = platformData["name"];
         }
         
         // Create platform
@@ -255,31 +177,19 @@ namespace Sparky {
         
         // Extract position
         glm::vec3 position(0.0f);
-        size_t posPos = objContent.find("\"position\"");
-        if (posPos != std::string::npos) {
-            size_t arrayStart = objContent.find('[', posPos);
-            if (arrayStart != std::string::npos) {
-                size_t arrayEnd = objContent.find(']', arrayStart);
-                if (arrayEnd != std::string::npos) {
-                    std::string posArray = objContent.substr(arrayStart + 1, arrayEnd - arrayStart - 1);
-                    position = parseVector3FromArray(posArray);
-                }
-            }
+        if (platformData.contains("position") && platformData["position"].is_array() && platformData["position"].size() >= 3) {
+            position.x = platformData["position"][0];
+            position.y = platformData["position"][1];
+            position.z = platformData["position"][2];
         }
         platform->setPosition(position);
         
         // Extract size
         glm::vec3 size(1.0f);
-        size_t sizePos = objContent.find("\"size\"");
-        if (sizePos != std::string::npos) {
-            size_t arrayStart = objContent.find('[', sizePos);
-            if (arrayStart != std::string::npos) {
-                size_t arrayEnd = objContent.find(']', arrayStart);
-                if (arrayEnd != std::string::npos) {
-                    std::string sizeArray = objContent.substr(arrayStart + 1, arrayEnd - arrayStart - 1);
-                    size = parseVector3FromArray(sizeArray);
-                }
-            }
+        if (platformData.contains("size") && platformData["size"].is_array() && platformData["size"].size() >= 3) {
+            size.x = platformData["size"][0];
+            size.y = platformData["size"][1];
+            size.z = platformData["size"][2];
         }
         platform->setSize(size);
         
@@ -290,42 +200,12 @@ namespace Sparky {
                         std::to_string(position.x) + ", " + std::to_string(position.y) + ", " + std::to_string(position.z) + ")");
     }
     
-    // Helper function to parse guns from JSON array
-    void Level::parseGunsFromArray(const std::string& arrayContent) {
-        // Split the array content by objects
-        size_t pos = 0;
-        while (pos < arrayContent.length()) {
-            // Find the start of an object
-            size_t objStart = arrayContent.find('{', pos);
-            if (objStart == std::string::npos) break;
-            
-            // Find the end of the object
-            size_t objEnd = findMatchingBracket(arrayContent, objStart);
-            if (objEnd == std::string::npos) break;
-            
-            // Parse the object
-            parseGunFromObject(arrayContent.substr(objStart + 1, objEnd - objStart - 1));
-            
-            pos = objEnd + 1;
-        }
-    }
-    
-    // Helper function to parse a single gun from JSON object
-    void Level::parseGunFromObject(const std::string& objContent) {
+    // Helper function to parse a single gun from JSON data
+    void Level::parseGunFromJSON(const json& gunData) {
         // Extract name
         std::string name = "Gun";
-        size_t namePos = objContent.find("\"name\"");
-        if (namePos != std::string::npos) {
-            size_t colonPos = objContent.find(':', namePos);
-            if (colonPos != std::string::npos) {
-                size_t quoteStart = objContent.find('"', colonPos);
-                if (quoteStart != std::string::npos) {
-                    size_t quoteEnd = objContent.find('"', quoteStart + 1);
-                    if (quoteEnd != std::string::npos) {
-                        name = objContent.substr(quoteStart + 1, quoteEnd - quoteStart - 1);
-                    }
-                }
-            }
+        if (gunData.contains("name") && gunData["name"].is_string()) {
+            name = gunData["name"];
         }
         
         // Create gun
@@ -333,16 +213,10 @@ namespace Sparky {
         
         // Extract position
         glm::vec3 position(0.0f);
-        size_t posPos = objContent.find("\"position\"");
-        if (posPos != std::string::npos) {
-            size_t arrayStart = objContent.find('[', posPos);
-            if (arrayStart != std::string::npos) {
-                size_t arrayEnd = objContent.find(']', arrayStart);
-                if (arrayEnd != std::string::npos) {
-                    std::string posArray = objContent.substr(arrayStart + 1, arrayEnd - arrayStart - 1);
-                    position = parseVector3FromArray(posArray);
-                }
-            }
+        if (gunData.contains("position") && gunData["position"].is_array() && gunData["position"].size() >= 3) {
+            position.x = gunData["position"][0];
+            position.y = gunData["position"][1];
+            position.z = gunData["position"][2];
         }
         gun->setPosition(position);
         
@@ -360,7 +234,7 @@ namespace Sparky {
         std::string item;
         int index = 0;
         
-        while (std::getline(ss, item, ',')) {
+        while (std::getline(ss, item, ',') && index < 3) {
             // Remove whitespace
             item.erase(0, item.find_first_not_of(" \t"));
             item.erase(item.find_last_not_of(" \t") + 1);

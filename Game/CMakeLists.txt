@@ -13,8 +13,8 @@ add_executable(SparkyGame
 )
 
 # Create a test executable for JSON parsing
-add_executable(test_json_parsing
-    src/test_json_parsing.cpp
+add_executable(test_json_level
+    src/test_json_level.cpp
     src/Level.cpp
     src/Platform.cpp
     src/Gun.cpp
@@ -31,7 +31,7 @@ target_link_libraries(SparkyGame SparkyEngine
 )
 
 # Link the test executable with the engine library
-target_link_libraries(test_json_parsing SparkyEngine 
+target_link_libraries(test_json_level SparkyEngine 
     ${VULKAN_LIBRARIES}
     ${GLFW_LIBRARIES}
     ${glslang_LIBRARIES}
@@ -43,6 +43,6 @@ target_include_directories(SparkyGame PRIVATE
 )
 
 # Include directories for test executable
-target_include_directories(test_json_parsing PRIVATE 
+target_include_directories(test_json_level PRIVATE 
     ${CMAKE_CURRENT_SOURCE_DIR}/../Engine/include
 )

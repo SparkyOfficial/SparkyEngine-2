@@ -133,9 +133,23 @@ namespace Sparky {
             glm::vec3 posB = collision.objectB->getPosition();
             glm::vec3 scaleB = collision.objectB->getScale();
             
-            // Calculate relative velocity (simplified)
-            glm::vec3 velA(0.0f); // In a real implementation, we would get this from the objects' physics components
-            glm::vec3 velB(0.0f); // In a real implementation, we would get this from the objects' physics components
+            // Get physics components to calculate real velocities
+            Sparky::PhysicsComponent* physicsA = collision.objectA->getComponent<Sparky::PhysicsComponent>();
+            Sparky::PhysicsComponent* physicsB = collision.objectB->getComponent<Sparky::PhysicsComponent>();
+            
+            // Get velocities from physics components if they exist
+            glm::vec3 velA(0.0f);
+            glm::vec3 velB(0.0f);
+            
+            if (physicsA) {
+                velA = physicsA->getVelocity();
+            }
+            
+            if (physicsB) {
+                velB = physicsB->getVelocity();
+            }
+            
+            // Calculate relative velocity
             glm::vec3 relativeVelocity = velA - velB;
             
             // Calculate impulse
@@ -143,23 +157,27 @@ namespace Sparky {
             float impulse = -(1.0f + restitution) * glm::dot(relativeVelocity, collision.normal);
             
             // Apply impulse to separate objects
-            // In a real implementation, we would apply forces to the objects' rigid bodies
-            // For now, we'll just separate them based on the penetration depth
-            glm::vec3 separationVector = collision.normal * collision.penetrationDepth * 0.5f;
-            posA -= separationVector;
-            posB += separationVector;
+            // Apply forces to the objects' rigid bodies
+            Sparky::RigidBodyComponent* rigidBodyA = collision.objectA->getComponent<Sparky::RigidBodyComponent>();
+            Sparky::RigidBodyComponent* rigidBodyB = collision.objectB->getComponent<Sparky::RigidBodyComponent>();
+            
+            if (rigidBodyA && rigidBodyB) {
+                // Apply the impulse to the objects' velocities
+                glm::vec3 impulseVector = impulse * collision.normal;
+                rigidBodyA->setLinearVelocity(rigidBodyA->getLinearVelocity() + impulseVector);
+                rigidBodyB->setLinearVelocity(rigidBodyB->getLinearVelocity() - impulseVector);
+            }
+            
+            // Positional correction to prevent sinking
+            const float percent = 0.2f; // Penetration percentage to correct
+            const float slop = 0.01f;   // Penetration allowance
+            glm::vec3 correction = (glm::max(collision.penetrationDepth - slop, 0.0f) / 2.0f) * percent * collision.normal;
+            
+            posA += correction;
+            posB -= correction;
             
             collision.objectA->setPosition(posA);
             collision.objectB->setPosition(posB);
-            
-            // Apply bounce effect
-            // In a real implementation, we would apply the impulse to the objects' velocities
-            // For now, we'll just add a small bounce effect
-            if (glm::length(relativeVelocity) > 0.1f) {
-                // Add a small bounce effect
-                posA += collision.normal * 0.1f;
-                collision.objectA->setPosition(posA);
-            }
         }
     }
 }

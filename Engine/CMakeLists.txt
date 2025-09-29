@@ -49,6 +49,7 @@ set(ENGINE_SOURCES
     src/BehaviorTree.cpp
     src/BehaviorTreeExample.cpp
     src/RenderSystem.cpp
+    src/Texture.cpp
 )
 
 # Only include AudioEngine if audio is enabled
@@ -152,5 +153,16 @@ target_link_libraries(particle_test SparkyEngine
     ${glslang_LIBRARIES}
 )
 target_include_directories(particle_test PRIVATE 
+    ${CMAKE_CURRENT_SOURCE_DIR}/include
+)
+
+# Create texture test executable
+add_executable(texture_test src/texture_test.cpp)
+target_link_libraries(texture_test SparkyEngine 
+    ${VULKAN_LIBRARIES}
+    ${GLFW_LIBRARIES}
+    ${glslang_LIBRARIES}
+)
+target_include_directories(texture_test PRIVATE 
     ${CMAKE_CURRENT_SOURCE_DIR}/include
 )

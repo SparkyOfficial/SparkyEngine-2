@@ -77,6 +77,13 @@ int main() {
         // Update input
         inputManager.update();
         
+        // Debug: Check which keys are pressed
+        static bool firstFrame = true;
+        if (firstFrame) {
+            SPARKY_LOG_DEBUG("First frame - checking key states");
+            firstFrame = false;
+        }
+        
         // Check for exit key (ESC)
         if (inputManager.isKeyJustPressed(256)) { // ESC key
             SPARKY_LOG_INFO("ESC key pressed, shutting down...");

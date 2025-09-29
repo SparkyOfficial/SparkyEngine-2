@@ -64,9 +64,6 @@ namespace Sparky {
                 isRunning = false;
             }
             
-            // Update camera based on input
-            // This would be expanded based on actual input handling
-            
             // Render frame
             renderer.render();
         }

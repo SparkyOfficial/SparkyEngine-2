@@ -730,29 +730,29 @@ namespace Sparky {
             
             // Try to find vertex shader
             for (const auto& path : vertShaderPaths) {
-                SPARKY_LOG_INFO("Trying vertex shader path: " + path);
+                // SPARKY_LOG_DEBUG("Trying vertex shader path: " + path);
                 if (Sparky::FileUtils::fileExists(path)) {
                     vertShaderPathFound = path;
                     vertShaderFound = true;
-                    SPARKY_LOG_INFO("Found vertex shader at: " + path);
+                    // SPARKY_LOG_DEBUG("Found vertex shader at: " + path);
                     break;
                 }
             }
             
             // Try to find fragment shader
             for (const auto& path : fragShaderPaths) {
-                SPARKY_LOG_INFO("Trying fragment shader path: " + path);
+                // SPARKY_LOG_DEBUG("Trying fragment shader path: " + path);
                 if (Sparky::FileUtils::fileExists(path)) {
                     fragShaderPathFound = path;
                     fragShaderFound = true;
-                    SPARKY_LOG_INFO("Found fragment shader at: " + path);
+                    // SPARKY_LOG_DEBUG("Found fragment shader at: " + path);
                     break;
                 }
             }
             
             // Try to find vertex SPIR-V
             for (const auto& path : vertSPVPaths) {
-                SPARKY_LOG_INFO("Trying vertex SPIR-V path: " + path);
+                // SPARKY_LOG_DEBUG("Trying vertex SPIR-V path: " + path);
                 if (Sparky::FileUtils::fileExists(path)) {
                     vertSPVPathFound = path;
                     vertSPVFound = true;
@@ -763,7 +763,7 @@ namespace Sparky {
             
             // Try to find fragment SPIR-V
             for (const auto& path : fragSPVPaths) {
-                SPARKY_LOG_INFO("Trying fragment SPIR-V path: " + path);
+                // SPARKY_LOG_DEBUG("Trying fragment SPIR-V path: " + path);
                 if (Sparky::FileUtils::fileExists(path)) {
                     fragSPVPathFound = path;
                     fragSPVFound = true;
@@ -772,56 +772,61 @@ namespace Sparky {
                 }
             }
             
-            if (!vertShaderFound || !fragShaderFound) {
+            // Prioritize SPIR-V files if they exist
+            if (vertSPVFound && fragSPVFound) {
+                // Load pre-compiled SPIR-V files
+                vertShaderCode = ShaderCompiler::loadSPIRVFromFile(vertSPVPathFound);
+                fragShaderCode = ShaderCompiler::loadSPIRVFromFile(fragSPVPathFound);
+                SPARKY_LOG_INFO("Loaded pre-compiled SPIR-V files");
+            } else if (vertShaderFound && fragShaderFound) {
+                // Compile GLSL shaders if SPIR-V files don't exist
+                // Read vertex shader source
+                std::vector<char> vertSource = FileUtils::readFile(vertShaderPathFound);
+                std::string vertSourceStr(vertSource.begin(), vertSource.end());
+                SPARKY_LOG_DEBUG("Vertex shader source length: " + std::to_string(vertSourceStr.length()));
+                
+                // Read fragment shader source
+                std::vector<char> fragSource = FileUtils::readFile(fragShaderPathFound);
+                std::string fragSourceStr(fragSource.begin(), fragSource.end());
+                SPARKY_LOG_DEBUG("Fragment shader source length: " + std::to_string(fragSourceStr.length()));
+                
+                // Compile shaders - try to compile GLSL to SPIR-V first
+                try {
+                    vertShaderCode = ShaderCompiler::compileGLSLToSPIRV(vertSourceStr, 0); // 0 = vertex shader
+                    fragShaderCode = ShaderCompiler::compileGLSLToSPIRV(fragSourceStr, 1); // 1 = fragment shader
+                    
+                    // Save compiled SPIR-V to files for future use
+                    std::ofstream vertSPVFile(vertSPVPath, std::ios::binary);
+                    if (vertSPVFile.is_open()) {
+                        vertSPVFile.write(reinterpret_cast<const char*>(vertShaderCode.data()), vertShaderCode.size() * sizeof(uint32_t));
+                        vertSPVFile.close();
+                        SPARKY_LOG_INFO("Vertex shader compiled and saved to: " + vertSPVPath);
+                    }
+                    
+                    std::ofstream fragSPVFile(fragSPVPath, std::ios::binary);
+                    if (fragSPVFile.is_open()) {
+                        fragSPVFile.write(reinterpret_cast<const char*>(fragShaderCode.data()), fragShaderCode.size() * sizeof(uint32_t));
+                        fragSPVFile.close();
+                        SPARKY_LOG_INFO("Fragment shader compiled and saved to: " + fragSPVPath);
+                    }
+                    
+                    SPARKY_LOG_INFO("Shaders compiled successfully");
+                } catch (const std::exception& compileError) {
+                    SPARKY_LOG_WARNING("GLSL compilation failed: " + std::string(compileError.what()));
+                    
+                    // If compilation fails, try to load pre-compiled SPIR-V
+                    if (vertSPVFound && fragSPVFound) {
+                        vertShaderCode = ShaderCompiler::loadSPIRVFromFile(vertSPVPathFound);
+                        fragShaderCode = ShaderCompiler::loadSPIRVFromFile(fragSPVPathFound);
+                        SPARKY_LOG_INFO("Loaded pre-compiled SPIR-V files as fallback");
+                    } else {
+                        SPARKY_LOG_ERROR("Failed to find SPIR-V files");
+                        throw std::runtime_error("Failed to compile or load shaders: " + std::string(compileError.what()));
+                    }
+                }
+            } else {
                 SPARKY_LOG_ERROR("Failed to find shader files");
                 throw std::runtime_error("Failed to find shader files");
-            }
-            
-            // Read vertex shader source
-            std::vector<char> vertSource = FileUtils::readFile(vertShaderPathFound);
-            std::string vertSourceStr(vertSource.begin(), vertSource.end());
-            SPARKY_LOG_DEBUG("Vertex shader source length: " + std::to_string(vertSourceStr.length()));
-            SPARKY_LOG_DEBUG("Vertex shader source: " + vertSourceStr);
-            
-            // Read fragment shader source
-            std::vector<char> fragSource = FileUtils::readFile(fragShaderPathFound);
-            std::string fragSourceStr(fragSource.begin(), fragSource.end());
-            SPARKY_LOG_DEBUG("Fragment shader source length: " + std::to_string(fragSourceStr.length()));
-            SPARKY_LOG_DEBUG("Fragment shader source: " + fragSourceStr);
-            
-            // Compile shaders - try to compile GLSL to SPIR-V first
-            try {
-                vertShaderCode = ShaderCompiler::compileGLSLToSPIRV(vertSourceStr, 0); // 0 = vertex shader
-                fragShaderCode = ShaderCompiler::compileGLSLToSPIRV(fragSourceStr, 1); // 1 = fragment shader
-                
-                // Save compiled SPIR-V to files for future use
-                std::ofstream vertSPVFile(vertSPVPath, std::ios::binary);
-                if (vertSPVFile.is_open()) {
-                    vertSPVFile.write(reinterpret_cast<const char*>(vertShaderCode.data()), vertShaderCode.size() * sizeof(uint32_t));
-                    vertSPVFile.close();
-                    SPARKY_LOG_INFO("Vertex shader compiled and saved to: " + vertSPVPath);
-                }
-                
-                std::ofstream fragSPVFile(fragSPVPath, std::ios::binary);
-                if (fragSPVFile.is_open()) {
-                    fragSPVFile.write(reinterpret_cast<const char*>(fragShaderCode.data()), fragShaderCode.size() * sizeof(uint32_t));
-                    fragSPVFile.close();
-                    SPARKY_LOG_INFO("Fragment shader compiled and saved to: " + fragSPVPath);
-                }
-                
-                SPARKY_LOG_INFO("Shaders compiled successfully");
-            } catch (const std::exception& compileError) {
-                SPARKY_LOG_WARNING("GLSL compilation failed: " + std::string(compileError.what()));
-                
-                // If compilation fails, try to load pre-compiled SPIR-V
-                if (vertSPVFound && fragSPVFound) {
-                    vertShaderCode = ShaderCompiler::loadSPIRVFromFile(vertSPVPathFound);
-                    fragShaderCode = ShaderCompiler::loadSPIRVFromFile(fragSPVPathFound);
-                    SPARKY_LOG_INFO("Loaded pre-compiled SPIR-V files");
-                } else {
-                    SPARKY_LOG_ERROR("Failed to find SPIR-V files");
-                    throw std::runtime_error("Failed to compile or load shaders: " + std::string(compileError.what()));
-                }
             }
         } catch (const std::exception& e) {
             SPARKY_LOG_ERROR("Failed to compile shaders: " + std::string(e.what()));
@@ -932,6 +937,7 @@ namespace Sparky {
         pipelineInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
         pipelineInfo.stageCount = 2;
         pipelineInfo.pStages = shaderStages;
+
         pipelineInfo.pVertexInputState = &vertexInputInfo;
         pipelineInfo.pInputAssemblyState = &inputAssembly;
         pipelineInfo.pViewportState = &viewportState;
@@ -1334,7 +1340,8 @@ namespace Sparky {
         renderPassInfo.renderArea.extent = swapChainExtent;
         
         std::array<VkClearValue, 2> clearValues{};
-        clearValues[0].color = {{0.0f, 0.0f, 0.0f, 1.0f}};
+        // Change clear color to dark blue instead of black to see if render pass is working
+        clearValues[0].color = {{0.0f, 0.0f, 0.2f, 1.0f}}; // Dark blue
         clearValues[1].depthStencil = {1.0f, 0};
         
         renderPassInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());
@@ -1353,14 +1360,14 @@ namespace Sparky {
             
             // Render all registered game objects
             const auto& gameObjects = renderSystem.getGameObjects();
-            SPARKY_LOG_DEBUG("Rendering " + std::to_string(gameObjects.size()) + " game objects");
+            // SPARKY_LOG_DEBUG("Rendering " + std::to_string(gameObjects.size()) + " game objects");
             
             for (GameObject* gameObject : gameObjects) {
                 if (gameObject) {
                     RenderComponent* renderComponent = gameObject->getComponent<RenderComponent>();
                     if (renderComponent && renderComponent->getMesh()) {
                         const Mesh* mesh = renderComponent->getMesh();
-                        SPARKY_LOG_DEBUG("Rendering mesh with " + std::to_string(mesh->getVertices().size()) + " vertices and " + std::to_string(mesh->getIndices().size()) + " indices");
+                        // SPARKY_LOG_DEBUG("Rendering mesh with " + std::to_string(mesh->getVertices().size()) + " vertices and " + std::to_string(mesh->getIndices().size()) + " indices");
                         
                         // Get the vertex and index buffers from the mesh renderer
                         VkBuffer vertexBuffer = meshRenderer.getVertexBuffer();
@@ -1454,7 +1461,10 @@ namespace Sparky {
         float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
         
         UniformBufferObject ubo{};
-        ubo.model = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+        // Create a more visible model matrix - scale up and position closer to camera
+        ubo.model = glm::mat4(1.0f);
+        ubo.model = glm::translate(ubo.model, glm::vec3(0.0f, 0.0f, 0.0f)); // Position at origin
+        ubo.model = glm::scale(ubo.model, glm::vec3(1.0f, 1.0f, 1.0f)); // Scale to normal size
         
         // Use the actual camera from the engine instead of hardcoded values
         if (engine) {
@@ -1462,10 +1472,10 @@ namespace Sparky {
             ubo.view = camera.getViewMatrix();
         } else {
             // Fallback to hardcoded camera if no engine is available
-            ubo.view = glm::lookAt(glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+            ubo.view = glm::lookAt(glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
         }
         
-        ubo.proj = glm::perspective(glm::radians(45.0f), swapChainExtent.width / (float) swapChainExtent.height, 0.1f, 10.0f);
+        ubo.proj = glm::perspective(glm::radians(45.0f), swapChainExtent.width / (float) swapChainExtent.height, 0.1f, 100.0f);
         ubo.proj[1][1] *= -1; // Flip Y coordinate for Vulkan
         
         memcpy(uniformBuffersMapped[currentImage], &ubo, sizeof(ubo));

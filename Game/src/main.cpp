@@ -77,24 +77,10 @@ int main() {
         // Update input
         inputManager.update();
         
-        // Debug: Check which keys are pressed
-        static bool firstFrame = true;
-        if (firstFrame) {
-            SPARKY_LOG_DEBUG("First frame - checking key states");
-            firstFrame = false;
-        }
-        
         // Check for exit key (ESC)
         if (inputManager.isKeyJustPressed(256)) { // ESC key
             SPARKY_LOG_INFO("ESC key pressed, shutting down...");
             break;
-        }
-        
-        // Debug output to see what's happening
-        static int frameCount = 0;
-        frameCount++;
-        if (frameCount % 60 == 0) { // Print every 60 frames
-            SPARKY_LOG_DEBUG("Frame: " + std::to_string(frameCount) + ", Delta time: " + std::to_string(deltaTime));
         }
         
         // Update state machine
@@ -102,6 +88,16 @@ int main() {
         
         // Update game
         game.update(deltaTime);
+        
+        // Update camera to ensure it's properly positioned
+        static bool cameraInitialized = false;
+        if (!cameraInitialized) {
+            Sparky::Camera& camera = engine.getCamera();
+            camera.setPosition(glm::vec3(0.0f, 5.0f, 10.0f));
+            camera.setFront(glm::normalize(glm::vec3(0.0f, -0.3f, -1.0f)));
+            cameraInitialized = true;
+            SPARKY_LOG_DEBUG("Camera manually initialized");
+        }
         
         // Render frame
         engine.getRenderer().render();

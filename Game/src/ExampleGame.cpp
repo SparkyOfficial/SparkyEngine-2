@@ -47,6 +47,16 @@ namespace Sparky {
             setupAudio();
             setupGUI();
             
+            // Set up initial camera position to see the level
+            if (this->engine) {
+                Camera& camera = this->engine->getCamera();
+                // Position camera to see the entire level
+                camera.setPosition(glm::vec3(0.0f, 5.0f, 10.0f)); // Higher and further back
+                // Look at the center of the level
+                camera.setFront(glm::normalize(glm::vec3(0.0f, -0.3f, -1.0f))); // Look slightly downward
+                SPARKY_LOG_DEBUG("Camera initialized at position (0, 5, 10) looking toward level");
+            }
+            
             initialized = true;
             SPARKY_LOG_INFO("Example game initialized successfully");
             return true;
@@ -185,7 +195,7 @@ namespace Sparky {
         
         // Create some platforms with cube meshes
         auto platform1 = std::make_unique<Platform>("Platform1");
-        platform1->setPosition(glm::vec3(5.0f, 2.0f, 0.0f));
+        platform1->setPosition(glm::vec3(5.0f, 1.0f, 0.0f)); // Raise platforms higher
         platform1->setSize(glm::vec3(3.0f, 1.0f, 3.0f));
         
         // Add a render component with a cube mesh
@@ -203,7 +213,7 @@ namespace Sparky {
         platforms.push_back(std::move(platform1));
         
         auto platform2 = std::make_unique<Platform>("Platform2");
-        platform2->setPosition(glm::vec3(-5.0f, 4.0f, 0.0f));
+        platform2->setPosition(glm::vec3(-5.0f, 2.0f, 0.0f)); // Raise platforms higher
         platform2->setSize(glm::vec3(3.0f, 1.0f, 3.0f));
         
         // Add a render component with a cube mesh
@@ -282,6 +292,7 @@ namespace Sparky {
         // Set up player camera
         if (engine) {
             player->setCamera(&engine->getCamera());
+            SPARKY_LOG_DEBUG("Player camera set up");
         }
         
         SPARKY_LOG_DEBUG("Player created");
@@ -292,7 +303,7 @@ namespace Sparky {
         
         enemy = std::make_unique<GameObject>();
         enemy->setName("Enemy");
-        enemy->setPosition(glm::vec3(10.0f, 0.0f, 0.0f));
+        enemy->setPosition(glm::vec3(3.0f, 0.0f, 3.0f)); // Position enemy where it can be seen
         enemy->setScale(glm::vec3(1.0f, 1.8f, 1.0f));
         
         // Add a render component with a cube mesh for the enemy
@@ -382,6 +393,11 @@ namespace Sparky {
             glm::vec3 position = player->getPosition();
             position += movement * 5.0f * deltaTime;
             player->setPosition(position);
+            
+            // Update camera position
+            if (player->getCamera()) {
+                player->getCamera()->setPosition(position + glm::vec3(0.0f, 1.5f, 0.0f));
+            }
         }
     }
 

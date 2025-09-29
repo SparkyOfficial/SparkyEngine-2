@@ -19,9 +19,16 @@ namespace Sparky {
     void Player::update(float deltaTime) {
         GameObject::update(deltaTime);
         
-        // Update camera position to match player
+        // Update camera position to follow player
         if (camera) {
-            camera->setPosition(getPosition() + glm::vec3(0.0f, 1.5f, 0.0f)); // Slightly above player
+            // Position camera behind and above the player
+            glm::vec3 playerPos = getPosition();
+            glm::vec3 cameraPos = playerPos + glm::vec3(0.0f, 2.0f, 3.0f); // Above and behind
+            camera->setPosition(cameraPos);
+            
+            // Make camera look at player
+            glm::vec3 lookDirection = glm::normalize(playerPos - cameraPos);
+            camera->setFront(lookDirection);
         }
     }
 

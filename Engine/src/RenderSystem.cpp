@@ -82,7 +82,12 @@ namespace Sparky {
         // Get the mesh renderer from the Vulkan renderer
         MeshRenderer& meshRenderer = renderer->getMeshRenderer();
         
-        SPARKY_LOG_INFO("RenderSystem rendering " + std::to_string(gameObjects.size()) + " game objects");
+        // Reduce logging verbosity - only log every 60 frames
+        static int frameCount = 0;
+        frameCount++;
+        if (frameCount % 60 == 0) {
+            SPARKY_LOG_DEBUG("RenderSystem rendering " + std::to_string(gameObjects.size()) + " game objects");
+        }
 
         // Render all registered game objects that have render components
         for (GameObject* gameObject : gameObjects) {
@@ -100,7 +105,12 @@ namespace Sparky {
         // Get the render component from the game object
         RenderComponent* renderComponent = gameObject->getComponent<RenderComponent>();
         if (renderComponent && renderComponent->getMesh()) {
-            SPARKY_LOG_INFO("Rendering game object: " + gameObject->getName());
+            // Reduce logging verbosity - only log every 300 frames
+            static int frameCount = 0;
+            frameCount++;
+            if (frameCount % 300 == 0) {
+                SPARKY_LOG_DEBUG("Rendering game object: " + gameObject->getName());
+            }
             // We don't actually render here anymore - the VulkanRenderer handles this in recordCommandBuffer
             // This method is kept for future expansion if needed
         }

@@ -65,6 +65,7 @@ target_compile_definitions(SparkyEngine PRIVATE PROJECT_SOURCE_DIR="${PROJECT_SO
 # Include directories
 target_include_directories(SparkyEngine PUBLIC 
     ${CMAKE_CURRENT_SOURCE_DIR}/include
+    ${CMAKE_CURRENT_SOURCE_DIR}/../external
     E:/VulkanSDK/1.4.321.1/Include
     C:/glm-install/include
     C:/glfw-install/include
@@ -164,5 +165,16 @@ target_link_libraries(texture_test SparkyEngine
     ${glslang_LIBRARIES}
 )
 target_include_directories(texture_test PRIVATE 
+    ${CMAKE_CURRENT_SOURCE_DIR}/include
+)
+
+# Create STB image test executable
+add_executable(stb_image_test src/stb_image_test.cpp)
+target_link_libraries(stb_image_test SparkyEngine 
+    ${VULKAN_LIBRARIES}
+    ${GLFW_LIBRARIES}
+    ${glslang_LIBRARIES}
+)
+target_include_directories(stb_image_test PRIVATE 
     ${CMAKE_CURRENT_SOURCE_DIR}/include
 )

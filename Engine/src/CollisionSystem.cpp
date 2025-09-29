@@ -1,5 +1,7 @@
 #include "../include/CollisionSystem.h"
 #include "../include/GameObject.h"
+#include "../include/RigidBodyComponent.h"
+#include "../include/PhysicsComponent.h"
 #include <algorithm>
 #include <cmath>
 

@@ -11,10 +11,6 @@ namespace Sparky {
     class Gun;
 }
 
-// Include JSON library
-#include <nlohmann/json.hpp>
-using json = nlohmann::json;
-
 namespace Sparky {
     class Level : public GameObject {
     public:
@@ -45,8 +41,8 @@ namespace Sparky {
         void createTestLevel();
         
         // JSON parsing helpers
-        void parsePlatformFromJSON(const json& platformData);
-        void parseGunFromJSON(const json& gunData);
+        void parsePlatformFromJSON(const std::string& platformData);
+        void parseGunFromJSON(const std::string& gunData);
         glm::vec3 parseVector3FromArray(const std::string& arrayContent);
     };
 }

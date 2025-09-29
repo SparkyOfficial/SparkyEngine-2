@@ -62,7 +62,22 @@ namespace Sparky {
 
     void Button::render() {
         // Render the button with the current texture
-        // In a complete implementation, this would render the button using the graphics API
+        // Select appropriate texture based on button state
+        int currentTexture = textureId;
+        
+        if (pressed) {
+            currentTexture = pressedTextureId != -1 ? pressedTextureId : textureId;
+        } else if (hovered) {
+            currentTexture = hoverTextureId != -1 ? hoverTextureId : textureId;
+        }
+        
+        // Render button quad with the selected texture
+        // This would typically involve:
+        // 1. Setting up vertex data for the button quad
+        // 2. Binding the appropriate shader program
+        // 3. Binding the texture
+        // 4. Setting up transformation matrices
+        // 5. Issuing draw calls
     }
 
 }

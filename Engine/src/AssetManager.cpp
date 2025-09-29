@@ -1,7 +1,11 @@
 #include "../include/AssetManager.h"
 #include "../include/Texture.h"
 #include "../include/Logger.h"
+#include "../include/Mesh.h"
+#include "../include/FileUtils.h"
 #include <iostream>
+#include <fstream>
+#include <sstream>
 
 namespace Sparky {
 
@@ -21,7 +25,11 @@ namespace Sparky {
         SPARKY_LOG_DEBUG("Loading mesh: " + name + " from " + filepath);
         
         auto mesh = std::make_unique<Mesh>();
-        // In a complete implementation, we would parse the file format and populate the mesh data
+        
+        // For now, just create a simple cube as placeholder
+        auto cube = Mesh::createCube(1.0f);
+        mesh->setVertices(cube->getVertices());
+        mesh->setIndices(cube->getIndices());
         
         meshes[name] = std::move(mesh);
         SPARKY_LOG_DEBUG("Mesh loaded successfully: " + name);

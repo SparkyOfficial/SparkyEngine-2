@@ -3,6 +3,8 @@
 #include <string>
 #include <unordered_map>
 #include <memory>
+#include <fstream>
+#include <iostream>
 
 namespace Sparky {
     template<typename T>
@@ -57,7 +59,16 @@ namespace Sparky {
     void ResourceManager::loadResource(const std::string& name, const std::string& filepath) {
         // Load the resource from the file
         auto resource = std::make_unique<T>();
-        // In a complete implementation, we would load the resource data from the file
+        
+        // Attempt to load resource data from the file
+        // This is a generic implementation that can be specialized for specific types
+        std::ifstream file(filepath, std::ios::binary);
+        if (file.is_open()) {
+            // For now, we'll just mark that we attempted to load the file
+            // In a complete implementation, each resource type would have its own loading logic
+            file.close();
+        }
+        
         auto typedResource = std::make_unique<TypedResource<T>>(std::move(resource));
         resources[name] = std::move(typedResource);
     }

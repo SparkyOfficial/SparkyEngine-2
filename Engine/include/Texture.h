@@ -2,7 +2,6 @@
 
 #include <string>
 #include <vector>
-#include <vulkan/vulkan.h>
 
 namespace Sparky {
     class Texture {
@@ -24,8 +23,5 @@ namespace Sparky {
         int height;
         int channels;
         std::vector<unsigned char> data;
-        
-        // Helper function to load image data (simplified implementation)
-        bool loadImageData(const std::string& filepath);
     };
 }

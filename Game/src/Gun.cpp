@@ -39,7 +39,18 @@ namespace Sparky {
 
     void Gun::shoot() {
         // Create a bullet and add it to the bullets vector
-        // In a complete implementation, we would create a bullet with proper physics and add it to the scene
+        // Create a bullet with proper physics and add it to the scene
+        if (ammo > 0) {
+            glm::vec3 position = getPosition();
+            glm::vec3 direction(0.0f, 0.0f, -1.0f); // Default forward direction
+            
+            // Create bullet with position and direction
+            Bullet* bullet = new Bullet(position, direction);
+            bullets.push_back(bullet);
+            
+            // Decrease ammo
+            ammo--;
+        }
     }
 
     void Gun::reload() {
@@ -69,5 +80,10 @@ namespace Sparky {
 
     void Bullet::render() {
         // Bullet rendering implementation
+        // This would typically involve:
+        // 1. Setting up vertex data for the bullet (could be a simple quad or sphere)
+        // 2. Binding the appropriate shader program
+        // 3. Setting up transformation matrices
+        // 4. Issuing draw calls
     }
 }

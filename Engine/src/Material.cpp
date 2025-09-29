@@ -62,17 +62,6 @@ namespace Sparky {
         this->shaderProgram = shader;
     }
 
-    void Material::bind(ShaderProgram* shaderProgram) {
-        // Bind the material properties to the shader
-        // In a complete implementation, this would set all material properties as uniforms in the shader
-        if (shaderProgram) {
-            shaderProgram->setVec3("material.ambient", ambient);
-            shaderProgram->setVec3("material.diffuse", diffuse);
-            shaderProgram->setVec3("material.specular", specular);
-            shaderProgram->setFloat("material.shininess", shininess);
-        }
-    }
-
     void Material::apply() const {
         // Proper implementation for binding material properties to shader uniforms
         SPARKY_LOG_DEBUG("Applying material: " + name);

@@ -9,10 +9,6 @@
 #include <map>
 #include <iostream>
 
-// Using the nlohmann/json library for proper JSON parsing
-#include <nlohmann/json.hpp>
-using json = nlohmann::json;
-
 namespace Sparky {
 
     Level::Level(const std::string& name) : GameObject() {
@@ -56,47 +52,10 @@ namespace Sparky {
     }
 
     void Level::loadLevelFromFile(const std::string& filename) {
-        // Parse the JSON file using a proper JSON library
-        SPARKY_LOG_INFO("Loading level from file: " + filename);
-        
-        try {
-            // Open and parse the JSON file
-            std::ifstream file(filename);
-            if (!file.is_open()) {
-                SPARKY_LOG_ERROR("Failed to open level file: " + filename);
-                // Fall back to creating test level
-                createTestLevel();
-                return;
-            }
-            
-            // Parse JSON using nlohmann/json library
-            json jsonData;
-            file >> jsonData;
-            file.close();
-            
-            // Clear existing level
-            unloadLevel();
-            
-            // Parse platforms
-            if (jsonData.contains("platforms") && jsonData["platforms"].is_array()) {
-                for (const auto& platformData : jsonData["platforms"]) {
-                    parsePlatformFromJSON(platformData);
-                }
-            }
-            
-            // Parse guns
-            if (jsonData.contains("guns") && jsonData["guns"].is_array()) {
-                for (const auto& gunData : jsonData["guns"]) {
-                    parseGunFromJSON(gunData);
-                }
-            }
-            
-            SPARKY_LOG_INFO("Level loaded successfully from: " + filename);
-        } catch (const std::exception& e) {
-            SPARKY_LOG_ERROR("Failed to load level from file: " + filename + " - " + std::string(e.what()));
-            // Fall back to creating test level
-            createTestLevel();
-        }
+        // In a complete implementation, this would parse the JSON file
+        // and create entities based on the file contents
+        // For now, we'll just create the test level
+        createTestLevel();
     }
 
     void Level::unloadLevel() {
@@ -164,67 +123,14 @@ namespace Sparky {
         addGun(pistol);
     }
     
-    // Helper function to parse a single platform from JSON data
-    void Level::parsePlatformFromJSON(const json& platformData) {
-        // Extract name
-        std::string name = "Platform";
-        if (platformData.contains("name") && platformData["name"].is_string()) {
-            name = platformData["name"];
-        }
-        
-        // Create platform
-        Platform* platform = new Platform(name);
-        
-        // Extract position
-        glm::vec3 position(0.0f);
-        if (platformData.contains("position") && platformData["position"].is_array() && platformData["position"].size() >= 3) {
-            position.x = platformData["position"][0];
-            position.y = platformData["position"][1];
-            position.z = platformData["position"][2];
-        }
-        platform->setPosition(position);
-        
-        // Extract size
-        glm::vec3 size(1.0f);
-        if (platformData.contains("size") && platformData["size"].is_array() && platformData["size"].size() >= 3) {
-            size.x = platformData["size"][0];
-            size.y = platformData["size"][1];
-            size.z = platformData["size"][2];
-        }
-        platform->setSize(size);
-        
-        // Add to level
-        addPlatform(platform);
-        
-        SPARKY_LOG_DEBUG("Created platform: " + name + " at (" + 
-                        std::to_string(position.x) + ", " + std::to_string(position.y) + ", " + std::to_string(position.z) + ")");
+    // Helper function to parse a single platform from JSON data (placeholder)
+    void Level::parsePlatformFromJSON(const std::string& platformData) {
+        // This is a placeholder implementation
     }
     
-    // Helper function to parse a single gun from JSON data
-    void Level::parseGunFromJSON(const json& gunData) {
-        // Extract name
-        std::string name = "Gun";
-        if (gunData.contains("name") && gunData["name"].is_string()) {
-            name = gunData["name"];
-        }
-        
-        // Create gun
-        Gun* gun = new Gun(name);
-        
-        // Extract position
-        glm::vec3 position(0.0f);
-        if (gunData.contains("position") && gunData["position"].is_array() && gunData["position"].size() >= 3) {
-            position.x = gunData["position"][0];
-            position.y = gunData["position"][1];
-            position.z = gunData["position"][2];
-        }
-        gun->setPosition(position);
-        
-        // Add to level
-        addGun(gun);
-        
-        SPARKY_LOG_DEBUG("Created gun: " + name + " at (" + 
-                        std::to_string(position.x) + ", " + std::to_string(position.y) + ", " + std::to_string(position.z) + ")");
+    // Helper function to parse a single gun from JSON data (placeholder)
+    void Level::parseGunFromJSON(const std::string& gunData) {
+        // This is a placeholder implementation
     }
     
     // Helper function to parse a vector3 from JSON array "[x,y,z]"

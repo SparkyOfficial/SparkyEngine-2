@@ -46,6 +46,9 @@ namespace Sparky {
         Engine* engine;
         RenderSystem* renderSystem;
 
+        // Skybox
+        void loadSkybox();
+
         // Game objects
         std::unique_ptr<Player> player;
         std::unique_ptr<GameObject> enemy;

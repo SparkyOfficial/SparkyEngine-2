@@ -9,13 +9,15 @@
 #include <unordered_map>
 #include "MeshRenderer.h"
 #include "Texture.h"
+#include "Skybox.h"  // Add this include
 
-// Forward declaration
+// Forward declarations
 namespace Sparky {
     class RenderSystem;
     class Engine;  
     class Material;  
     class Light;     
+    class Skybox;    // Add this forward declaration
 }
 
 namespace Sparky {
@@ -165,6 +167,9 @@ namespace Sparky {
         
         // Engine reference
         Engine* engine;  // Add this member
+        
+        // Skybox support
+        std::unique_ptr<Skybox> skybox;  // Add this member
         
         // Debug messenger
         VkDebugUtilsMessengerEXT debugMessenger;

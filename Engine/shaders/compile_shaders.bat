@@ -14,6 +14,24 @@ if %ERRORLEVEL% EQU 0 (
     exit /b %ERRORLEVEL%
 )
 
+echo Compiling skybox vertex shader...
+%VULKAN_SDK%\Bin\glslc.exe skybox.vert -o skybox.vert.spv
+if %ERRORLEVEL% EQU 0 (
+    echo Skybox vertex shader compiled successfully!
+) else (
+    echo Failed to compile skybox vertex shader!
+    exit /b %ERRORLEVEL%
+)
+
+echo Compiling material vertex shader...
+%VULKAN_SDK%\Bin\glslc.exe material.vert -o material.vert.spv
+if %ERRORLEVEL% EQU 0 (
+    echo Material vertex shader compiled successfully!
+) else (
+    echo Failed to compile material vertex shader!
+    exit /b %ERRORLEVEL%
+)
+
 REM Compile fragment shaders
 echo Compiling advanced fragment shader...
 %VULKAN_SDK%\Bin\glslc.exe advanced.frag -o advanced.frag.spv
@@ -21,6 +39,24 @@ if %ERRORLEVEL% EQU 0 (
     echo Advanced fragment shader compiled successfully!
 ) else (
     echo Failed to compile advanced fragment shader!
+    exit /b %ERRORLEVEL%
+)
+
+echo Compiling skybox fragment shader...
+%VULKAN_SDK%\Bin\glslc.exe skybox.frag -o skybox.frag.spv
+if %ERRORLEVEL% EQU 0 (
+    echo Skybox fragment shader compiled successfully!
+) else (
+    echo Failed to compile skybox fragment shader!
+    exit /b %ERRORLEVEL%
+)
+
+echo Compiling material fragment shader...
+%VULKAN_SDK%\Bin\glslc.exe material.frag -o material.frag.spv
+if %ERRORLEVEL% EQU 0 (
+    echo Material fragment shader compiled successfully!
+) else (
+    echo Failed to compile material fragment shader!
     exit /b %ERRORLEVEL%
 )
 

@@ -32,6 +32,7 @@ set(SPARKY_ENGINE_SOURCES
     src/Material.cpp
     src/Mesh.cpp
     src/MeshRenderer.cpp
+    src/OBJLoader.cpp
     src/ParticleSystem.cpp
     src/ParticleComponent.cpp
     src/PhysicsComponent.cpp
@@ -48,6 +49,7 @@ set(SPARKY_ENGINE_SOURCES
     src/ShaderCompiler.cpp
     src/ShaderProgram.cpp
     src/ShaderUtils.cpp
+    src/Skybox.cpp
     src/SparkyEngine.cpp
     src/SpotLight.cpp
     src/StateMachine.cpp
@@ -80,6 +82,11 @@ add_executable(test_unicode
     src/test_unicode.cpp
 )
 
+# Create a skybox test executable
+add_executable(test_skybox
+    src/skybox_test.cpp
+)
+
 # Include directories
 target_include_directories(SparkyEngine PUBLIC 
     ${CMAKE_CURRENT_SOURCE_DIR}/include
@@ -108,6 +115,15 @@ target_include_directories(test_unicode PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/../external
 )
 
+target_include_directories(test_skybox PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/include
+    ${VULKAN_INCLUDE_DIRS}
+    ${GLFW_INCLUDE_DIRS}
+    ${GLM_INCLUDE_DIRS}
+    ${JSON_INCLUDE_DIRS}
+    ${CMAKE_CURRENT_SOURCE_DIR}/../external
+)
+
 # Link libraries
 target_link_libraries(SparkyEngine 
     ${VULKAN_LIBRARIES}
@@ -122,6 +138,12 @@ target_link_libraries(simple_test SparkyEngine
 )
 
 target_link_libraries(test_unicode SparkyEngine
+    ${VULKAN_LIBRARIES}
+    ${GLFW_LIBRARIES}
+    ${glslang_LIBRARIES}
+)
+
+target_link_libraries(test_skybox SparkyEngine
     ${VULKAN_LIBRARIES}
     ${GLFW_LIBRARIES}
     ${glslang_LIBRARIES}

@@ -99,7 +99,8 @@ namespace Sparky {
                                        graphicsPipeline(nullptr), commandPool(nullptr), windowHandle(nullptr),
                                        currentFrame(0), imageAvailableSemaphore(nullptr), renderFinishedSemaphore(nullptr),
                                        inFlightFence(nullptr), descriptorSetLayout(nullptr), depthImage(nullptr),
-                                       depthImageMemory(nullptr), depthImageView(nullptr), debugMessenger(nullptr) {
+                                       depthImageMemory(nullptr), depthImageView(nullptr), debugMessenger(nullptr),
+                                       skybox(std::make_unique<Skybox>()) {  // Initialize skybox
     }
 
     VulkanRenderer::~VulkanRenderer() {
@@ -134,6 +135,12 @@ namespace Sparky {
             // Initialize mesh renderer
             meshRenderer.initialize(physicalDevice, device, commandPool, graphicsQueue);
             
+            // Initialize skybox
+            if (!skybox->initialize(this)) {
+                SPARKY_LOG_ERROR("Failed to initialize skybox");
+                return false;
+            }
+            
             SPARKY_LOG_INFO("Vulkan renderer initialized successfully");
             return true;
         } catch (const std::exception& e) {
@@ -144,6 +151,11 @@ namespace Sparky {
 
     void VulkanRenderer::cleanup() {
         SPARKY_LOG_INFO("Cleaning up Vulkan renderer...");
+        
+        // Cleanup skybox
+        if (skybox) {
+            skybox->cleanup();
+        }
         
         meshRenderer.cleanup();
         
@@ -773,8 +785,10 @@ namespace Sparky {
         
         for (size_t i = 0; i < searchPaths.size(); ++i) {
             const auto& path = searchPaths[i];
-            std::string vertPath = path + "basic.vert.spv";
-            std::string fragPath = path + "basic.frag.spv";
+            // Try material shaders first, then fall back to basic shaders
+            std::string vertPath = path + "material.vert.spv";
+            std::string fragPath = path + "material.frag.spv";
+            
             SPARKY_LOG_INFO("Trying shader path " + std::to_string(i) + ": " + path);
             SPARKY_LOG_INFO("Checking vertex shader: " + vertPath);
             SPARKY_LOG_INFO("Checking fragment shader: " + fragPath);
@@ -787,6 +801,24 @@ namespace Sparky {
                 fragShaderPathFound = fragPath;
                 found = true;
                 SPARKY_LOG_INFO("Found shaders at: " + path);
+                break;
+            }
+            
+            // Fall back to basic shaders if material shaders don't exist
+            vertPath = path + "basic.vert.spv";
+            fragPath = path + "basic.frag.spv";
+            
+            SPARKY_LOG_INFO("Trying fallback shaders - vertex: " + vertPath);
+            SPARKY_LOG_INFO("Trying fallback shaders - fragment: " + fragPath);
+            vertExists = Sparky::FileUtils::fileExists(vertPath);
+            fragExists = Sparky::FileUtils::fileExists(fragPath);
+            SPARKY_LOG_INFO("Fallback vertex shader exists: " + std::to_string(vertExists));
+            SPARKY_LOG_INFO("Fallback fragment shader exists: " + std::to_string(fragExists));
+            if (vertExists && fragExists) {
+                vertShaderPathFound = vertPath;
+                fragShaderPathFound = fragPath;
+                found = true;
+                SPARKY_LOG_INFO("Found fallback shaders at: " + path);
                 break;
             }
         }
@@ -861,8 +893,8 @@ namespace Sparky {
         rasterizer.rasterizerDiscardEnable = VK_FALSE;
         rasterizer.polygonMode = VK_POLYGON_MODE_FILL;
         rasterizer.lineWidth = 1.0f;
-        // Temporarily disable backface culling for debugging
-        rasterizer.cullMode = VK_CULL_MODE_NONE; // VK_CULL_MODE_BACK_BIT;
+        // Enable backface culling for proper rendering
+        rasterizer.cullMode = VK_CULL_MODE_BACK_BIT;
         rasterizer.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
         rasterizer.depthBiasEnable = VK_FALSE;
 
@@ -876,12 +908,12 @@ namespace Sparky {
         multisampling.alphaToCoverageEnable = VK_FALSE; // Optional
         multisampling.alphaToOneEnable = VK_FALSE; // Optional
 
-        // Depth stencil - use very simple configuration
+        // Depth stencil - enable depth testing for proper 3D rendering
         VkPipelineDepthStencilStateCreateInfo depthStencil{};
         depthStencil.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
-        depthStencil.depthTestEnable = VK_FALSE;
-        depthStencil.depthWriteEnable = VK_FALSE;
-        depthStencil.depthCompareOp = VK_COMPARE_OP_ALWAYS;
+        depthStencil.depthTestEnable = VK_TRUE;
+        depthStencil.depthWriteEnable = VK_TRUE;
+        depthStencil.depthCompareOp = VK_COMPARE_OP_LESS;
         depthStencil.depthBoundsTestEnable = VK_FALSE;
         depthStencil.stencilTestEnable = VK_FALSE;
         depthStencil.front = {};
@@ -1090,7 +1122,7 @@ namespace Sparky {
         return availableFormats[0];
     }
 
-    VkPresentModeKHR VulkanRenderer::chooseSwapPresentMode(const std::vector<VkPresentModeKHR>& availablePresentModes) {
+    VkPresentModeKHR VulkanRenderer::chooseSwapPresentMode(const std <VkPresentModeKHR>& availablePresentModes) {
         for (const auto& availablePresentMode : availablePresentModes) {
             if (availablePresentMode == VK_PRESENT_MODE_MAILBOX_KHR) {
                 return availablePresentMode;
@@ -1394,6 +1426,11 @@ namespace Sparky {
         
         SPARKY_LOG_DEBUG("Viewport, scissor, and descriptor sets set");
         
+        // Render skybox first (if loaded)
+        if (skybox && skybox->isLoaded()) {
+            skybox->render(commandBuffer, pipelineLayout, imageIndex);
+        }
+        
         // Render meshes from the render system if we have an engine reference
         if (engine) {
             RenderSystem& renderSystem = engine->getRenderSystem();
@@ -1563,18 +1600,50 @@ namespace Sparky {
         memcpy(uniformBuffersMapped[currentImage], &ubo, sizeof(ubo));
     }
     
+    void VulkanRenderer::createLightingUniformBuffers() {
+        VkDeviceSize bufferSize = sizeof(LightUniformBufferObject) * 100; // Support up to 100 lights
+        
+        lightingUniformBuffers.resize(swapChainImages.size());
+        lightingUniformBuffersMemory.resize(swapChainImages.size());
+        lightingUniformBuffersMapped.resize(swapChainImages.size());
+        
+        for (size_t i = 0; i < swapChainImages.size(); i++) {
+            createBuffer(bufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, 
+                        VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, 
+                        lightingUniformBuffers[i], lightingUniformBuffersMemory[i]);
+            
+            vkMapMemory(device, lightingUniformBuffersMemory[i], 0, bufferSize, 0, &lightingUniformBuffersMapped[i]);
+        }
+        
+        SPARKY_LOG_INFO("Lighting uniform buffers created");
+    }
+    
+    void VulkanRenderer::updateLightingUniformBuffer(uint32_t currentImage, const std::vector<std::unique_ptr<Light>>& lights) {
+        // Create a vector of uniform buffer objects from the lights
+        std::vector<LightUniformBufferObject> lightUBOs;
+        Light::fillUniformBufferObjects(lightUBOs, lights);
+        
+        // Copy the light data to the uniform buffer
+        size_t bufferSize = sizeof(LightUniformBufferObject) * lightUBOs.size();
+        if (bufferSize > 0 && lightingUniformBuffersMapped[currentImage]) {
+            memcpy(lightingUniformBuffersMapped[currentImage], lightUBOs.data(), bufferSize);
+        }
+    }
+
     void VulkanRenderer::createDescriptorPool() {
-        std::array<VkDescriptorPoolSize, 2> poolSizes{};
+        std::array<VkDescriptorPoolSize, 3> poolSizes{};
         poolSizes[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-        poolSizes[0].descriptorCount = static_cast<uint32_t>(swapChainImages.size());
+        poolSizes[0].descriptorCount = static_cast<uint32_t>(swapChainImages.size()) * 2; // Camera + Lighting
         poolSizes[1].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-        poolSizes[1].descriptorCount = static_cast<uint32_t>(swapChainImages.size());
+        poolSizes[1].descriptorCount = static_cast<uint32_t>(swapChainImages.size()) * 2; // Textures + Skybox
+        poolSizes[2].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+        poolSizes[2].descriptorCount = static_cast<uint32_t>(swapChainImages.size()); // Material uniforms
         
         VkDescriptorPoolCreateInfo poolInfo{};
         poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
         poolInfo.poolSizeCount = static_cast<uint32_t>(poolSizes.size());
         poolInfo.pPoolSizes = poolSizes.data();
-        poolInfo.maxSets = static_cast<uint32_t>(swapChainImages.size());
+        poolInfo.maxSets = static_cast<uint32_t>(swapChainImages.size()) * 3; // Camera, lighting, material
         
         if (vkCreateDescriptorPool(device, &poolInfo, nullptr, &descriptorPool) != VK_SUCCESS) {
             throw std::runtime_error("failed to create descriptor pool!");
@@ -1597,12 +1666,19 @@ namespace Sparky {
         }
         
         for (size_t i = 0; i < swapChainImages.size(); i++) {
-            VkDescriptorBufferInfo bufferInfo{};
-            bufferInfo.buffer = uniformBuffers[i];
-            bufferInfo.offset = 0;
-            bufferInfo.range = sizeof(UniformBufferObject);
+            // Camera uniform buffer
+            VkDescriptorBufferInfo cameraBufferInfo{};
+            cameraBufferInfo.buffer = uniformBuffers[i];
+            cameraBufferInfo.offset = 0;
+            cameraBufferInfo.range = sizeof(UniformBufferObject);
             
-            std::array<VkWriteDescriptorSet, 1> descriptorWrites{};
+            // Lighting uniform buffer
+            VkDescriptorBufferInfo lightingBufferInfo{};
+            lightingBufferInfo.buffer = lightingUniformBuffers[i];
+            lightingBufferInfo.offset = 0;
+            lightingBufferInfo.range = sizeof(LightUniformBufferObject) * 100; // Support up to 100 lights
+            
+            std::array<VkWriteDescriptorSet, 2> descriptorWrites{};
             
             descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
             descriptorWrites[0].dstSet = descriptorSets[i];
@@ -1610,14 +1686,22 @@ namespace Sparky {
             descriptorWrites[0].dstArrayElement = 0;
             descriptorWrites[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
             descriptorWrites[0].descriptorCount = 1;
-            descriptorWrites[0].pBufferInfo = &bufferInfo;
+            descriptorWrites[0].pBufferInfo = &cameraBufferInfo;
+            
+            descriptorWrites[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+            descriptorWrites[1].dstSet = descriptorSets[i];
+            descriptorWrites[1].dstBinding = 1;
+            descriptorWrites[1].dstArrayElement = 0;
+            descriptorWrites[1].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+            descriptorWrites[1].descriptorCount = 1;
+            descriptorWrites[1].pBufferInfo = &lightingBufferInfo;
             
             vkUpdateDescriptorSets(device, static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);
         }
         
         SPARKY_LOG_INFO("Descriptor sets created");
     }
-    
+
     void VulkanRenderer::createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer& buffer, VkDeviceMemory& bufferMemory) {
         VkBufferCreateInfo bufferInfo{};
         bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;

@@ -13,6 +13,7 @@
 #include "../../Engine/include/RenderComponent.h"
 #include "../../Engine/include/Button.h"
 #include "../../Engine/include/Mesh.h"
+#include "../../Engine/include/OBJLoader.h"
 #include "../../Engine/include/RenderSystem.h"
 #include <glm/glm.hpp>
 
@@ -46,6 +47,9 @@ namespace Sparky {
             createQuests();
             setupAudio();
             setupGUI();
+            
+            // Load skybox
+            loadSkybox();
             
             // Set up initial camera position to see the level
             if (this->engine) {
@@ -299,9 +303,15 @@ namespace Sparky {
         player->setPosition(glm::vec3(0.0f, 0.0f, 0.0f));
         player->setScale(glm::vec3(1.0f, 1.8f, 1.0f));
         
-        // Add a render component with a cube mesh for the player
+        // Add a render component with a loaded 3D model for the player
         RenderComponent* renderComponent = player->addComponent<RenderComponent>();
-        playerMesh = Mesh::createCube(1.0f);
+        
+        // Try to load a 3D model, fall back to cube if loading fails
+        playerMesh = Sparky::OBJLoader::loadFromFile("Engine/assets/cube.obj");
+        if (!playerMesh) {
+            SPARKY_LOG_WARNING("Failed to load player model, using cube mesh");
+            playerMesh = Mesh::createCube(1.0f);
+        }
         renderComponent->setMesh(std::move(playerMesh));
         
         // Register with render system
@@ -329,9 +339,15 @@ namespace Sparky {
         enemy->setPosition(glm::vec3(3.0f, 0.0f, 3.0f)); // Position enemy where it can be seen
         enemy->setScale(glm::vec3(1.0f, 1.8f, 1.0f));
         
-        // Add a render component with a cube mesh for the enemy
+        // Add a render component with a loaded 3D model for the enemy
         RenderComponent* renderComponent = enemy->addComponent<RenderComponent>();
-        enemyMesh = Mesh::createCube(1.0f);
+        
+        // Try to load a 3D model, fall back to cube if loading fails
+        enemyMesh = Sparky::OBJLoader::loadFromFile("Engine/assets/cube.obj");
+        if (!enemyMesh) {
+            SPARKY_LOG_WARNING("Failed to load enemy model, using cube mesh");
+            enemyMesh = Mesh::createCube(1.0f);
+        }
         renderComponent->setMesh(std::move(enemyMesh));
         
         // Register with render system
@@ -393,6 +409,22 @@ namespace Sparky {
         SPARKY_LOG_DEBUG("GUI setup completed");
     }
 
+    void ExampleGame::loadSkybox() {
+        SPARKY_LOG_DEBUG("Loading skybox");
+        
+        if (!engine) {
+            SPARKY_LOG_ERROR("Cannot load skybox without engine");
+            return;
+        }
+        
+        // For now, we'll just log that skybox loading would be implemented
+        // In a full implementation, we would:
+        // 1. Load 6 textures for the skybox faces
+        // 2. Create a cubemap texture
+        // 3. Set up the skybox renderer
+        SPARKY_LOG_DEBUG("Skybox loading would be implemented here");
+    }
+    
     void ExampleGame::handleInput(float deltaTime) {
         if (!engine || !player) return;
         

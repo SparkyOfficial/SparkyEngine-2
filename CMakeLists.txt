@@ -1,64 +1,60 @@
+# Set the minimum required version of CMake
 cmake_minimum_required(VERSION 3.20)
-project(SparkyEngine2)
 
-# Set C++ standard
-set(CMAKE_CXX_STANDARD 20)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
+# Set the project name and version
+project(SparkyEngineProject VERSION 1.0)
 
-# Add Vulkan support
-set(VULKAN_SDK "E:/VulkanSDK/1.4.321.1")
-set(VULKAN_INCLUDE_DIRS "${VULKAN_SDK}/Include")
-set(VULKAN_LIBRARIES "${VULKAN_SDK}/Lib/vulkan-1.lib")
+# Specify the C++ standard
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED True)
 
-# Add GLFW support
-set(GLFW_DIR "C:/glfw-install")
-set(GLFW_INCLUDE_DIRS "${GLFW_DIR}/include")
-find_library(GLFW_LIBRARIES NAMES glfw3 glfw PATHS "${GLFW_DIR}/lib")
-if(NOT GLFW_LIBRARIES)
-    message(FATAL_ERROR "GLFW library not found in ${GLFW_DIR}/lib")
-endif()
-message(STATUS "Found GLFW library: ${GLFW_LIBRARIES}")
+# Set the path to the Vulkan SDK
+set(VULKAN_SDK_PATH "E:/VulkanSDK/1.4.321.1")
 
-# Add GLM support
+# Set the path to GLFW installation
+set(GLFW_PATH "C:/glfw-install")
+
+# Set the path to glslang installation
+set(GLSLANG_PATH "E:/VulkanSDK/1.4.321.1")
+
+# Find required packages
+find_package(Vulkan REQUIRED)
+find_package(glfw3 REQUIRED)
+
+# Set include directories
+set(VULKAN_INCLUDE_DIRS "${VULKAN_SDK_PATH}/Include")
+set(GLFW_INCLUDE_DIRS "${GLFW_PATH}/include")
 set(GLM_INCLUDE_DIRS "C:/glm-install/include")
+set(JSON_INCLUDE_DIRS "${CMAKE_CURRENT_SOURCE_DIR}/external/json/include")
+set(STB_INCLUDE_DIRS "${CMAKE_CURRENT_SOURCE_DIR}/external/stb")
 
-# Add JSON library support (nlohmann/json)
-set(JSON_INCLUDE_DIRS "C:/json-install/include")
+# Set library directories
+set(VULKAN_LIBRARIES 
+    "${VULKAN_SDK_PATH}/Lib/vulkan-1.lib"
+    "${GLSLANG_PATH}/Lib/glslang.lib"
+    "${GLSLANG_PATH}/Lib/SPIRV.lib"
+    "${GLSLANG_PATH}/Lib/glslang-default-resource-limits.lib"
+    "${GLSLANG_PATH}/Lib/SPIRV-Tools.lib"
+    "${GLSLANG_PATH}/Lib/SPIRV-Tools-opt.lib"
+)
+set(GLFW_LIBRARIES "${GLFW_PATH}/lib/glfw3.lib")
 
-# Try to find glslang
-find_package(glslang QUIET)
+# Add subdirectories
+add_subdirectory(Engine)
+add_subdirectory(Game)
 
-if(NOT glslang_FOUND)
-    # If not found, try to find it in common locations
-    find_library(GLSLANG_LIBRARY glslang PATHS ${VULKAN_SDK}/Lib)
-    find_library(SPIRV_LIBRARY SPIRV PATHS ${VULKAN_SDK}/Lib)
-    find_library(GLSLANG_DEFAULT_RESOURCE_LIMITS_LIBRARY glslang-default-resource-limits PATHS ${VULKAN_SDK}/Lib)
-    find_library(SPIRV_TOOLS_LIBRARY SPIRV-Tools PATHS ${VULKAN_SDK}/Lib)
-    find_library(SPIRV_TOOLS_OPT_LIBRARY SPIRV-Tools-opt PATHS ${VULKAN_SDK}/Lib)
-    
-    if(GLSLANG_LIBRARY AND SPIRV_LIBRARY AND GLSLANG_DEFAULT_RESOURCE_LIMITS_LIBRARY AND SPIRV_TOOLS_LIBRARY AND SPIRV_TOOLS_OPT_LIBRARY)
-        set(glslang_LIBRARIES ${GLSLANG_LIBRARY} ${SPIRV_LIBRARY} ${GLSLANG_DEFAULT_RESOURCE_LIMITS_LIBRARY} ${SPIRV_TOOLS_LIBRARY} ${SPIRV_TOOLS_OPT_LIBRARY})
-        message(STATUS "Found glslang libraries: ${glslang_LIBRARIES}")
-    else()
-        message(FATAL_ERROR "glslang libraries not found. Please install glslang development libraries.")
-    endif()
-endif()
+# Copy assets and shaders to build directory
+add_custom_command(TARGET SparkyEngine POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+    ${CMAKE_CURRENT_SOURCE_DIR}/Engine/assets
+    ${CMAKE_CURRENT_BINARY_DIR}/Engine/assets
+)
+
+add_custom_command(TARGET SparkyEngine POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+    ${CMAKE_CURRENT_SOURCE_DIR}/Engine/shaders
+    ${CMAKE_CURRENT_BINARY_DIR}/Engine/shaders
+)
 
 # Option to enable/disable audio support
 option(ENABLE_AUDIO "Enable audio support" OFF)
-
-# Engine library
-add_subdirectory(Engine)
-
-# Game executable
-add_subdirectory(Game)
-
-# Test executable (commented out since test_engine.cpp is missing)
-# add_executable(test_engine test_engine.cpp)
-# target_link_libraries(test_engine SparkyEngine)
-# target_include_directories(test_engine PRIVATE 
-#     ${CMAKE_CURRENT_SOURCE_DIR}/Engine/include
-#     ${VULKAN_INCLUDE_DIRS}
-#     ${GLFW_INCLUDE_DIRS}
-#     ${GLM_INCLUDE_DIRS}
-# )

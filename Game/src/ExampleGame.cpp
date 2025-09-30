@@ -8,7 +8,6 @@
 #include "../../Engine/include/Inventory.h"
 #include "../../Engine/include/Quest.h"
 #include "../../Engine/include/GUIManager.h"
-#include "../../Engine/include/BehaviorTree.h"
 #include "../../Engine/include/BehaviorTreeExample.h"
 #include "../../Engine/include/Logger.h"
 #include "../../Engine/include/RenderComponent.h"
@@ -150,7 +149,7 @@ namespace Sparky {
         
         // Start particle system
         if (particleSystem) {
-            particleSystem->setActive(true);
+            particleSystem->play();
         }
         
         // Start quest
@@ -174,7 +173,7 @@ namespace Sparky {
     void ExampleGame::endGame() {
         // Stop particle system
         if (particleSystem) {
-            particleSystem->setActive(false);
+            particleSystem->stop();
         }
         
         SPARKY_LOG_INFO("Game ended with score: " + std::to_string(score));
@@ -194,9 +193,9 @@ namespace Sparky {
         // Add a render component with a plane mesh
         RenderComponent* renderComponent = floor->addComponent<RenderComponent>();
         auto planeMesh = Mesh::createPlane(20.0f, 20.0f);
-        renderComponent->setMesh(Mesh::createPlane(20.0f, 20.0f));
         levelMeshes.push_back(std::move(planeMesh));
-
+        renderComponent->setMesh(levelMeshes.back().get());
+        
         // Register with render system
         if (renderSystem) {
             renderSystem->registerGameObject(floor.get());
@@ -210,11 +209,12 @@ namespace Sparky {
         platform1->setPosition(glm::vec3(5.0f, 1.0f, 0.0f)); // Raise platforms higher
         platform1->setSize(glm::vec3(3.0f, 1.0f, 3.0f));
         
-        // Create a cube for the platform
-        levelMeshes.push_back(Mesh::createCube(1.0f));
-        auto cubeRender1 = platform1->addComponent<RenderComponent>();
-        cubeRender1->setMesh(Mesh::createCube(1.0f));
-
+        // Add a render component with a cube mesh
+        RenderComponent* cubeRender1 = platform1->addComponent<RenderComponent>();
+        auto cubeMesh1 = Mesh::createCube(1.0f);
+        levelMeshes.push_back(std::move(cubeMesh1));
+        cubeRender1->setMesh(levelMeshes.back().get());
+        
         // Register with render system
         if (renderSystem) {
             renderSystem->registerGameObject(platform1.get());
@@ -227,11 +227,12 @@ namespace Sparky {
         platform2->setPosition(glm::vec3(-5.0f, 2.0f, 0.0f)); // Raise platforms higher
         platform2->setSize(glm::vec3(3.0f, 1.0f, 3.0f));
         
-        // Create another cube for the second platform
-        levelMeshes.push_back(Mesh::createCube(1.0f));
-        auto cubeRender2 = platform2->addComponent<RenderComponent>();
-        cubeRender2->setMesh(Mesh::createCube(1.0f));
-
+        // Add a render component with a cube mesh
+        RenderComponent* cubeRender2 = platform2->addComponent<RenderComponent>();
+        auto cubeMesh2 = Mesh::createCube(1.0f);
+        levelMeshes.push_back(std::move(cubeMesh2));
+        cubeRender2->setMesh(levelMeshes.back().get());
+        
         // Register with render system
         if (renderSystem) {
             renderSystem->registerGameObject(platform2.get());
@@ -244,11 +245,12 @@ namespace Sparky {
         ramp->setPosition(glm::vec3(0.0f, 1.0f, 5.0f));
         ramp->setSize(glm::vec3(8.0f, 1.0f, 3.0f));
         
-        // Create a ramp (triangular prism)
-        levelMeshes.push_back(Mesh::createCube(1.0f));
-        auto rampRender = ramp->addComponent<RenderComponent>();
-        rampRender->setMesh(Mesh::createCube(1.0f));
-
+        // Add a render component with a plane mesh
+        RenderComponent* rampRender = ramp->addComponent<RenderComponent>();
+        auto rampMesh = Mesh::createPlane(8.0f, 3.0f);
+        levelMeshes.push_back(std::move(rampMesh));
+        rampRender->setMesh(levelMeshes.back().get());
+        
         // Register with render system
         if (renderSystem) {
             renderSystem->registerGameObject(ramp.get());
@@ -257,18 +259,25 @@ namespace Sparky {
         platforms.push_back(std::move(ramp));
         
         // Create stairs with individual steps
-        for (int i = 0; i < 5; ++i) {
+        for (int i = 0; i < 5; i++) {
             auto step = std::make_unique<Platform>("Step" + std::to_string(i));
-            step->setPosition(glm::vec3(10.0f, i * 0.5f, -5.0f + i * 1.0f));
-            step->setSize(glm::vec3(2.0f, 0.5f, 1.0f));
+            step->setPosition(glm::vec3(8.0f, 0.5f + i * 1.0f, -5.0f + i * 1.0f));
+            step->setSize(glm::vec3(2.0f, 1.0f, 1.0f));
             
-            levelMeshes.push_back(Mesh::createCube(1.0f));
-            auto stepRender = step->addComponent<RenderComponent>();
-            stepRender->setMesh(Mesh::createCube(1.0f));
+            // Add a render component with a cube mesh
+            RenderComponent* stepRender = step->addComponent<RenderComponent>();
+            auto stepMesh = Mesh::createCube(1.0f);
+            levelMeshes.push_back(std::move(stepMesh));
+            stepRender->setMesh(levelMeshes.back().get());
+            
+            // Register with render system
+            if (renderSystem) {
+                renderSystem->registerGameObject(step.get());
+            }
             
             platforms.push_back(std::move(step));
         }
-
+        
         SPARKY_LOG_DEBUG("Level created with " + std::to_string(platforms.size()) + " platforms");
     }
 
@@ -280,11 +289,11 @@ namespace Sparky {
         player->setPosition(glm::vec3(0.0f, 0.0f, 0.0f));
         player->setScale(glm::vec3(1.0f, 1.8f, 1.0f));
         
-        // Create a mesh for the player
-        playerMesh = Mesh::createCube(0.5f); // Smaller cube for player
-        auto renderComponent = player->addComponent<RenderComponent>();
-        renderComponent->setMesh(Mesh::createCube(0.5f));
-
+        // Add a render component with a cube mesh for the player
+        RenderComponent* renderComponent = player->addComponent<RenderComponent>();
+        playerMesh = Mesh::createCube(1.0f);
+        renderComponent->setMesh(playerMesh.get());
+        
         // Register with render system
         if (renderSystem) {
             renderSystem->registerGameObject(player.get());
@@ -308,19 +317,19 @@ namespace Sparky {
         enemy->setPosition(glm::vec3(3.0f, 0.0f, 3.0f)); // Position enemy where it can be seen
         enemy->setScale(glm::vec3(1.0f, 1.8f, 1.0f));
         
-        // Create a mesh for the enemy
-        enemyMesh = Mesh::createCube(0.7f); // Slightly larger cube for enemy
-        auto renderComponent = enemy->addComponent<RenderComponent>();
-        renderComponent->setMesh(Mesh::createCube(0.7f));
-
+        // Add a render component with a cube mesh for the enemy
+        RenderComponent* renderComponent = enemy->addComponent<RenderComponent>();
+        enemyMesh = Mesh::createCube(1.0f);
+        renderComponent->setMesh(enemyMesh.get());
+        
         // Register with render system
         if (renderSystem) {
             renderSystem->registerGameObject(enemy.get());
         }
         
         // Create enemy AI behavior
-        enemyAI = createPatrolBehaviorTree(enemy.get(), player.get());
-
+        enemyAI = ExampleAIBehavior::createPatrolBehavior(enemy.get());
+        
         SPARKY_LOG_DEBUG("Enemy created");
     }
 

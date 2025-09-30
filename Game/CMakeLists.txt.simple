@@ -1,20 +1,41 @@
 cmake_minimum_required(VERSION 3.20)
 project(SparkyGame)
 
-# Create the game executable
 add_executable(SparkyGame
     src/main.cpp
+    src/ExampleGame.cpp 
     src/Player.cpp
     src/Platform.cpp
     src/Gun.cpp
     src/Level.cpp
-    src/ExampleGame.cpp
+    src/Enemy.cpp
+    src/PhysicsDemo.cpp
 )
 
-# Link with the engine library
-target_link_libraries(SparkyGame SparkyEngine glfw)
+target_compile_definitions(SparkyGame PRIVATE PROJECT_SOURCE_DIR="${PROJECT_SOURCE_DIR}")
 
-# Include directories
+target_link_libraries(SparkyGame SparkyEngine 
+    ${VULKAN_LIBRARIES}
+    ${GLFW_LIBRARIES}
+    ${glslang_LIBRARIES}
+)
+
 target_include_directories(SparkyGame PRIVATE 
     ${CMAKE_CURRENT_SOURCE_DIR}/../Engine/include
+    ${CMAKE_CURRENT_SOURCE_DIR}/../external
+    ${VULKAN_INCLUDE_DIRS}
+    ${GLFW_INCLUDE_DIRS}
+    ${GLM_INCLUDE_DIRS}
+    ${JSON_INCLUDE_DIRS}
+)
+
+# КОПИРОВАНИЕ ФАЙЛОВ ПРИ СБОРКЕ (более надежный способ)
+add_custom_command(TARGET SparkyGame POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+            "${PROJECT_SOURCE_DIR}/Engine/shaders"
+            "$<TARGET_FILE_DIR:SparkyGame>/Engine/shaders"
+    COMMAND ${CMAKE_COMMAND} -E copy
+            "${PROJECT_SOURCE_DIR}/Engine/assets/engine.cfg"
+            "$<TARGET_FILE_DIR:SparkyGame>/"
+    COMMENT "Copying assets and shaders..."
 )

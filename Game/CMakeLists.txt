@@ -1,73 +1,41 @@
 cmake_minimum_required(VERSION 3.20)
 project(SparkyGame)
 
-# Create the game executable
 add_executable(SparkyGame
     src/main.cpp
+    src/ExampleGame.cpp 
     src/Player.cpp
     src/Platform.cpp
     src/Gun.cpp
     src/Level.cpp
     src/Enemy.cpp
-    src/ExampleGame.cpp
     src/PhysicsDemo.cpp
 )
 
-# Create a test executable for JSON parsing
-add_executable(test_json_level
-    src/test_json_level.cpp
-    src/Level.cpp
-    src/Platform.cpp
-    src/Gun.cpp
-    src/Enemy.cpp
-    src/Player.cpp
-)
+target_compile_definitions(SparkyGame PRIVATE PROJECT_SOURCE_DIR="${CMAKE_SOURCE_DIR}")
 
-# Create a test executable for the new components
-add_executable(test_components
-    src/test_components.cpp
-    ../Engine/src/HealthComponent.cpp
-    ../Engine/src/AIComponent.cpp
-)
-
-# Pass the project source directory to the code
-target_compile_definitions(SparkyGame PRIVATE PROJECT_SOURCE_DIR="${PROJECT_SOURCE_DIR}")
-
-# Link with the engine library
 target_link_libraries(SparkyGame SparkyEngine 
     ${VULKAN_LIBRARIES}
     ${GLFW_LIBRARIES}
     ${glslang_LIBRARIES}
 )
 
-# Link the test executable with the engine library
-target_link_libraries(test_json_level SparkyEngine 
-    ${VULKAN_LIBRARIES}
-    ${GLFW_LIBRARIES}
-    ${glslang_LIBRARIES}
-)
-
-# Link the components test executable
-target_link_libraries(test_components SparkyEngine 
-    ${VULKAN_LIBRARIES}
-    ${GLFW_LIBRARIES}
-    ${glslang_LIBRARIES}
-)
-
-# Include directories
 target_include_directories(SparkyGame PRIVATE 
     ${CMAKE_CURRENT_SOURCE_DIR}/../Engine/include
     ${CMAKE_CURRENT_SOURCE_DIR}/../external
+    ${VULKAN_INCLUDE_DIRS}
+    ${GLFW_INCLUDE_DIRS}
+    ${GLM_INCLUDE_DIRS}
+    ${JSON_INCLUDE_DIRS}
 )
 
-# Include directories for test executable
-target_include_directories(test_json_level PRIVATE 
-    ${CMAKE_CURRENT_SOURCE_DIR}/../Engine/include
-    ${CMAKE_CURRENT_SOURCE_DIR}/../external
-)
-
-# Include directories for components test executable
-target_include_directories(test_components PRIVATE 
-    ${CMAKE_CURRENT_SOURCE_DIR}/../Engine/include
-    ${CMAKE_CURRENT_SOURCE_DIR}/../external
+# КОПИРОВАНИЕ ФАЙЛОВ ПРИ СБОРКЕ (более надежный способ)
+add_custom_command(TARGET SparkyGame POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+            "${CMAKE_SOURCE_DIR}/Engine/shaders"
+            "$<TARGET_FILE_DIR:SparkyGame>/Engine/shaders"
+    COMMAND ${CMAKE_COMMAND} -E copy
+            "${CMAKE_SOURCE_DIR}/Engine/assets/engine.cfg"
+            "$<TARGET_FILE_DIR:SparkyGame>/"
+    COMMENT "Copying assets and shaders..."
 )

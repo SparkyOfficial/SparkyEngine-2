@@ -2,21 +2,22 @@
 
 #include <memory>
 #include <vector>
+#include "../../Engine/include/BehaviorTree.h"
+#include "../../Engine/include/GUIManager.h"
+#include "../../Engine/include/Mesh.h"  // Add this include for Mesh class
 
 namespace Sparky {
     class Engine;
+    class RenderSystem;
     class GameObject;
     class Player;
     class Platform;
     class Light;
     class ParticleSystem;
-    class Quest;
     class Inventory;
-    class GUIManager;
-    class AudioEngine;
-    class BehaviorTree;
+    class Quest;
     class Mesh;
-    class RenderSystem;
+    class BehaviorTree;  // Forward declaration
 
     class ExampleGame {
     public:
@@ -28,51 +29,52 @@ namespace Sparky {
         void render();
         void shutdown();
 
-        // Game states
+        // Game state management
         void startGame();
         void pauseGame();
         void resumeGame();
         void endGame();
 
+        // Getters
+        bool isInitialized() const { return initialized; }
+        bool isPaused() const { return paused; }
+        int getScore() const { return score; }
+        int getHealth() const { return health; }
+
     private:
+        // Engine systems
         Engine* engine;
         RenderSystem* renderSystem;
-        bool initialized;
-        bool paused;
 
         // Game objects
         std::unique_ptr<Player> player;
-        std::vector<std::unique_ptr<Platform>> platforms;
         std::unique_ptr<GameObject> enemy;
-        
-        // Meshes for game objects
-        std::vector<std::unique_ptr<Mesh>> levelMeshes;
+        std::vector<std::unique_ptr<Platform>> platforms;
         std::unique_ptr<Mesh> playerMesh;
         std::unique_ptr<Mesh> enemyMesh;
-        
-        // Systems
+        std::vector<std::unique_ptr<Mesh>> levelMeshes;
+
+        // Game systems
         std::unique_ptr<ParticleSystem> particleSystem;
         std::unique_ptr<Inventory> playerInventory;
         std::unique_ptr<Quest> mainQuest;
-        std::unique_ptr<BehaviorTree> enemyAI;
-        
-        // Lighting
         std::unique_ptr<Light> directionalLight;
         std::unique_ptr<Light> pointLight;
-        
-        // Audio
-        // AudioEngine* audioEngine;  // Disabled due to missing OpenAL
-        
+        GUIManager* guiManager;  // Use pointer to access singleton
+
+        // AI
+        std::unique_ptr<BehaviorTree> enemyAI;
+
         // Game state
+        bool initialized;
+        bool paused;
         int score;
         int health;
 
-        // Private methods
-        void handleInput(float deltaTime);
-        void updateAI(float deltaTime);
-        void checkCollisions();
-        void updateUI();
-        
+        // Game objects list for mesh initialization
+        std::vector<GameObject*> allGameObjects; // Vector for storing all game objects
+
+        // Initialization methods
         void createLevel();
         void createPlayer();
         void createEnemy();
@@ -80,5 +82,12 @@ namespace Sparky {
         void createQuests();
         void setupAudio();
         void setupGUI();
+        void initializeMeshes(); // Method for initializing meshes
+
+        // Game loop methods
+        void handleInput(float deltaTime);
+        void updateAI(float deltaTime);
+        void checkCollisions();
+        void updateUI();
     };
 }

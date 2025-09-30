@@ -120,7 +120,6 @@ namespace Sparky {
             createImageViews();
             createRenderPass();
             createDescriptorSetLayout();
-            createMaterialDescriptorSetLayout();
             createGraphicsPipeline();
             createCommandPool();
             createDepthResources();
@@ -255,10 +254,7 @@ namespace Sparky {
     }
 
     void VulkanRenderer::render() {
-        SPARKY_LOG_DEBUG("Starting VulkanRenderer::render()");
         vkWaitForFences(device, 1, &inFlightFence, VK_TRUE, UINT64_MAX);
-        
-        SPARKY_LOG_DEBUG("Fence wait completed");
         
         // Check if framebuffer was resized
         if (engine && engine->getWindowManager().framebufferResized) {
@@ -268,7 +264,6 @@ namespace Sparky {
         }
         
         uint32_t imageIndex;
-        SPARKY_LOG_DEBUG("About to acquire next image");
         VkResult result = vkAcquireNextImageKHR(device, swapChain, UINT64_MAX, imageAvailableSemaphore, VK_NULL_HANDLE, &imageIndex);
         
         if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR || (engine && engine->getWindowManager().framebufferResized)) {
@@ -279,21 +274,13 @@ namespace Sparky {
             throw std::runtime_error("failed to acquire swap chain image!");
         }
         
-        SPARKY_LOG_DEBUG("Image acquired, index: " + std::to_string(imageIndex));
-        
         // Update uniform buffer
         updateUniformBuffer(imageIndex);
         
-        SPARKY_LOG_DEBUG("Uniform buffer updated");
-        
         vkResetFences(device, 1, &inFlightFence);
-        
-        SPARKY_LOG_DEBUG("Fence reset");
         
         vkResetCommandBuffer(commandBuffers[imageIndex], 0);
         recordCommandBuffer(commandBuffers[imageIndex], imageIndex);
-        
-        SPARKY_LOG_DEBUG("Command buffer recorded");
         
         VkSubmitInfo submitInfo{};
         submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
@@ -310,12 +297,9 @@ namespace Sparky {
         submitInfo.signalSemaphoreCount = 1;
         submitInfo.pSignalSemaphores = signalSemaphores;
         
-        SPARKY_LOG_DEBUG("About to submit command buffer");
         if (vkQueueSubmit(graphicsQueue, 1, &submitInfo, inFlightFence) != VK_SUCCESS) {
             throw std::runtime_error("failed to submit draw command buffer!");
         }
-        
-        SPARKY_LOG_DEBUG("Command buffer submitted");
         
         VkPresentInfoKHR presentInfo{};
         presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
@@ -327,7 +311,6 @@ namespace Sparky {
         presentInfo.pSwapchains = swapChains;
         presentInfo.pImageIndices = &imageIndex;
         
-        SPARKY_LOG_DEBUG("About to present");
         result = vkQueuePresentKHR(presentQueue, &presentInfo);
         
         if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR) {
@@ -336,10 +319,7 @@ namespace Sparky {
             throw std::runtime_error("failed to present swap chain image!");
         }
         
-        SPARKY_LOG_DEBUG("Present completed");
-        
         currentFrame = (currentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
-        SPARKY_LOG_DEBUG("Frame completed");
     }
 
     void VulkanRenderer::renderMeshes() {
@@ -694,33 +674,21 @@ namespace Sparky {
     }
 
     void VulkanRenderer::createMaterialDescriptorSetLayout() {
-        // Create bindings for all the resources used in the fragment shader
-        
-        // Lighting buffer (binding = 1)
-        VkDescriptorSetLayoutBinding lightingBinding{};
-        lightingBinding.binding = 1;
-        lightingBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-        lightingBinding.descriptorCount = 1;
-        lightingBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
-        lightingBinding.pImmutableSamplers = nullptr;
-        
-        // Material buffer (binding = 2)
-        VkDescriptorSetLayoutBinding materialBinding{};
-        materialBinding.binding = 2;
-        materialBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-        materialBinding.descriptorCount = 1;
-        materialBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
-        materialBinding.pImmutableSamplers = nullptr;
-        
-        // Texture sampler (binding = 3)
+        VkDescriptorSetLayoutBinding materialUniformBinding{};
+        materialUniformBinding.binding = 0;
+        materialUniformBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+        materialUniformBinding.descriptorCount = 1;
+        materialUniformBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+        materialUniformBinding.pImmutableSamplers = nullptr;
+
         VkDescriptorSetLayoutBinding samplerBinding{};
-        samplerBinding.binding = 3;
+        samplerBinding.binding = 1;
         samplerBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
         samplerBinding.descriptorCount = 1;
         samplerBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
         samplerBinding.pImmutableSamplers = nullptr;
 
-        std::array<VkDescriptorSetLayoutBinding, 3> bindings = {lightingBinding, materialBinding, samplerBinding};
+        std::array<VkDescriptorSetLayoutBinding, 2> bindings = {materialUniformBinding, samplerBinding};
         VkDescriptorSetLayoutCreateInfo layoutInfo{};
         layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
         layoutInfo.bindingCount = static_cast<uint32_t>(bindings.size());
@@ -749,69 +717,123 @@ namespace Sparky {
     void VulkanRenderer::createGraphicsPipeline() {
         SPARKY_LOG_INFO("Creating graphics pipeline");
         
+        // Use the advanced shaders instead of basic ones
         // Get the directory where the executable is located
         std::string exePath = Sparky::FileUtils::getExecutablePath();
-        std::string exeDir = Sparky::FileUtils::getDirectory(exePath);
+        std::string buildDir = Sparky::FileUtils::getDirectory(exePath);
         
-        SPARKY_LOG_INFO("Executable path: " + exePath);
-        SPARKY_LOG_INFO("Executable directory: " + exeDir);
+        // Try to find shaders relative to the executable first
+        std::string vertShaderPath = buildDir + "/../Engine/shaders/advanced.vert";
+        std::string fragShaderPath = buildDir + "/../Engine/shaders/advanced.frag";
+        std::string vertSPVPath = buildDir + "/../Engine/shaders/advanced.vert.spv";
+        std::string fragSPVPath = buildDir + "/../Engine/shaders/advanced.frag.spv";
         
-        // Paths where shaders might be located, in order of priority
-        // Add the current working directory as the first search path
-        std::vector<std::string> searchPaths = {
-            "./Engine/shaders/",                            // Relative to current working directory
-            exeDir + "/Engine/shaders/",                    // Next to executable (after copying)
-            exeDir + "/../Engine/shaders/",                 // One level up (standard structure)
-            exeDir + "/../../Engine/shaders/",              // Two levels up
-            std::string(TOSTRING(PROJECT_SOURCE_DIR)) + "/Engine/shaders/"  // Path from CMake (for development)
-        };
-        
-        SPARKY_LOG_INFO("Number of search paths: " + std::to_string(searchPaths.size()));
-        
-        std::string vertShaderPathFound, fragShaderPathFound;
-        bool found = false;
-        
-        for (size_t i = 0; i < searchPaths.size(); ++i) {
-            const auto& path = searchPaths[i];
-            std::string vertPath = path + "basic.vert.spv";
-            std::string fragPath = path + "basic.frag.spv";
-            SPARKY_LOG_INFO("Trying shader path " + std::to_string(i) + ": " + path);
-            SPARKY_LOG_INFO("Checking vertex shader: " + vertPath);
-            SPARKY_LOG_INFO("Checking fragment shader: " + fragPath);
-            bool vertExists = Sparky::FileUtils::fileExists(vertPath);
-            bool fragExists = Sparky::FileUtils::fileExists(fragPath);
-            SPARKY_LOG_INFO("Vertex shader exists: " + std::to_string(vertExists));
-            SPARKY_LOG_INFO("Fragment shader exists: " + std::to_string(fragExists));
-            if (vertExists && fragExists) {
-                vertShaderPathFound = vertPath;
-                fragShaderPathFound = fragPath;
-                found = true;
-                SPARKY_LOG_INFO("Found shaders at: " + path);
-                break;
+        // If shaders are not found relative to executable, try the original project source directory
+        if (!Sparky::FileUtils::fileExists(vertShaderPath) || !Sparky::FileUtils::fileExists(fragShaderPath)) {
+            std::string project_root = TOSTRING(PROJECT_SOURCE_DIR);
+            if (!project_root.empty() && project_root.front() == '"') {
+                project_root = project_root.substr(1);
             }
-        }
-        
-        if (!found) {
-            SPARKY_LOG_ERROR("Failed to find shader files in any of the search paths!");
-            throw std::runtime_error("Failed to find shader files!");
+            if (!project_root.empty() && project_root.back() == '"') {
+                project_root = project_root.substr(0, project_root.length() - 1);
+            }
+            
+            vertShaderPath = project_root + "/Engine/shaders/advanced.vert";
+            fragShaderPath = project_root + "/Engine/shaders/advanced.frag";
+            vertSPVPath = project_root + "/Engine/shaders/advanced.vert.spv";
+            fragSPVPath = project_root + "/Engine/shaders/advanced.frag.spv";
         }
         
         std::vector<uint32_t> vertShaderCode;
         std::vector<uint32_t> fragShaderCode;
         
         try {
-            vertShaderCode = ShaderCompiler::loadSPIRVFromFile(vertShaderPathFound);
-            fragShaderCode = ShaderCompiler::loadSPIRVFromFile(fragShaderPathFound);
-            SPARKY_LOG_INFO("Loaded pre-compiled SPIR-V files");
+            // Check if SPIR-V files exist
+            bool vertSPVFound = Sparky::FileUtils::fileExists(vertSPVPath);
+            bool fragSPVFound = Sparky::FileUtils::fileExists(fragSPVPath);
+            bool vertShaderFound = Sparky::FileUtils::fileExists(vertShaderPath);
+            bool fragShaderFound = Sparky::FileUtils::fileExists(fragShaderPath);
+            
+            SPARKY_LOG_DEBUG("Vertex shader SPV found: " + std::to_string(vertSPVFound) + " at " + vertSPVPath);
+            SPARKY_LOG_DEBUG("Fragment shader SPV found: " + std::to_string(fragSPVFound) + " at " + fragSPVPath);
+            SPARKY_LOG_DEBUG("Vertex shader GLSL found: " + std::to_string(vertShaderFound) + " at " + vertShaderPath);
+            SPARKY_LOG_DEBUG("Fragment shader GLSL found: " + std::to_string(fragShaderFound) + " at " + fragShaderPath);
+            
+            // Prioritize SPIR-V files if they exist
+            if (vertSPVFound && fragSPVFound) {
+                // Load pre-compiled SPIR-V files
+                vertShaderCode = ShaderCompiler::loadSPIRVFromFile(vertSPVPath);
+                fragShaderCode = ShaderCompiler::loadSPIRVFromFile(fragSPVPath);
+                SPARKY_LOG_INFO("Loaded pre-compiled SPIR-V files");
+            } else if (vertShaderFound && fragShaderFound) {
+                // Compile GLSL shaders if SPIR-V files don't exist
+                // Read vertex shader source
+                std::vector<char> vertSource = FileUtils::readFile(vertShaderPath);
+                std::string vertSourceStr(vertSource.begin(), vertSource.end());
+                SPARKY_LOG_DEBUG("Vertex shader source length: " + std::to_string(vertSourceStr.length()));
+                
+                // Read fragment shader source
+                std::vector<char> fragSource = FileUtils::readFile(fragShaderPath);
+                std::string fragSourceStr(fragSource.begin(), fragSource.end());
+                SPARKY_LOG_DEBUG("Fragment shader source length: " + std::to_string(fragSourceStr.length()));
+                
+                // Compile shaders - try to compile GLSL to SPIR-V first
+                try {
+                    vertShaderCode = ShaderCompiler::compileGLSLToSPIRV(vertSourceStr, 0); // 0 = vertex shader
+                    fragShaderCode = ShaderCompiler::compileGLSLToSPIRV(fragSourceStr, 1); // 1 = fragment shader
+                    
+                    // Save compiled SPIR-V to files for future use
+                    std::ofstream vertSPVFile(vertSPVPath, std::ios::binary);
+                    if (vertSPVFile.is_open()) {
+                        vertSPVFile.write(reinterpret_cast<const char*>(vertShaderCode.data()), vertShaderCode.size() * sizeof(uint32_t));
+                        vertSPVFile.close();
+                        SPARKY_LOG_INFO("Vertex shader compiled and saved to: " + vertSPVPath);
+                    }
+                    
+                    std::ofstream fragSPVFile(fragSPVPath, std::ios::binary);
+                    if (fragSPVFile.is_open()) {
+                        fragSPVFile.write(reinterpret_cast<const char*>(fragShaderCode.data()), fragShaderCode.size() * sizeof(uint32_t));
+                        fragSPVFile.close();
+                        SPARKY_LOG_INFO("Fragment shader compiled and saved to: " + fragSPVPath);
+                    }
+                    
+                    SPARKY_LOG_INFO("Shaders compiled successfully");
+                } catch (const std::exception& compileError) {
+                    SPARKY_LOG_WARNING("GLSL compilation failed: " + std::string(compileError.what()));
+                    
+                    // If compilation fails, try to load pre-compiled SPIR-V
+                    if (vertSPVFound && fragSPVFound) {
+                        vertShaderCode = ShaderCompiler::loadSPIRVFromFile(vertSPVPath);
+                        fragShaderCode = ShaderCompiler::loadSPIRVFromFile(fragSPVPath);
+                        SPARKY_LOG_INFO("Loaded pre-compiled SPIR-V files as fallback");
+                    } else {
+                        SPARKY_LOG_ERROR("Failed to find SPIR-V files");
+                        throw std::runtime_error("Failed to compile shaders: " + std::string(compileError.what()));
+                    }
+                }
+            } else {
+                SPARKY_LOG_ERROR("Failed to find shader files");
+                throw std::runtime_error("Failed to find shader files");
+            }
         } catch (const std::exception& e) {
-            SPARKY_LOG_ERROR("Failed to load pre-compiled SPIR-V, even though files exist. Error: " + std::string(e.what()));
-            throw;
+            SPARKY_LOG_ERROR("Failed to compile shaders: " + std::string(e.what()));
+            // Try to load pre-compiled SPIR-V files as a last resort
+            try {
+                if (Sparky::FileUtils::fileExists(vertSPVPath) && Sparky::FileUtils::fileExists(fragSPVPath)) {
+                    vertShaderCode = ShaderCompiler::loadSPIRVFromFile(vertSPVPath);
+                    fragShaderCode = ShaderCompiler::loadSPIRVFromFile(fragSPVPath);
+                    SPARKY_LOG_INFO("Loaded pre-compiled SPIR-V files as emergency fallback");
+                } else {
+                    throw std::runtime_error("Failed to compile shaders and no pre-compiled SPIR-V files found");
+                }
+            } catch (const std::exception& fallbackError) {
+                SPARKY_LOG_ERROR("Emergency fallback also failed: " + std::string(fallbackError.what()));
+                throw std::runtime_error("Failed to compile shaders: " + std::string(e.what()));
+            }
         }
 
-        SPARKY_LOG_INFO("Creating shader modules");
         VkShaderModule vertShaderModule = createShaderModule(vertShaderCode);
         VkShaderModule fragShaderModule = createShaderModule(fragShaderCode);
-        SPARKY_LOG_INFO("Shader modules created successfully");
 
         VkPipelineShaderStageCreateInfo vertShaderStageInfo{};
         vertShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
@@ -866,39 +888,25 @@ namespace Sparky {
         rasterizer.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
         rasterizer.depthBiasEnable = VK_FALSE;
 
-        // Multisampling - use very simple configuration
+        // Multisampling
         VkPipelineMultisampleStateCreateInfo multisampling{};
         multisampling.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
         multisampling.sampleShadingEnable = VK_FALSE;
         multisampling.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
-        multisampling.minSampleShading = 1.0f; // Optional
-        multisampling.pSampleMask = nullptr; // Optional
-        multisampling.alphaToCoverageEnable = VK_FALSE; // Optional
-        multisampling.alphaToOneEnable = VK_FALSE; // Optional
 
-        // Depth stencil - use very simple configuration
+        // Depth stencil
         VkPipelineDepthStencilStateCreateInfo depthStencil{};
         depthStencil.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
-        depthStencil.depthTestEnable = VK_FALSE;
-        depthStencil.depthWriteEnable = VK_FALSE;
-        depthStencil.depthCompareOp = VK_COMPARE_OP_ALWAYS;
+        depthStencil.depthTestEnable = VK_TRUE;
+        depthStencil.depthWriteEnable = VK_TRUE;
+        depthStencil.depthCompareOp = VK_COMPARE_OP_LESS;
         depthStencil.depthBoundsTestEnable = VK_FALSE;
         depthStencil.stencilTestEnable = VK_FALSE;
-        depthStencil.front = {};
-        depthStencil.back = {};
-        depthStencil.minDepthBounds = 0.0f;
-        depthStencil.maxDepthBounds = 1.0f;
 
-        // Color blending - use very simple configuration
+        // Color blending
         VkPipelineColorBlendAttachmentState colorBlendAttachment{};
         colorBlendAttachment.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
         colorBlendAttachment.blendEnable = VK_FALSE;
-        colorBlendAttachment.srcColorBlendFactor = VK_BLEND_FACTOR_ONE; // Optional
-        colorBlendAttachment.dstColorBlendFactor = VK_BLEND_FACTOR_ZERO; // Optional
-        colorBlendAttachment.colorBlendOp = VK_BLEND_OP_ADD; // Optional
-        colorBlendAttachment.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE; // Optional
-        colorBlendAttachment.dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO; // Optional
-        colorBlendAttachment.alphaBlendOp = VK_BLEND_OP_ADD; // Optional
 
         VkPipelineColorBlendStateCreateInfo colorBlending{};
         colorBlending.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
@@ -936,12 +944,9 @@ namespace Sparky {
         pipelineLayoutInfo.pushConstantRangeCount = 1;
         pipelineLayoutInfo.pPushConstantRanges = &pushConstantRange;
 
-        SPARKY_LOG_INFO("Creating pipeline layout");
         if (vkCreatePipelineLayout(device, &pipelineLayoutInfo, nullptr, &pipelineLayout) != VK_SUCCESS) {
-            SPARKY_LOG_ERROR("Failed to create pipeline layout!");
             throw std::runtime_error("failed to create pipeline layout!");
         }
-        SPARKY_LOG_INFO("Pipeline layout created successfully");
 
         // Graphics pipeline
         VkGraphicsPipelineCreateInfo pipelineInfo{};
@@ -962,13 +967,9 @@ namespace Sparky {
         pipelineInfo.subpass = 0;
         pipelineInfo.basePipelineHandle = VK_NULL_HANDLE;
 
-        SPARKY_LOG_INFO("About to create graphics pipeline");
-        VkResult result = vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &graphicsPipeline);
-        if (result != VK_SUCCESS) {
-            SPARKY_LOG_ERROR("Failed to create graphics pipeline! Result code: " + std::to_string(result));
+        if (vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &graphicsPipeline) != VK_SUCCESS) {
             throw std::runtime_error("failed to create graphics pipeline!");
         }
-        SPARKY_LOG_INFO("Graphics pipeline creation succeeded");
 
         // Cleanup
         vkDestroyShaderModule(device, fragShaderModule, nullptr);
@@ -1340,15 +1341,12 @@ namespace Sparky {
     }
 
     void VulkanRenderer::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex) {
-        SPARKY_LOG_DEBUG("Starting recordCommandBuffer");
         VkCommandBufferBeginInfo beginInfo{};
         beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
         
         if (vkBeginCommandBuffer(commandBuffer, &beginInfo) != VK_SUCCESS) {
             throw std::runtime_error("failed to begin recording command buffer!");
         }
-        
-        SPARKY_LOG_DEBUG("Command buffer begin successful");
         
         VkRenderPassBeginInfo renderPassInfo{};
         renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
@@ -1367,11 +1365,7 @@ namespace Sparky {
         
         vkCmdBeginRenderPass(commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
         
-        SPARKY_LOG_DEBUG("Render pass begun");
-        
         vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipeline);
-        
-        SPARKY_LOG_DEBUG("Pipeline bound");
         
         // Set Viewport
         VkViewport viewport{};
@@ -1391,8 +1385,6 @@ namespace Sparky {
         
         // Bind descriptor sets
         vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSets[imageIndex], 0, nullptr);
-        
-        SPARKY_LOG_DEBUG("Viewport, scissor, and descriptor sets set");
         
         // Render meshes from the render system if we have an engine reference
         if (engine) {
@@ -1486,13 +1478,9 @@ namespace Sparky {
 
         vkCmdEndRenderPass(commandBuffer);
         
-        SPARKY_LOG_DEBUG("Render pass ended");
-        
         if (vkEndCommandBuffer(commandBuffer) != VK_SUCCESS) {
             throw std::runtime_error("failed to record command buffer!");
         }
-        
-        SPARKY_LOG_DEBUG("Command buffer recording completed");
     }
 
     void VulkanRenderer::createSyncObjects() {

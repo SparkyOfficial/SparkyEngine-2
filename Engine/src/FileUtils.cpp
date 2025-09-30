@@ -3,6 +3,10 @@
 #include <fstream>
 #include <sstream>
 #include <iostream>
+#include <windows.h>
+#include <vector>
+#include <string>
+#include <algorithm>
 
 namespace Sparky {
 
@@ -29,7 +33,8 @@ namespace Sparky {
         file.close();
 
         // Log first part of file content for debugging
-        std::string content(buffer.data(), std::min(fileSize, (size_t)200));
+        size_t previewSize = fileSize < 200 ? fileSize : 200;
+        std::string content(buffer.data(), previewSize);
         SPARKY_LOG_DEBUG("File content preview: " + content);
         
         SPARKY_LOG_DEBUG("File read successfully, size: " + std::to_string(fileSize) + " bytes");
@@ -75,5 +80,46 @@ namespace Sparky {
             return "";
         }
         return filepath.substr(0, lastSlash);
+    }
+
+    std::string FileUtils::getExecutablePath() {
+        std::vector<wchar_t> pathBuf;
+        DWORD copied = 0;
+        do {
+            pathBuf.resize(pathBuf.size() + MAX_PATH);
+            copied = GetModuleFileNameW(NULL, &pathBuf[0], pathBuf.size());
+        } while (copied >= pathBuf.size());
+
+        pathBuf.resize(copied);
+
+        std::wstring widePath(pathBuf.begin(), pathBuf.end());
+        
+        // Log the wide path for debugging
+        SPARKY_LOG_DEBUG("Wide executable path: " + std::to_string(widePath.length()) + " chars");
+        
+        // Log each character of the wide path for debugging
+        std::string widePathDebug = "Wide path characters: ";
+        for (size_t i = 0; i < widePath.length() && i < 20; ++i) {
+            widePathDebug += std::to_string((int)widePath[i]) + " ";
+        }
+        SPARKY_LOG_DEBUG(widePathDebug);
+        
+        // Convert wide string to UTF-8 with error handling
+        int size_needed = WideCharToMultiByte(CP_UTF8, 0, widePath.c_str(), (int)widePath.size(), NULL, 0, NULL, NULL);
+        if (size_needed == 0) {
+            SPARKY_LOG_ERROR("Failed to convert wide string to UTF-8");
+            return "";
+        }
+        
+        std::string strTo(size_needed, 0);
+        int converted = WideCharToMultiByte(CP_UTF8, 0, widePath.c_str(), (int)widePath.size(), &strTo[0], size_needed, NULL, NULL);
+        if (converted == 0) {
+            SPARKY_LOG_ERROR("Failed to convert wide string to UTF-8");
+            return "";
+        }
+        
+        SPARKY_LOG_DEBUG("Final executable path: " + strTo);
+        
+        return strTo;
     }
 }

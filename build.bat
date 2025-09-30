@@ -19,13 +19,13 @@ if %ERRORLEVEL% EQU 0 (
     echo Build completed successfully!
     echo.
     echo To run the game, execute:
-    echo   build\bin\Release\SparkyGame.exe
+    echo   build\Game\Release\SparkyGame.exe
     echo.
     echo To run the JSON level test, execute:
-    echo   build\bin\Release\test_json_level.exe
+    echo   build\Engine\Release\test_json_level.exe
     echo.
     echo To run the components test, execute:
-    echo   build\bin\Release\test_components.exe
+    echo   build\Engine\Release\test_components.exe
 ) else (
     echo.
     echo Build failed with error level %ERRORLEVEL%

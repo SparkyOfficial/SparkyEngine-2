@@ -12,5 +12,6 @@ namespace Sparky {
         static std::string getFileName(const std::string& filepath);
         static std::string getFileExtension(const std::string& filepath);
         static std::string getDirectory(const std::string& filepath);
+        static std::string getExecutablePath();
     };
 }

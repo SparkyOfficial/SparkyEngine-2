@@ -17,7 +17,7 @@ int main() {
     SPARKY_PROFILE("Main");
     
     // Load engine configuration
-    Sparky::Config::getInstance().loadFromFile("../Engine/assets/engine.cfg");
+    Sparky::Config::getInstance().loadFromFile("engine.cfg");
     
     // Set up logger
     Sparky::Logger::getInstance().setLogLevel(

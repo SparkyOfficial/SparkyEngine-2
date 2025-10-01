@@ -21,7 +21,13 @@ set(GLSLANG_PATH "E:/VulkanSDK/1.4.321.1")
 find_package(Vulkan QUIET)
 
 # Try to find GLFW, but make it optional
-find_package(glfw3 QUIET)
+# First try with the specified path, then try in PATH
+find_package(glfw3 QUIET HINTS "${GLFW_PATH}")
+
+# If not found in the specified path, try to find it in PATH
+if (NOT glfw3_FOUND)
+    find_package(glfw3 QUIET)
+endif()
 
 # Set include directories
 set(GLM_INCLUDE_DIRS "C:/glm-install/include")
@@ -43,10 +49,21 @@ else()
     message(WARNING "Vulkan not found. Building without Vulkan support.")
 endif()
 
-# Only set GLFW libraries if GLFW was found
+# Set GLFW libraries based on how it was found
 if (glfw3_FOUND)
-    set(GLFW_INCLUDE_DIRS "${GLFW_PATH}/include")
-    set(GLFW_LIBRARIES "${GLFW_PATH}/lib/glfw3.lib")
+    # If GLFW was found via find_package, use the variables it provides
+    if (TARGET glfw)
+        # GLFW found as a target (modern CMake)
+        set(GLFW_LIBRARIES glfw)
+    elseif(DEFINED glfw3_INCLUDE_DIRS AND DEFINED glfw3_LIBRARIES)
+        # Use the found GLFW variables (older CMake)
+        set(GLFW_INCLUDE_DIRS ${glfw3_INCLUDE_DIRS})
+        set(GLFW_LIBRARIES ${glfw3_LIBRARIES})
+    else()
+        # Fallback to manual path specification
+        set(GLFW_INCLUDE_DIRS "${GLFW_PATH}/include")
+        set(GLFW_LIBRARIES "${GLFW_PATH}/lib/glfw3.lib")
+    endif()
 else()
     message(WARNING "GLFW not found. Building without window support.")
 endif()

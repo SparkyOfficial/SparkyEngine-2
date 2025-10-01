@@ -102,12 +102,7 @@ if (Vulkan_FOUND)
     )
 endif()
 
-# Only include GLFW include directories if GLFW was found
-if (glfw3_FOUND)
-    target_include_directories(SparkyEngine PUBLIC 
-        ${GLFW_INCLUDE_DIRS}
-    )
-endif()
+# GLFW linking will be handled in the unified section below
 
 target_include_directories(simple_test PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/include
@@ -148,7 +143,7 @@ endif()
 # Link libraries
 # Only link Vulkan libraries if Vulkan was found
 if (Vulkan_FOUND)
-    target_link_libraries(SparkyEngine 
+    target_link_libraries(SparkyEngine PRIVATE
         ${VULKAN_LIBRARIES}
     )
     
@@ -167,21 +162,28 @@ endif()
 
 # Only link GLFW libraries if GLFW was found
 if (glfw3_FOUND)
-    target_link_libraries(SparkyEngine 
-        ${GLFW_LIBRARIES}
-    )
-    
-    target_link_libraries(simple_test SparkyEngine
-        ${GLFW_LIBRARIES}
-    )
-    
-    target_link_libraries(test_unicode SparkyEngine
-        ${GLFW_LIBRARIES}
-    )
-    
-    target_link_libraries(test_skybox SparkyEngine
-        ${GLFW_LIBRARIES}
-    )
+    if (TARGET glfw)
+        # GLFW found as target
+        target_link_libraries(SparkyEngine PRIVATE glfw)
+        target_link_libraries(simple_test SparkyEngine glfw)
+        target_link_libraries(test_unicode SparkyEngine glfw)
+        target_link_libraries(test_skybox SparkyEngine glfw)
+    else()
+        # GLFW found via manual configuration
+        target_include_directories(SparkyEngine PUBLIC 
+            ${GLFW_INCLUDE_DIRS}
+        )
+        target_link_libraries(SparkyEngine PRIVATE ${GLFW_LIBRARIES})
+        target_link_libraries(simple_test SparkyEngine
+            ${GLFW_LIBRARIES}
+        )
+        target_link_libraries(test_unicode SparkyEngine
+            ${GLFW_LIBRARIES}
+        )
+        target_link_libraries(test_skybox SparkyEngine
+            ${GLFW_LIBRARIES}
+        )
+    endif()
 endif()
 
 # Compiler definitions

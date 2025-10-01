@@ -1,6 +1,9 @@
 #include "../include/HealthComponent.h"
 #include "../include/Logger.h"
+
+#ifdef HAS_GLFW
 #include <GLFW/glfw3.h>
+#endif
 
 namespace Sparky {
 
@@ -16,7 +19,14 @@ namespace Sparky {
     void HealthComponent::update(float deltaTime) {
         // Handle health regeneration
         if (regenerationRate > 0.0f && currentHealth < maxHealth && currentHealth > 0) {
+#ifdef HAS_GLFW
             float currentTime = static_cast<float>(glfwGetTime());
+#else
+            // Fallback implementation
+            static float fallbackTime = 0.0f;
+            fallbackTime += deltaTime;
+            float currentTime = fallbackTime;
+#endif
             if (lastRegenerationTime == 0.0f) {
                 lastRegenerationTime = currentTime;
             }

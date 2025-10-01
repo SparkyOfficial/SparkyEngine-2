@@ -1,6 +1,10 @@
 #pragma once
 
+#ifdef HAS_GLFW
 struct GLFWwindow;
+#else
+typedef void GLFWwindow;
+#endif
 
 namespace Sparky {
     class WindowManager {

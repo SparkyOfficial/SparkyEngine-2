@@ -242,14 +242,14 @@ namespace Sparky {
     }
 
     void VulkanRenderer::recreateSwapChain() {
-        // #ifdef HAS_GLFW (removed for structural integrity)
+        #ifdef HAS_GLFW
         int width = 0, height = 0;
         glfwGetFramebufferSize(static_cast<GLFWwindow*>(windowHandle), &width, &height);
         while (width == 0 || height == 0) {
             glfwGetFramebufferSize(static_cast<GLFWwindow*>(windowHandle), &width, &height);
             glfwWaitEvents();
         }
-        // #endif (removed for structural integrity)
+        #endif
 
         vkDeviceWaitIdle(device);
         
@@ -267,9 +267,9 @@ namespace Sparky {
         createCommandBuffers();
         
         // Re-register framebuffer resize callback
-        // #ifdef HAS_GLFW (removed for structural integrity)
+        #ifdef HAS_GLFW
         glfwSetFramebufferSizeCallback(static_cast<GLFWwindow*>(windowHandle), WindowManager::framebufferResizeCallback);
-        // #endif (removed for structural integrity)
+        #endif
     }
 
     void VulkanRenderer::render() {
@@ -453,18 +453,18 @@ namespace Sparky {
                                 VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
         createInfo.pfnUserCallback = debugCallback;
 
-        // #ifdef HAS_GLFW (removed for structural integrity)
+        #ifdef HAS_GLFW
         if (CreateDebugUtilsMessengerEXT(instance, &createInfo, nullptr, &debugMessenger) != VK_SUCCESS) {
             throw std::runtime_error("failed to set up debug messenger!");
         }
-        // #endif (removed for structural integrity)
+        #endif
     }
 
     void VulkanRenderer::createSurface() {
-#ifdef HAS_GLFW
+        #ifdef HAS_GLFW
         GLFWwindow* window = static_cast<GLFWwindow*>(windowHandle);
         
-#ifdef _WIN32
+        #ifdef _WIN32
         VkWin32SurfaceCreateInfoKHR createInfo{};
         createInfo.sType = VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR;
         createInfo.hwnd = glfwGetWin32Window(window);
@@ -473,16 +473,16 @@ namespace Sparky {
         if (vkCreateWin32SurfaceKHR(instance, &createInfo, nullptr, &surface) != VK_SUCCESS) {
             throw std::runtime_error("failed to create window surface!");
         }
-#else
+        #else
         // Platform-specific surface creation for other platforms
         throw std::runtime_error("Platform not supported yet!");
-#endif
+        #endif
         
         SPARKY_LOG_INFO("Window surface created");
-#else
+        #else
         // Fallback when GLFW is not available
         throw std::runtime_error("GLFW not available, cannot create surface!");
-#endif
+        #endif
     }
 
     void VulkanRenderer::pickPhysicalDevice() {
@@ -1140,13 +1140,13 @@ namespace Sparky {
     }
 
     VkPresentModeKHR VulkanRenderer::chooseSwapPresentMode(const std::vector<VkPresentModeKHR>& availablePresentModes) {
-        // #ifdef HAS_GLFW (removed for structural integrity)
+        #ifdef HAS_GLFW
         for (const auto& availablePresentMode : availablePresentModes) {
             if (availablePresentMode == VK_PRESENT_MODE_MAILBOX_KHR) {
                 return availablePresentMode;
             }
         }
-        // #endif (removed for structural integrity)
+        #endif
 
         return VK_PRESENT_MODE_FIFO_KHR;
     }
@@ -1778,14 +1778,104 @@ namespace Sparky {
     }
 
     bool VulkanRenderer::initialize(void* windowHandle) {
-        // Fallback implementation
+#ifdef HAS_GLFW
+
+#include "../include/VulkanRenderer.h"
+#include "../include/Logger.h"
+#include <stdexcept>
+#include <iostream>
+
+namespace Sparky {
+
+    VulkanRenderer::VulkanRenderer() : windowHandle(nullptr), engine(nullptr) {
         SPARKY_LOG_INFO("Vulkan renderer not available (GLFW not found)");
+    }
+
+#ifndef HAS_GLFW
+
+#include "../include/VulkanRenderer.h"
+#include "../include/Logger.h"
+#include <stdexcept>
+#include <iostream>
+
+namespace Sparky {
+
+    VulkanRenderer::VulkanRenderer() : windowHandle(nullptr), engine(nullptr) {
+        SPARKY_LOG_INFO("Vulkan renderer not available (GLFW not found)");
+    }
+
+    VulkanRenderer::~VulkanRenderer() {
+        // Fallback destructor
+    }
+
+    bool VulkanRenderer::initialize(void* windowHandle) {
+        this->windowHandle = windowHandle;
+        SPARKY_LOG_ERROR("Vulkan renderer not available (GLFW not found)");
         return false;
     }
 
-    // Add other fallback methods as needed
+    void VulkanRenderer::cleanup() {
+        // Fallback cleanup
+        SPARKY_LOG_INFO("Vulkan renderer cleanup skipped (not available)");
+    }
 
-} // namespace Sparky
+    void VulkanRenderer::render() {
+        // Fallback render
+        SPARKY_LOG_DEBUG("Vulkan renderer render skipped (not available)");
+    }
+
+    void VulkanRenderer::renderMeshes() {
+        // Fallback render meshes
+        SPARKY_LOG_DEBUG("Vulkan renderer renderMeshes skipped (not available)");
+    }
+
+    MeshRenderer& VulkanRenderer::getMeshRenderer() {
+        // Return the member variable
+        return meshRenderer;
+    }
+    
+    // Texture management (fallback implementations)
+    void VulkanRenderer::createTextureImage(const std::string& filepath, Texture& texture) {
+        SPARKY_LOG_ERROR("Vulkan texture creation not available (GLFW not found)");
+    }
+    
+    void VulkanRenderer::createTextureImageView(Texture& texture) {
+        SPARKY_LOG_ERROR("Vulkan texture view creation not available (GLFW not found)");
+    }
+    
+    void VulkanRenderer::createTextureSampler(Texture& texture) {
+        SPARKY_LOG_ERROR("Vulkan texture sampler creation not available (GLFW not found)");
+    }
+    
+    void VulkanRenderer::transitionImageLayout(void* image, void* format, void* oldLayout, void* newLayout) {
+        SPARKY_LOG_ERROR("Vulkan image layout transition not available (GLFW not found)");
+    }
+    
+    void VulkanRenderer::copyBufferToImage(void* buffer, void* image, uint32_t width, uint32_t height) {
+        SPARKY_LOG_ERROR("Vulkan buffer to image copy not available (GLFW not found)");
+    }
+    
+    // Material system (fallback implementations)
+    void VulkanRenderer::createMaterialDescriptorSetLayout() {
+        SPARKY_LOG_ERROR("Vulkan material descriptor set layout creation not available (GLFW not found)");
+    }
+    
+    void VulkanRenderer::createMaterialDescriptorPool() {
+        SPARKY_LOG_ERROR("Vulkan material descriptor pool creation not available (GLFW not found)");
+    }
+    
+    void VulkanRenderer::createMaterialDescriptorSets(Material* material) {
+        SPARKY_LOG_ERROR("Vulkan material descriptor sets creation not available (GLFW not found)");
+    }
+    
+    void VulkanRenderer::updateMaterialDescriptorSet(Material* material) {
+        SPARKY_LOG_ERROR("Vulkan material descriptor set update not available (GLFW not found)");
+    }
+    
+    // Lighting system (fallback implementations)
+    void VulkanRenderer::updateLightingUniformBuffer(uint32_t currentImage, const std::vector<std::unique_ptr<Light>>& lights) {
+        SPARKY_LOG_ERROR("Vulkan lighting uniform buffer update not available (GLFW not found)");
+    }
 
 #endif // HAS_GLFW
-
+} // namespace Sparky

@@ -1,6 +1,10 @@
 #include "../include/InputManager.h"
 #include <cstring>
 
+#ifdef HAS_GLFW
+#include <GLFW/glfw3.h>
+#endif
+
 namespace Sparky {
     
     InputManager* InputManager::instance = nullptr;
@@ -14,7 +18,7 @@ namespace Sparky {
 
     InputManager::InputManager() : mouseX(0), mouseY(0), prevMouseX(0), prevMouseY(0), 
                                  scrollX(0), scrollY(0), prevScrollX(0), prevScrollY(0),
-                                 window(nullptr), cursorMode(GLFW_CURSOR_NORMAL) {
+                                 window(nullptr), cursorMode(0) {
         memset(keys, 0, sizeof(keys));
         memset(prevKeys, 0, sizeof(prevKeys));
         memset(mouseButtons, 0, sizeof(mouseButtons));
@@ -29,11 +33,13 @@ namespace Sparky {
     void InputManager::initialize(GLFWwindow* window) {
         this->window = window;
         
+#ifdef HAS_GLFW
         // Set callbacks
         glfwSetKeyCallback(window, keyCallback);
         glfwSetCursorPosCallback(window, mouseCallback);
         glfwSetMouseButtonCallback(window, mouseButtonCallback);
         glfwSetScrollCallback(window, scrollCallback);
+#endif
     }
 
     void InputManager::update() {
@@ -77,26 +83,32 @@ namespace Sparky {
     void InputManager::setMousePosition(float x, float y) {
         mouseX = x;
         mouseY = y;
+#ifdef HAS_GLFW
         if (window) {
             glfwSetCursorPos(window, x, y);
         }
+#endif
     }
 
     void InputManager::setCursorMode(int mode) {
         cursorMode = mode;
+#ifdef HAS_GLFW
         if (window) {
-            glfwSetInputMode(window, GLFW_CURSOR, mode);
+            glfwSetInputMode(window, 0x00033001, mode); // GLFW_CURSOR
         }
+#endif
     }
 
     void InputManager::keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods) {
+#ifdef HAS_GLFW
         if (instance && key >= 0 && key < KEY_COUNT) {
-            if (action == GLFW_PRESS) {
+            if (action == 0x00040001) { // GLFW_PRESS
                 instance->keys[key] = true;
-            } else if (action == GLFW_RELEASE) {
+            } else if (action == 0x00040002) { // GLFW_RELEASE
                 instance->keys[key] = false;
             }
         }
+#endif
     }
 
     void InputManager::mouseCallback(GLFWwindow* window, double xpos, double ypos) {
@@ -107,13 +119,15 @@ namespace Sparky {
     }
 
     void InputManager::mouseButtonCallback(GLFWwindow* window, int button, int action, int mods) {
+#ifdef HAS_GLFW
         if (instance && button >= 0 && button < MOUSE_BUTTON_COUNT) {
-            if (action == GLFW_PRESS) {
+            if (action == 0x00040001) { // GLFW_PRESS
                 instance->mouseButtons[button] = true;
-            } else if (action == GLFW_RELEASE) {
+            } else if (action == 0x00040002) { // GLFW_RELEASE
                 instance->mouseButtons[button] = false;
             }
         }
+#endif
     }
 
     void InputManager::scrollCallback(GLFWwindow* window, double xoffset, double yoffset) {

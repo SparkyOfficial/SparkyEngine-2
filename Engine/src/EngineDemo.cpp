@@ -11,7 +11,10 @@
 #include "../include/QuestManager.h"
 #include "../include/Logger.h"
 #include "../include/Config.h"
+
+#ifdef HAS_GLFW
 #include <GLFW/glfw3.h>
+#endif
 
 // Only include AudioEngine if audio is enabled
 #ifdef ENABLE_AUDIO
@@ -47,7 +50,11 @@ namespace Sparky {
             }
             
             inputManager = std::make_unique<InputManager>();
+#ifdef HAS_GLFW
             inputManager->initialize(static_cast<GLFWwindow*>(windowManager->getWindowHandle()));
+#else
+            inputManager->initialize(nullptr);
+#endif
             
             camera = std::make_unique<Camera>();
             
@@ -95,7 +102,14 @@ namespace Sparky {
         
         while (running && !windowManager->shouldClose()) {
             // Calculate delta time
+#ifdef HAS_GLFW
             float currentTime = static_cast<float>(glfwGetTime());
+#else
+            // Fallback implementation for delta time calculation
+            static float fallbackTime = 0.0f;
+            fallbackTime += 0.016f; // Assume 60 FPS
+            float currentTime = fallbackTime;
+#endif
             float deltaTime = currentTime - lastTime;
             lastTime = currentTime;
             

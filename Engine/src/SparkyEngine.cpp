@@ -1,6 +1,9 @@
 #include "../include/SparkyEngine.h"
 #include "../include/Logger.h"
+
+#ifdef HAS_GLFW
 #include <GLFW/glfw3.h>
+#endif
 
 namespace Sparky {
 
@@ -23,7 +26,11 @@ namespace Sparky {
 
         // Initialize input manager
         SPARKY_LOG_INFO("Initializing input manager...");
+#ifdef HAS_GLFW
         inputManager.initialize(static_cast<GLFWwindow*>(windowManager.getWindowHandle()));
+#else
+        inputManager.initialize(nullptr);
+#endif
 
         // Initialize renderer
         SPARKY_LOG_INFO("Initializing renderer...");
@@ -48,7 +55,14 @@ namespace Sparky {
         
         while (isRunning && !windowManager.shouldClose()) {
             // Calculate delta time
+#ifdef HAS_GLFW
             float currentTime = static_cast<float>(glfwGetTime());
+#else
+            // Fallback implementation for delta time calculation
+            static float fallbackTime = 0.0f;
+            fallbackTime += 0.016f; // Assume 60 FPS
+            float currentTime = fallbackTime;
+#endif
             float deltaTime = currentTime - lastTime;
             lastTime = currentTime;
 

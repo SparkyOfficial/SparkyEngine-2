@@ -1,4 +1,3 @@
-#include <vulkan/vulkan.h>
 #include "../include/Skybox.h"
 #include "../include/VulkanRenderer.h"
 #include "../include/Logger.h"
@@ -6,11 +5,16 @@
 #include <stb/stb_image.h>
 #include <glm/gtc/matrix_transform.hpp>
 
+// We need to include Material and Mesh headers unconditionally to avoid
+// issues with std::unique_ptr and incomplete types, even when HAS_GLFW is not defined
+#include "../include/Material.h"
+#include "../include/Mesh.h"
+
 namespace Sparky {
     
-    Skybox::Skybox() : loaded(false), cubemapImage(VK_NULL_HANDLE), 
-                      cubemapImageMemory(VK_NULL_HANDLE), cubemapImageView(VK_NULL_HANDLE),
-                      cubemapSampler(VK_NULL_HANDLE) {
+    Skybox::Skybox() : loaded(false), cubemapImage(nullptr), 
+                      cubemapImageMemory(nullptr), cubemapImageView(nullptr),
+                      cubemapSampler(nullptr) {
         SPARKY_LOG_DEBUG("Skybox created");
     }
     
@@ -20,6 +24,7 @@ namespace Sparky {
     }
     
     bool Skybox::initialize(VulkanRenderer* renderer) {
+#ifdef HAS_GLFW
         if (!renderer) {
             SPARKY_LOG_ERROR("Cannot initialize skybox without renderer");
             return false;
@@ -41,9 +46,15 @@ namespace Sparky {
         
         SPARKY_LOG_INFO("Skybox initialized successfully");
         return true;
+#else
+        // Fallback when Vulkan/GLFW is not available
+        SPARKY_LOG_DEBUG("Skybox initialization skipped (Vulkan/GLFW not available)");
+        return true;
+#endif
     }
     
-    void Skybox::cleanup() {
+    void Skybox::cleanup(VulkanRenderer* renderer) {
+#ifdef HAS_GLFW
         mesh.reset();
         material.reset();
         for (auto& texture : faceTextures) {
@@ -52,30 +63,40 @@ namespace Sparky {
         loaded = false;
         
         // Clean up Vulkan resources
-        if (cubemapSampler != VK_NULL_HANDLE) {
+        if (renderer && cubemapSampler != VK_NULL_HANDLE) {
             vkDestroySampler(renderer->getDevice(), cubemapSampler, nullptr);
             cubemapSampler = VK_NULL_HANDLE;
         }
         
-        if (cubemapImageView != VK_NULL_HANDLE) {
+        if (renderer && cubemapImageView != VK_NULL_HANDLE) {
             vkDestroyImageView(renderer->getDevice(), cubemapImageView, nullptr);
             cubemapImageView = VK_NULL_HANDLE;
         }
         
-        if (cubemapImageMemory != VK_NULL_HANDLE) {
+        if (renderer && cubemapImageMemory != VK_NULL_HANDLE) {
             vkFreeMemory(renderer->getDevice(), cubemapImageMemory, nullptr);
             cubemapImageMemory = VK_NULL_HANDLE;
         }
         
-        if (cubemapImage != VK_NULL_HANDLE) {
+        if (renderer && cubemapImage != VK_NULL_HANDLE) {
             vkDestroyImage(renderer->getDevice(), cubemapImage, nullptr);
             cubemapImage = VK_NULL_HANDLE;
         }
+#else
+        // For non-GLFW builds, we still need to clean up the unique_ptr objects
+        mesh.reset();
+        material.reset();
+        for (auto& texture : faceTextures) {
+            texture.reset();
+        }
+        loaded = false;
+#endif
         
         SPARKY_LOG_DEBUG("Skybox cleaned up");
     }
     
     bool Skybox::loadFromFile(const std::array<std::string, 6>& faceTexturesPaths) {
+#ifdef HAS_GLFW
         // For now, we'll just log that skybox loading would be implemented
         // In a full implementation, we would:
         // 1. Load 6 textures for the skybox faces
@@ -83,9 +104,15 @@ namespace Sparky {
         // 3. Set up the skybox renderer
         SPARKY_LOG_DEBUG("Skybox loading would be implemented here");
         return true;
+#else
+        // Fallback when Vulkan/GLFW is not available
+        SPARKY_LOG_DEBUG("Skybox loading skipped (Vulkan/GLFW not available)");
+        return true;
+#endif
     }
     
     std::unique_ptr<Mesh> Skybox::createCubeMesh() {
+#ifdef HAS_GLFW
         auto skyboxMesh = std::make_unique<Mesh>();
         
         // Define vertices for a cube centered at origin with size 2 (from -1 to 1)
@@ -139,15 +166,26 @@ namespace Sparky {
         };
         
         return skyboxMesh;
+#else
+        // Fallback when Vulkan/GLFW is not available
+        return nullptr;
+#endif
     }
     
     bool Skybox::createCubemapTexture(VulkanRenderer* renderer, const std::array<std::string, 6>& faceTextures) {
+#ifdef HAS_GLFW
         // This would implement cubemap texture creation
         // For now, we'll just log that it would be implemented
         SPARKY_LOG_DEBUG("Cubemap texture creation would be implemented here");
         return true;
+#else
+        // Fallback when Vulkan/GLFW is not available
+        SPARKY_LOG_DEBUG("Cubemap texture creation skipped (Vulkan/GLFW not available)");
+        return true;
+#endif
     }
     
+#ifdef HAS_GLFW
     void Skybox::render(VkCommandBuffer commandBuffer, VkPipelineLayout pipelineLayout, uint32_t imageIndex) {
         if (!loaded || !mesh || !material) {
             return;
@@ -156,32 +194,66 @@ namespace Sparky {
         // Skybox rendering would be implemented here
         SPARKY_LOG_DEBUG("Skybox rendering");
     }
+#else
+    void Skybox::render(void* commandBuffer, void* pipelineLayout, uint32_t imageIndex) {
+        if (!loaded || !mesh || !material) {
+            return;
+        }
+        
+        // Skybox rendering would be implemented here
+        SPARKY_LOG_DEBUG("Skybox rendering");
+    }
+#endif
     
     bool Skybox::createCubemapImage(VulkanRenderer* renderer, uint32_t width, uint32_t height) {
+#ifdef HAS_GLFW
         // This would implement cubemap image creation
         // For now, we'll just log that it would be implemented
         SPARKY_LOG_DEBUG("Cubemap image creation would be implemented here");
         return true;
+#else
+        // Fallback when Vulkan/GLFW is not available
+        SPARKY_LOG_DEBUG("Cubemap image creation skipped (Vulkan/GLFW not available)");
+        return true;
+#endif
     }
     
     bool Skybox::createCubemapImageView(VulkanRenderer* renderer) {
+#ifdef HAS_GLFW
         // This would implement cubemap image view creation
         // For now, we'll just log that it would be implemented
         SPARKY_LOG_DEBUG("Cubemap image view creation would be implemented here");
         return true;
+#else
+        // Fallback when Vulkan/GLFW is not available
+        SPARKY_LOG_DEBUG("Cubemap image view creation skipped (Vulkan/GLFW not available)");
+        return true;
+#endif
     }
     
     bool Skybox::createCubemapSampler(VulkanRenderer* renderer) {
+#ifdef HAS_GLFW
         // This would implement cubemap sampler creation
         // For now, we'll just log that it would be implemented
         SPARKY_LOG_DEBUG("Cubemap sampler creation would be implemented here");
         return true;
+#else
+        // Fallback when Vulkan/GLFW is not available
+        SPARKY_LOG_DEBUG("Cubemap sampler creation skipped (Vulkan/GLFW not available)");
+        return true;
+#endif
     }
     
     bool Skybox::loadCubemapFaces(VulkanRenderer* renderer, const std::array<std::string, 6>& faceTextures) {
+#ifdef HAS_GLFW
         // This would implement loading cubemap faces
         // For now, we'll just log that it would be implemented
         SPARKY_LOG_DEBUG("Cubemap faces loading would be implemented here");
         return true;
+#else
+        // Fallback when Vulkan/GLFW is not available
+        SPARKY_LOG_DEBUG("Cubemap faces loading skipped (Vulkan/GLFW not available)");
+        return true;
+#endif
     }
 }

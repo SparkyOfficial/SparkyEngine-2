@@ -17,44 +17,43 @@ set(GLFW_PATH "C:/glfw-install")
 # Set the path to glslang installation
 set(GLSLANG_PATH "E:/VulkanSDK/1.4.321.1")
 
-# Find required packages
-find_package(Vulkan REQUIRED)
-find_package(glfw3 REQUIRED)
+# Try to find Vulkan, but make it optional
+find_package(Vulkan QUIET)
+
+# Try to find GLFW, but make it optional
+find_package(glfw3 QUIET)
 
 # Set include directories
-set(VULKAN_INCLUDE_DIRS "${VULKAN_SDK_PATH}/Include")
-set(GLFW_INCLUDE_DIRS "${GLFW_PATH}/include")
 set(GLM_INCLUDE_DIRS "C:/glm-install/include")
 set(JSON_INCLUDE_DIRS "${CMAKE_CURRENT_SOURCE_DIR}/external/json/include")
 set(STB_INCLUDE_DIRS "${CMAKE_CURRENT_SOURCE_DIR}/external/stb")
 
-# Set library directories
-set(VULKAN_LIBRARIES 
-    "${VULKAN_SDK_PATH}/Lib/vulkan-1.lib"
-    "${GLSLANG_PATH}/Lib/glslang.lib"
-    "${GLSLANG_PATH}/Lib/SPIRV.lib"
-    "${GLSLANG_PATH}/Lib/glslang-default-resource-limits.lib"
-    "${GLSLANG_PATH}/Lib/SPIRV-Tools.lib"
-    "${GLSLANG_PATH}/Lib/SPIRV-Tools-opt.lib"
-)
-set(GLFW_LIBRARIES "${GLFW_PATH}/lib/glfw3.lib")
+# Only set Vulkan libraries if Vulkan was found
+if (Vulkan_FOUND)
+    set(VULKAN_INCLUDE_DIRS "${VULKAN_SDK_PATH}/Include")
+    set(VULKAN_LIBRARIES 
+        "${VULKAN_SDK_PATH}/Lib/vulkan-1.lib"
+        "${GLSLANG_PATH}/Lib/glslang.lib"
+        "${GLSLANG_PATH}/Lib/SPIRV.lib"
+        "${GLSLANG_PATH}/Lib/glslang-default-resource-limits.lib"
+        "${GLSLANG_PATH}/Lib/SPIRV-Tools.lib"
+        "${GLSLANG_PATH}/Lib/SPIRV-Tools-opt.lib"
+    )
+else()
+    message(WARNING "Vulkan not found. Building without Vulkan support.")
+endif()
+
+# Only set GLFW libraries if GLFW was found
+if (glfw3_FOUND)
+    set(GLFW_INCLUDE_DIRS "${GLFW_PATH}/include")
+    set(GLFW_LIBRARIES "${GLFW_PATH}/lib/glfw3.lib")
+else()
+    message(WARNING "GLFW not found. Building without window support.")
+endif()
 
 # Add subdirectories
 add_subdirectory(Engine)
 add_subdirectory(Game)
-
-# Copy assets and shaders to build directory
-add_custom_command(TARGET SparkyEngine POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E copy_directory
-    ${CMAKE_CURRENT_SOURCE_DIR}/Engine/assets
-    ${CMAKE_CURRENT_BINARY_DIR}/Engine/assets
-)
-
-add_custom_command(TARGET SparkyEngine POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E copy_directory
-    ${CMAKE_CURRENT_SOURCE_DIR}/Engine/shaders
-    ${CMAKE_CURRENT_BINARY_DIR}/Engine/shaders
-)
 
 # Option to enable/disable audio support
 option(ENABLE_AUDIO "Enable audio support" OFF)

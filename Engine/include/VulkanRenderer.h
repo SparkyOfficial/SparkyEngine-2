@@ -1,6 +1,9 @@
 #pragma once
 
+#ifdef HAS_GLFW
 #include <vulkan/vulkan.h>
+#endif
+
 #include <vector>
 #include <iostream>
 #include <optional>
@@ -18,9 +21,19 @@ namespace Sparky {
     class Material;  
     class Light;     
     class Skybox;    // Add this forward declaration
+    
+#ifdef HAS_GLFW
+    // Vulkan-specific forward declarations
+    struct QueueFamilyIndices;
+    struct SwapChainSupportDetails;
+    struct UniformBufferObject;
+    struct PushConstantData;
+    struct MaterialUniformBufferObject;
+#endif
 }
 
 namespace Sparky {
+#ifdef HAS_GLFW
     // Uniform buffer object structure
     struct UniformBufferObject {
         glm::mat4 view;
@@ -56,6 +69,7 @@ namespace Sparky {
         std::vector<VkSurfaceFormatKHR> formats;
         std::vector<VkPresentModeKHR> presentModes;
     };
+#endif
 
     class VulkanRenderer {
     public:
@@ -66,27 +80,30 @@ namespace Sparky {
         void cleanup();
         void render();
         void renderMeshes();  // Add this method
-        MeshRenderer& getMeshRenderer() { return meshRenderer; }
+        MeshRenderer& getMeshRenderer();
         
-        // Texture management
-        void createTextureImage(const std::string& filepath, Texture& texture);
-        void createTextureImageView(Texture& texture);
-        void createTextureSampler(Texture& texture);
-        void transitionImageLayout(VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout);
-        void copyBufferToImage(VkBuffer buffer, VkImage image, uint32_t width, uint32_t height);
+#ifndef HAS_GLFW
+        // Texture management (fallback implementations)
+        void createTextureImage(const std::string& filepath, Texture& texture) {}
+        void createTextureImageView(Texture& texture) {}
+        void createTextureSampler(Texture& texture) {}
+        void transitionImageLayout(void* image, void* format, void* oldLayout, void* newLayout) {}
+        void copyBufferToImage(void* buffer, void* image, uint32_t width, uint32_t height) {}
         
-        // Material system
-        void createMaterialDescriptorSetLayout();
-        void createMaterialDescriptorPool();
-        void createMaterialDescriptorSets(Material* material);
-        void updateMaterialDescriptorSet(Material* material);
+        // Material system (fallback implementations)
+        void createMaterialDescriptorSetLayout() {}
+        void createMaterialDescriptorPool() {}
+        void createMaterialDescriptorSets(Material* material) {}
+        void updateMaterialDescriptorSet(Material* material) {}
         
-        // Lighting system
-        void updateLightingUniformBuffer(uint32_t currentImage, const std::vector<std::unique_ptr<Light>>& lights);
-        
+        // Lighting system (fallback implementations)
+        void updateLightingUniformBuffer(uint32_t currentImage, const std::vector<std::unique_ptr<Light>>& lights) {}
+#endif
+
         // Setter for engine reference
         void setEngine(Engine* engine) { this->engine = engine; }
 
+#ifdef HAS_GLFW
         // Getters for other classes to use
         VkDevice getDevice() const { return device; }
         VkPhysicalDevice getPhysicalDevice() const { return physicalDevice; }
@@ -95,8 +112,10 @@ namespace Sparky {
         VkDescriptorSetLayout getDescriptorSetLayout() const { return descriptorSetLayout; }
         VkDescriptorSetLayout getMaterialDescriptorSetLayout() const { return materialDescriptorSetLayout; }
         VkSampler getTextureSampler() const { return textureSampler; }
+#endif
 
     private:
+#ifdef HAS_GLFW
         // Vulkan instance
         VkInstance instance;
         VkPhysicalDevice physicalDevice;
@@ -159,18 +178,6 @@ namespace Sparky {
         // Texture sampler
         VkSampler textureSampler;
 
-        // Mesh renderer
-        MeshRenderer meshRenderer;
-
-        // Window handle
-        void* windowHandle;
-        
-        // Engine reference
-        Engine* engine;  // Add this member
-        
-        // Skybox support
-        std::unique_ptr<Skybox> skybox;  // Add this member
-        
         // Debug messenger
         VkDebugUtilsMessengerEXT debugMessenger;
 
@@ -234,5 +241,18 @@ namespace Sparky {
         VkImageView createImageView(VkImage image, VkFormat format, VkImageAspectFlags aspectFlags);
         VkCommandBuffer beginSingleTimeCommands();
         void endSingleTimeCommands(VkCommandBuffer commandBuffer);
+#endif
+
+        // Mesh renderer
+        MeshRenderer meshRenderer;
+
+        // Window handle
+        void* windowHandle;
+        
+        // Engine reference
+        Engine* engine;  // Add this member
+        
+        // Skybox support
+        std::unique_ptr<Skybox> skybox;  // Add this member
     };
 }

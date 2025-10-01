@@ -4,7 +4,11 @@
 #include "../include/Logger.h"
 #include "../include/HealthComponent.h"
 #include "../include/BehaviorTree.h"
+
+#ifdef HAS_GLFW
 #include <GLFW/glfw3.h>
+#endif
+
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <algorithm>
@@ -220,7 +224,14 @@ namespace Sparky {
     }
 
     bool AIComponent::canAttack() const {
+#ifdef HAS_GLFW
         float currentTime = static_cast<float>(glfwGetTime());
+#else
+        // Fallback implementation
+        static float fallbackTime = 0.0f;
+        fallbackTime += 0.016f; // Assume 60 FPS
+        float currentTime = fallbackTime;
+#endif
         return (currentTime - lastAttackTime) >= (1.0f / attackRate);
     }
 
@@ -229,7 +240,14 @@ namespace Sparky {
             return;
         }
         
+#ifdef HAS_GLFW
         lastAttackTime = static_cast<float>(glfwGetTime());
+#else
+        // Fallback implementation
+        static float fallbackTime = 0.0f;
+        fallbackTime += 0.016f; // Assume 60 FPS
+        lastAttackTime = fallbackTime;
+#endif
         SPARKY_LOG_DEBUG("AIComponent performing attack for " + std::to_string(attackDamage) + " damage");
         
         // Find the target's health component and apply damage

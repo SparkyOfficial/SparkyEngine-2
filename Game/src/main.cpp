@@ -13,6 +13,10 @@
 #include <iostream>
 #include <vector>
 
+#ifdef HAS_GLFW
+#include <GLFW/glfw3.h>
+#endif
+
 int main() {
     SPARKY_PROFILE("Main");
     
@@ -100,7 +104,14 @@ int main() {
         SPARKY_PROFILE("GameLoop");
         
         // Calculate delta time
+#ifdef HAS_GLFW
         float currentTime = static_cast<float>(glfwGetTime());
+#else
+        // Fallback implementation for delta time calculation
+        static float fallbackTime = 0.0f;
+        fallbackTime += 0.016f; // Assume 60 FPS
+        float currentTime = fallbackTime;
+#endif
         float deltaTime = currentTime - lastTime;
         lastTime = currentTime;
         
@@ -121,6 +132,7 @@ int main() {
         inputManager.update();
         
         // Handle menu controls
+#ifdef HAS_GLFW
         if (inputManager.isKeyJustPressed(GLFW_KEY_F1)) {
             guiManager.showMenu("main");
         }
@@ -131,6 +143,11 @@ int main() {
             guiManager.hideAllMenus();
             gameStarted = true; // Start the game when menus are hidden
         }
+#else
+        // Fallback implementation for menu controls
+        // For now, we'll just start the game immediately
+        gameStarted = true;
+#endif
         
         // Update game elements only if the game has started
         if (gameStarted) {

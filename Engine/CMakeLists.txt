@@ -90,17 +90,27 @@ add_executable(test_skybox
 # Include directories
 target_include_directories(SparkyEngine PUBLIC 
     ${CMAKE_CURRENT_SOURCE_DIR}/include
-    ${VULKAN_INCLUDE_DIRS}
-    ${GLFW_INCLUDE_DIRS}
     ${GLM_INCLUDE_DIRS}
     ${JSON_INCLUDE_DIRS}
     ${CMAKE_CURRENT_SOURCE_DIR}/../external
 )
 
+# Only include Vulkan include directories if Vulkan was found
+if (Vulkan_FOUND)
+    target_include_directories(SparkyEngine PUBLIC 
+        ${VULKAN_INCLUDE_DIRS}
+    )
+endif()
+
+# Only include GLFW include directories if GLFW was found
+if (glfw3_FOUND)
+    target_include_directories(SparkyEngine PUBLIC 
+        ${GLFW_INCLUDE_DIRS}
+    )
+endif()
+
 target_include_directories(simple_test PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/include
-    ${VULKAN_INCLUDE_DIRS}
-    ${GLFW_INCLUDE_DIRS}
     ${GLM_INCLUDE_DIRS}
     ${JSON_INCLUDE_DIRS}
     ${CMAKE_CURRENT_SOURCE_DIR}/../external
@@ -108,8 +118,6 @@ target_include_directories(simple_test PRIVATE
 
 target_include_directories(test_unicode PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/include
-    ${VULKAN_INCLUDE_DIRS}
-    ${GLFW_INCLUDE_DIRS}
     ${GLM_INCLUDE_DIRS}
     ${JSON_INCLUDE_DIRS}
     ${CMAKE_CURRENT_SOURCE_DIR}/../external
@@ -117,37 +125,64 @@ target_include_directories(test_unicode PRIVATE
 
 target_include_directories(test_skybox PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/include
-    ${VULKAN_INCLUDE_DIRS}
-    ${GLFW_INCLUDE_DIRS}
     ${GLM_INCLUDE_DIRS}
     ${JSON_INCLUDE_DIRS}
     ${CMAKE_CURRENT_SOURCE_DIR}/../external
 )
 
+# Only include Vulkan include directories for test executables if Vulkan was found
+if (Vulkan_FOUND)
+    target_include_directories(simple_test PRIVATE
+        ${VULKAN_INCLUDE_DIRS}
+    )
+    
+    target_include_directories(test_unicode PRIVATE
+        ${VULKAN_INCLUDE_DIRS}
+    )
+    
+    target_include_directories(test_skybox PRIVATE
+        ${VULKAN_INCLUDE_DIRS}
+    )
+endif()
+
 # Link libraries
-target_link_libraries(SparkyEngine 
-    ${VULKAN_LIBRARIES}
-    ${GLFW_LIBRARIES}
-    ${glslang_LIBRARIES}
-)
+# Only link Vulkan libraries if Vulkan was found
+if (Vulkan_FOUND)
+    target_link_libraries(SparkyEngine 
+        ${VULKAN_LIBRARIES}
+    )
+    
+    target_link_libraries(simple_test SparkyEngine
+        ${VULKAN_LIBRARIES}
+    )
+    
+    target_link_libraries(test_unicode SparkyEngine
+        ${VULKAN_LIBRARIES}
+    )
+    
+    target_link_libraries(test_skybox SparkyEngine
+        ${VULKAN_LIBRARIES}
+    )
+endif()
 
-target_link_libraries(simple_test SparkyEngine
-    ${VULKAN_LIBRARIES}
-    ${GLFW_LIBRARIES}
-    ${glslang_LIBRARIES}
-)
-
-target_link_libraries(test_unicode SparkyEngine
-    ${VULKAN_LIBRARIES}
-    ${GLFW_LIBRARIES}
-    ${glslang_LIBRARIES}
-)
-
-target_link_libraries(test_skybox SparkyEngine
-    ${VULKAN_LIBRARIES}
-    ${GLFW_LIBRARIES}
-    ${glslang_LIBRARIES}
-)
+# Only link GLFW libraries if GLFW was found
+if (glfw3_FOUND)
+    target_link_libraries(SparkyEngine 
+        ${GLFW_LIBRARIES}
+    )
+    
+    target_link_libraries(simple_test SparkyEngine
+        ${GLFW_LIBRARIES}
+    )
+    
+    target_link_libraries(test_unicode SparkyEngine
+        ${GLFW_LIBRARIES}
+    )
+    
+    target_link_libraries(test_skybox SparkyEngine
+        ${GLFW_LIBRARIES}
+    )
+endif()
 
 # Compiler definitions
 target_compile_definitions(SparkyEngine PRIVATE 
@@ -158,3 +193,26 @@ target_compile_definitions(SparkyEngine PRIVATE
 if(ENABLE_AUDIO)
     target_compile_definitions(SparkyEngine PRIVATE ENABLE_AUDIO)
 endif()
+
+# Add a definition to indicate if GLFW is available
+if (glfw3_FOUND)
+    target_compile_definitions(SparkyEngine PRIVATE HAS_GLFW)
+endif()
+
+# Add a definition to indicate if Vulkan is available
+if (Vulkan_FOUND)
+    target_compile_definitions(SparkyEngine PRIVATE HAS_VULKAN)
+endif()
+
+# Copy assets and shaders to build directory
+add_custom_command(TARGET SparkyEngine POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+    ${CMAKE_CURRENT_SOURCE_DIR}/assets
+    ${CMAKE_CURRENT_BINARY_DIR}/assets
+)
+
+add_custom_command(TARGET SparkyEngine POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+    ${CMAKE_CURRENT_SOURCE_DIR}/shaders
+    ${CMAKE_CURRENT_BINARY_DIR}/shaders
+)

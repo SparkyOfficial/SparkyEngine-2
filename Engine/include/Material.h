@@ -3,7 +3,10 @@
 #include <string>
 #include <glm/glm.hpp>
 #include <vector>
+
+#ifdef HAS_GLFW
 #include <vulkan/vulkan.h>
+#endif
 
 namespace Sparky {
     class ShaderProgram;
@@ -33,7 +36,11 @@ namespace Sparky {
         Texture* getTexture() const { return texture; }
 
         // Vulkan-specific
+#ifdef HAS_GLFW
         std::vector<VkDescriptorSet> descriptorSets;
+#else
+        std::vector<void*> descriptorSets;
+#endif
 
         // Shader program
         void setShaderProgram(ShaderProgram* shader);

@@ -1,2 +1,0 @@
-} // namespace Sparky
-#endif // HAS_GLFW

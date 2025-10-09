@@ -7,6 +7,10 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
+#ifdef HAS_GLFW
+#include <GLFW/glfw3.h>
+#endif
+
 namespace Sparky {
 
     Player::Player() : GameObject(), camera(nullptr), jumpForce(10.0f), moveSpeed(5.0f), 
@@ -144,6 +148,8 @@ namespace Sparky {
             }
         }
         
+#ifdef HAS_GLFW
+#ifdef HAS_GLFW
         // Keyboard movement
         if (inputManager.isKeyPressed(GLFW_KEY_W) || 
             inputManager.isKeyPressed(GLFW_KEY_S) || 
@@ -176,6 +182,16 @@ namespace Sparky {
             mouseLocked = !mouseLocked;
             inputManager.setCursorMode(mouseLocked ? GLFW_CURSOR_DISABLED : GLFW_CURSOR_NORMAL);
         }
+#else
+        // Fallback implementation for non-GLFW builds
+        // For now, we'll just keep isMoving as false
+        isMoving = false;
+#endif
+#else
+        // Fallback implementation for non-GLFW builds
+        // For now, we'll just keep isMoving as false
+        isMoving = false;
+#endif
     }
 
     void Player::moveForward(float deltaTime) {

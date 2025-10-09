@@ -241,6 +241,12 @@ namespace Sparky {
         VkImageView createImageView(VkImage image, VkFormat format, VkImageAspectFlags aspectFlags);
         VkCommandBuffer beginSingleTimeCommands();
         void endSingleTimeCommands(VkCommandBuffer commandBuffer);
+        void transitionImageLayout(VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout);
+        void createMaterialDescriptorSetLayout();
+        void createMaterialDescriptorPool();
+        void createMaterialDescriptorSets(Material* material);
+        void updateMaterialDescriptorSet(Material* material);
+        void updateLightingUniformBuffer(uint32_t currentImage, const std::vector<std::unique_ptr<Light>>& lights);
 #endif
 
         // Mesh renderer

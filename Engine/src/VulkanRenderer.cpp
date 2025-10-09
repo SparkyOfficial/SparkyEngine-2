@@ -802,9 +802,9 @@ namespace Sparky {
         
         for (size_t i = 0; i < searchPaths.size(); ++i) {
             const auto& path = searchPaths[i];
-            // Try material shaders first, then fall back to basic shaders
-            std::string vertPath = path + "material.vert.spv";
-            std::string fragPath = path + "material.frag.spv";
+            // Try basic shaders first as they're simpler and more compatible
+            std::string vertPath = path + "basic.vert.spv";
+            std::string fragPath = path + "basic.frag.spv";
             
             SPARKY_LOG_INFO("Trying shader path " + std::to_string(i) + ": " + path);
             SPARKY_LOG_INFO("Checking vertex shader: " + vertPath);
@@ -817,13 +817,13 @@ namespace Sparky {
                 vertShaderPathFound = vertPath;
                 fragShaderPathFound = fragPath;
                 found = true;
-                SPARKY_LOG_INFO("Found shaders at: " + path);
+                SPARKY_LOG_INFO("Found basic shaders at: " + path);
                 break;
             }
             
-            // Fall back to basic shaders if material shaders don't exist
-            vertPath = path + "basic.vert.spv";
-            fragPath = path + "basic.frag.spv";
+            // Fall back to material shaders if basic shaders don't exist
+            vertPath = path + "material.vert.spv";
+            fragPath = path + "material.frag.spv";
             
             SPARKY_LOG_INFO("Trying fallback shaders - vertex: " + vertPath);
             SPARKY_LOG_INFO("Trying fallback shaders - fragment: " + fragPath);
@@ -835,7 +835,7 @@ namespace Sparky {
                 vertShaderPathFound = vertPath;
                 fragShaderPathFound = fragPath;
                 found = true;
-                SPARKY_LOG_INFO("Found fallback shaders at: " + path);
+                SPARKY_LOG_INFO("Found material shaders at: " + path);
                 break;
             }
         }
@@ -891,7 +891,7 @@ namespace Sparky {
         SPARKY_LOG_DEBUG("Vertex input state - bindings: " + std::to_string(vertexInputInfo.vertexBindingDescriptionCount) + 
                     ", attributes: " + std::to_string(vertexInputInfo.vertexAttributeDescriptionCount));
 
-        // Input assembly
+        // Input assembly - simplified
         VkPipelineInputAssemblyStateCreateInfo inputAssembly{};
         inputAssembly.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
         inputAssembly.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
@@ -910,27 +910,27 @@ namespace Sparky {
         rasterizer.rasterizerDiscardEnable = VK_FALSE;
         rasterizer.polygonMode = VK_POLYGON_MODE_FILL;
         rasterizer.lineWidth = 1.0f;
-        // Enable backface culling for proper rendering
-        rasterizer.cullMode = VK_CULL_MODE_BACK_BIT;
+        // Disable backface culling to avoid compatibility issues
+        rasterizer.cullMode = VK_CULL_MODE_NONE;
         rasterizer.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
         rasterizer.depthBiasEnable = VK_FALSE;
 
-        // Multisampling - use very simple configuration
+        // Multisampling - simplified configuration
         VkPipelineMultisampleStateCreateInfo multisampling{};
         multisampling.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
-        multisampling.sampleShadingEnable = VK_FALSE;
         multisampling.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
-        multisampling.minSampleShading = 1.0f; // Optional
-        multisampling.pSampleMask = nullptr; // Optional
-        multisampling.alphaToCoverageEnable = VK_FALSE; // Optional
-        multisampling.alphaToOneEnable = VK_FALSE; // Optional
+        multisampling.sampleShadingEnable = VK_FALSE;
+        multisampling.minSampleShading = 1.0f;
+        multisampling.pSampleMask = nullptr;
+        multisampling.alphaToCoverageEnable = VK_FALSE;
+        multisampling.alphaToOneEnable = VK_FALSE;
 
-        // Depth stencil - enable depth testing for proper 3D rendering
+        // Depth stencil - simplified for compatibility
         VkPipelineDepthStencilStateCreateInfo depthStencil{};
         depthStencil.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
-        depthStencil.depthTestEnable = VK_TRUE;
-        depthStencil.depthWriteEnable = VK_TRUE;
-        depthStencil.depthCompareOp = VK_COMPARE_OP_LESS;
+        depthStencil.depthTestEnable = VK_FALSE;
+        depthStencil.depthWriteEnable = VK_FALSE;
+        depthStencil.depthCompareOp = VK_COMPARE_OP_ALWAYS;
         depthStencil.depthBoundsTestEnable = VK_FALSE;
         depthStencil.stencilTestEnable = VK_FALSE;
         depthStencil.front = {};

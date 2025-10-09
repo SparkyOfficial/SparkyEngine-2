@@ -6,6 +6,10 @@
 #include "../../Engine/include/RenderComponent.h"
 #include "../../Engine/include/Mesh.h"
 
+#ifdef HAS_GLFW
+#include <GLFW/glfw3.h>
+#endif
+
 // Only include AudioEngine if audio is enabled
 #ifdef ENABLE_AUDIO
 #include "../../Engine/include/AudioEngine.h"
@@ -59,7 +63,14 @@ namespace Sparky {
         
         // Handle reloading
         if (isReloading) {
+#ifdef HAS_GLFW
             if (glfwGetTime() - lastReloadTime >= reloadTime) {
+#else
+            // Fallback implementation for non-GLFW builds
+            static float fallbackTime = 0.0f;
+            fallbackTime += deltaTime;
+            if (fallbackTime - lastReloadTime >= reloadTime) {
+#endif
                 isReloading = false;
                 int ammoNeeded = magazineSize - currentAmmo;
                 int ammoToLoad = std::min(ammoNeeded, totalAmmo);
@@ -79,6 +90,7 @@ namespace Sparky {
         
         // Handle shooting input
         InputManager& inputManager = InputManager::getInstance();
+#ifdef HAS_GLFW
         if (inputManager.isMouseButtonPressed(GLFW_MOUSE_BUTTON_LEFT) && canShoot()) {
             shoot();
         }
@@ -86,6 +98,10 @@ namespace Sparky {
         if (inputManager.isKeyPressed(GLFW_KEY_R) && !isReloading && currentAmmo < magazineSize && totalAmmo > 0) {
             reload();
         }
+#else
+        // Fallback implementation for non-GLFW builds
+        // For now, we'll just skip shooting and reloading
+#endif
     }
 
     void Gun::render() {
@@ -102,7 +118,13 @@ namespace Sparky {
         }
         
         // Update last shot time
+#ifdef HAS_GLFW
         lastShotTime = static_cast<float>(glfwGetTime());
+#else
+        // Fallback implementation for non-GLFW builds
+        static float fallbackTime = 0.0f;
+        lastShotTime = fallbackTime;
+#endif
         
         // Decrease ammo
         currentAmmo--;
@@ -147,7 +169,13 @@ namespace Sparky {
         }
         
         isReloading = true;
+#ifdef HAS_GLFW
         lastReloadTime = static_cast<float>(glfwGetTime());
+#else
+        // Fallback implementation for non-GLFW builds
+        static float fallbackTime = 0.0f;
+        lastReloadTime = fallbackTime;
+#endif
         SPARKY_LOG_INFO("Reloading weapon...");
     }
 
@@ -158,7 +186,13 @@ namespace Sparky {
         }
         
         // Check fire rate cooldown
+#ifdef HAS_GLFW
         float currentTime = static_cast<float>(glfwGetTime());
+#else
+        // Fallback implementation for non-GLFW builds
+        static float fallbackTime = 0.0f;
+        float currentTime = fallbackTime;
+#endif
         float timeSinceLastShot = currentTime - lastShotTime;
         float fireInterval = 1.0f / fireRate;
         

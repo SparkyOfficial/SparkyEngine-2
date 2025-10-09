@@ -205,6 +205,14 @@ namespace Sparky {
         levelMeshes.push_back(std::move(planeMesh));
         renderComponent->setMesh(std::move(levelMeshes.back()));
         
+        // Add material for the floor (gray)
+        auto floorMaterial = std::make_unique<Material>("FloorMaterial");
+        floorMaterial->setDiffuse(glm::vec3(0.5f, 0.5f, 0.5f)); // Gray color
+        floorMaterial->setAmbient(glm::vec3(0.2f, 0.2f, 0.2f));
+        floorMaterial->setSpecular(glm::vec3(0.3f, 0.3f, 0.3f));
+        floorMaterial->setShininess(16.0f);
+        renderComponent->setMaterial(std::move(floorMaterial));
+        
         // Register with render system
         if (renderSystem) {
             renderSystem->registerGameObject(floor.get());
@@ -225,6 +233,14 @@ namespace Sparky {
         levelMeshes.push_back(std::move(cubeMesh1));
         cubeRender1->setMesh(std::move(levelMeshes.back()));
         
+        // Add material for platform1 (blue)
+        auto platform1Material = std::make_unique<Material>("Platform1Material");
+        platform1Material->setDiffuse(glm::vec3(0.2f, 0.4f, 0.8f)); // Blue color
+        platform1Material->setAmbient(glm::vec3(0.1f, 0.2f, 0.4f));
+        platform1Material->setSpecular(glm::vec3(0.5f, 0.5f, 0.5f));
+        platform1Material->setShininess(32.0f);
+        cubeRender1->setMaterial(std::move(platform1Material));
+        
         // Register with render system
         if (renderSystem) {
             renderSystem->registerGameObject(platform1.get());
@@ -243,6 +259,14 @@ namespace Sparky {
         auto cubeMesh2 = Mesh::createCube(1.0f);
         levelMeshes.push_back(std::move(cubeMesh2));
         cubeRender2->setMesh(std::move(levelMeshes.back()));
+        
+        // Add material for platform2 (red)
+        auto platform2Material = std::make_unique<Material>("Platform2Material");
+        platform2Material->setDiffuse(glm::vec3(0.8f, 0.2f, 0.2f)); // Red color
+        platform2Material->setAmbient(glm::vec3(0.4f, 0.1f, 0.1f));
+        platform2Material->setSpecular(glm::vec3(0.5f, 0.5f, 0.5f));
+        platform2Material->setShininess(32.0f);
+        cubeRender2->setMaterial(std::move(platform2Material));
         
         // Register with render system
         if (renderSystem) {
@@ -263,6 +287,14 @@ namespace Sparky {
         levelMeshes.push_back(std::move(rampMesh));
         rampRender->setMesh(std::move(levelMeshes.back()));
         
+        // Add material for ramp (green)
+        auto rampMaterial = std::make_unique<Material>("RampMaterial");
+        rampMaterial->setDiffuse(glm::vec3(0.2f, 0.8f, 0.2f)); // Green color
+        rampMaterial->setAmbient(glm::vec3(0.1f, 0.4f, 0.1f));
+        rampMaterial->setSpecular(glm::vec3(0.3f, 0.3f, 0.3f));
+        rampMaterial->setShininess(16.0f);
+        rampRender->setMaterial(std::move(rampMaterial));
+        
         // Register with render system
         if (renderSystem) {
             renderSystem->registerGameObject(ramp.get());
@@ -282,6 +314,14 @@ namespace Sparky {
             auto stepMesh = Mesh::createCube(1.0f);
             levelMeshes.push_back(std::move(stepMesh));
             stepRender->setMesh(std::move(levelMeshes.back()));
+            
+            // Add material for steps (yellow)
+            auto stepMaterial = std::make_unique<Material>("StepMaterial" + std::to_string(i));
+            stepMaterial->setDiffuse(glm::vec3(0.8f, 0.8f, 0.2f)); // Yellow color
+            stepMaterial->setAmbient(glm::vec3(0.4f, 0.4f, 0.1f));
+            stepMaterial->setSpecular(glm::vec3(0.5f, 0.5f, 0.5f));
+            stepMaterial->setShininess(16.0f);
+            stepRender->setMaterial(std::move(stepMaterial));
             
             // Register with render system
             if (renderSystem) {
@@ -313,6 +353,14 @@ namespace Sparky {
             playerMesh = Mesh::createCube(1.0f);
         }
         renderComponent->setMesh(std::move(playerMesh));
+        
+        // Add material for player (cyan)
+        auto playerMaterial = std::make_unique<Material>("PlayerMaterial");
+        playerMaterial->setDiffuse(glm::vec3(0.0f, 1.0f, 1.0f)); // Cyan color
+        playerMaterial->setAmbient(glm::vec3(0.0f, 0.5f, 0.5f));
+        playerMaterial->setSpecular(glm::vec3(0.5f, 0.5f, 0.5f));
+        playerMaterial->setShininess(32.0f);
+        renderComponent->setMaterial(std::move(playerMaterial));
         
         // Register with render system
         if (renderSystem) {
@@ -350,6 +398,14 @@ namespace Sparky {
         }
         renderComponent->setMesh(std::move(enemyMesh));
         
+        // Add material for enemy (magenta)
+        auto enemyMaterial = std::make_unique<Material>("EnemyMaterial");
+        enemyMaterial->setDiffuse(glm::vec3(1.0f, 0.0f, 1.0f)); // Magenta color
+        enemyMaterial->setAmbient(glm::vec3(0.5f, 0.0f, 0.5f));
+        enemyMaterial->setSpecular(glm::vec3(0.5f, 0.5f, 0.5f));
+        enemyMaterial->setShininess(32.0f);
+        renderComponent->setMaterial(std::move(enemyMaterial));
+        
         // Register with render system
         if (renderSystem) {
             renderSystem->registerGameObject(enemy.get());
@@ -368,15 +424,15 @@ namespace Sparky {
         
         // Create directional light (sun)
         directionalLight = std::make_unique<Light>("Sun");
-        directionalLight->setDirection(glm::vec3(-0.5f, -1.0f, -0.5f));
-        directionalLight->setDiffuse(glm::vec3(1.0f, 1.0f, 1.0f)); // Color
-        directionalLight->setAmbient(glm::vec3(0.1f, 0.1f, 0.1f)); // Intensity-like effect
+        directionalLight->setDirection(/*glm::*/vec3(-0.5f, -1.0f, -0.5f));
+        directionalLight->setDiffuse(/*glm::*/vec3(1.0f, 1.0f, 1.0f)); // Color
+        directionalLight->setAmbient(/*glm::*/vec3(0.1f, 0.1f, 0.1f)); // Intensity-like effect
         
         // Create point light
         pointLight = std::make_unique<Light>("PointLight");
-        pointLight->setPosition(glm::vec3(0.0f, 5.0f, 0.0f));
-        pointLight->setDiffuse(glm::vec3(1.0f, 1.0f, 1.0f)); // Color
-        pointLight->setAmbient(glm::vec3(0.05f, 0.05f, 0.05f)); // Intensity-like effect
+        pointLight->setPosition(/*glm::*/vec3(0.0f, 5.0f, 0.0f));
+        pointLight->setDiffuse(/*glm::*/vec3(1.0f, 1.0f, 1.0f)); // Color
+        pointLight->setAmbient(/*glm::*/vec3(0.05f, 0.05f, 0.05f)); // Intensity-like effect
         pointLight->setConstant(1.0f);
         pointLight->setLinear(0.09f);
         pointLight->setQuadratic(0.032f);

@@ -87,6 +87,16 @@ add_executable(test_skybox
     src/skybox_test.cpp
 )
 
+# Create a fileutils test executable
+add_executable(test_fileutils
+    src/fileutils_test.cpp
+)
+
+# Create a simple engine test executable
+add_executable(test_simple_engine
+    src/simple_engine_test.cpp
+)
+
 # Include directories
 target_include_directories(SparkyEngine PUBLIC 
     ${CMAKE_CURRENT_SOURCE_DIR}/include
@@ -125,6 +135,20 @@ target_include_directories(test_skybox PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/../external
 )
 
+target_include_directories(test_fileutils PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/include
+    ${GLM_INCLUDE_DIRS}
+    ${JSON_INCLUDE_DIRS}
+    ${CMAKE_CURRENT_SOURCE_DIR}/../external
+)
+
+target_include_directories(test_simple_engine PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/include
+    ${GLM_INCLUDE_DIRS}
+    ${JSON_INCLUDE_DIRS}
+    ${CMAKE_CURRENT_SOURCE_DIR}/../external
+)
+
 # Only include Vulkan include directories for test executables if Vulkan was found
 if (Vulkan_FOUND)
     target_include_directories(simple_test PRIVATE
@@ -136,6 +160,14 @@ if (Vulkan_FOUND)
     )
     
     target_include_directories(test_skybox PRIVATE
+        ${VULKAN_INCLUDE_DIRS}
+    )
+    
+    target_include_directories(test_fileutils PRIVATE
+        ${VULKAN_INCLUDE_DIRS}
+    )
+    
+    target_include_directories(test_simple_engine PRIVATE
         ${VULKAN_INCLUDE_DIRS}
     )
 endif()
@@ -158,6 +190,14 @@ if (Vulkan_FOUND)
     target_link_libraries(test_skybox SparkyEngine
         ${VULKAN_LIBRARIES}
     )
+    
+    target_link_libraries(test_fileutils SparkyEngine
+        ${VULKAN_LIBRARIES}
+    )
+    
+    target_link_libraries(test_simple_engine SparkyEngine
+        ${VULKAN_LIBRARIES}
+    )
 endif()
 
 # Only link GLFW libraries if GLFW was found
@@ -168,6 +208,8 @@ if (glfw3_FOUND)
         target_link_libraries(simple_test SparkyEngine glfw)
         target_link_libraries(test_unicode SparkyEngine glfw)
         target_link_libraries(test_skybox SparkyEngine glfw)
+        target_link_libraries(test_fileutils SparkyEngine glfw)
+        target_link_libraries(test_simple_engine SparkyEngine glfw)
     else()
         # GLFW found via manual configuration
         target_include_directories(SparkyEngine PUBLIC 
@@ -181,6 +223,12 @@ if (glfw3_FOUND)
             ${GLFW_LIBRARIES}
         )
         target_link_libraries(test_skybox SparkyEngine
+            ${GLFW_LIBRARIES}
+        )
+        target_link_libraries(test_fileutils SparkyEngine
+            ${GLFW_LIBRARIES}
+        )
+        target_link_libraries(test_simple_engine SparkyEngine
             ${GLFW_LIBRARIES}
         )
     endif()

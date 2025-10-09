@@ -129,6 +129,7 @@ namespace Sparky {
             createDepthResources();
             createFramebuffers();
             createUniformBuffers();
+            createLightingUniformBuffers();  // Add this missing call
             createDescriptorPool();
             createDescriptorSets();
             createSyncObjects();
@@ -1681,6 +1682,7 @@ namespace Sparky {
     }
     
     void VulkanRenderer::createDescriptorSets() {
+        SPARKY_LOG_INFO("About to create descriptor sets");
         std::vector<VkDescriptorSetLayout> layouts(swapChainImages.size(), descriptorSetLayout);
         VkDescriptorSetAllocateInfo allocInfo{};
         allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
@@ -1689,11 +1691,14 @@ namespace Sparky {
         allocInfo.pSetLayouts = layouts.data();
         
         descriptorSets.resize(swapChainImages.size());
+        SPARKY_LOG_INFO("Allocating descriptor sets");
         if (vkAllocateDescriptorSets(device, &allocInfo, descriptorSets.data()) != VK_SUCCESS) {
             throw std::runtime_error("failed to allocate descriptor sets!");
         }
         
+        SPARKY_LOG_INFO("Descriptor sets allocated, updating them");
         for (size_t i = 0; i < swapChainImages.size(); i++) {
+            SPARKY_LOG_INFO("Updating descriptor set " + std::to_string(i));
             // Camera uniform buffer
             VkDescriptorBufferInfo cameraBufferInfo{};
             cameraBufferInfo.buffer = uniformBuffers[i];
@@ -1724,7 +1729,9 @@ namespace Sparky {
             descriptorWrites[1].descriptorCount = 1;
             descriptorWrites[1].pBufferInfo = &lightingBufferInfo;
             
+            SPARKY_LOG_INFO("About to call vkUpdateDescriptorSets for set " + std::to_string(i));
             vkUpdateDescriptorSets(device, static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);
+            SPARKY_LOG_INFO("Finished updating descriptor set " + std::to_string(i));
         }
         
         SPARKY_LOG_INFO("Descriptor sets created");

@@ -28,6 +28,8 @@ if (glfw3_FOUND)
     target_link_libraries(SparkyGame 
         ${GLFW_LIBRARIES}
     )
+    # Add definition to indicate GLFW is available
+    target_compile_definitions(SparkyGame PRIVATE HAS_GLFW)
 endif()
 
 target_include_directories(SparkyGame PRIVATE 

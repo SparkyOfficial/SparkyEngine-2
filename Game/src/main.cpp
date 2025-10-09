@@ -7,6 +7,9 @@
 #include "../../Engine/include/ExampleState.h"
 #include "../../Engine/include/StateMachine.h"
 #include "../../Engine/include/GUIManager.h"
+#include "../../Engine/include/FileUtils.h"
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
 #include "ExampleGame.h"
 #include "Player.h"
 #include "Gun.h"
@@ -43,10 +46,14 @@ int main() {
     int windowHeight = Sparky::Config::getInstance().getInt("window_height", 720);
     std::string windowTitle = Sparky::Config::getInstance().getString("window_title", "Sparky Engine");
     
+    SPARKY_LOG_INFO("Initializing engine with window size: " + std::to_string(windowWidth) + "x" + std::to_string(windowHeight));
+    
     if (!engine.initialize(windowWidth, windowHeight, windowTitle.c_str())) {
         SPARKY_LOG_ERROR("Failed to initialize engine!");
         return -1;
     }
+    
+    SPARKY_LOG_INFO("Engine initialized successfully");
     
     // Create and initialize the game
     Sparky::ExampleGame game;
@@ -54,6 +61,8 @@ int main() {
         SPARKY_LOG_ERROR("Failed to initialize game!");
         return -1;
     }
+    
+    SPARKY_LOG_INFO("Game initialized successfully");
     
     // Create GUI elements
     Sparky::GUIManager& guiManager = Sparky::GUIManager::getInstance();
@@ -84,7 +93,7 @@ int main() {
     // Start the game
     game.startGame();
     
-    SPARKY_LOG_INFO("Game initialized successfully");
+    SPARKY_LOG_INFO("Game fully initialized, about to start main loop");
     SPARKY_LOG_INFO("Controls:");
     SPARKY_LOG_INFO("  WASD - Move");
     SPARKY_LOG_INFO("  Mouse - Look around");
@@ -97,10 +106,41 @@ int main() {
     SPARKY_LOG_INFO("  F3 - Hide menus");
     
     float lastTime = 0.0f;
-    bool gameStarted = false;
+    bool gameStarted = true; // Start the game immediately
+    
+    SPARKY_LOG_INFO("About to enter main game loop");
     
     // Main game loop
-    while (!engine.getWindowManager().shouldClose()) {
+    int frameCounter = 0;
+    bool shouldClose = engine.getWindowManager().shouldClose();
+    SPARKY_LOG_INFO("Initial shouldClose value: " + std::to_string(shouldClose));
+    
+    if (shouldClose) {
+        SPARKY_LOG_ERROR("Window manager reported shouldClose immediately");
+        // Don't exit immediately, let's see what happens
+    }
+    
+    SPARKY_LOG_INFO("Entering main game loop");
+    
+    // Add a counter to see if we're actually entering the loop
+    int loopEntryCount = 0;
+    
+    while (!shouldClose) {
+        loopEntryCount++;
+        if (loopEntryCount == 1) {
+            SPARKY_LOG_INFO("Successfully entered main game loop");
+        }
+        
+        frameCounter++;
+        if (frameCounter % 60 == 0) {
+            SPARKY_LOG_DEBUG("Game loop running, frame: " + std::to_string(frameCounter));
+        }
+        
+        // Debug: Check if window should close immediately
+        if (frameCounter == 1) {
+            SPARKY_LOG_DEBUG("Window should close check: " + std::to_string(engine.getWindowManager().shouldClose()));
+        }
+        
         SPARKY_PROFILE("GameLoop");
         
         // Calculate delta time
@@ -116,10 +156,10 @@ int main() {
         lastTime = currentTime;
         
         // Debug: Log frame information
-        static int frameCount = 0;
-        frameCount++;
-        if (frameCount % 60 == 0) { // Log every 60 frames
-            SPARKY_LOG_DEBUG("Main loop frame " + std::to_string(frameCount) + ", Delta time: " + std::to_string(deltaTime));
+        static int debugFrameCount = 0;
+        debugFrameCount++;
+        if (debugFrameCount % 60 == 0) { // Log every 60 frames
+            SPARKY_LOG_DEBUG("Main loop frame " + std::to_string(debugFrameCount) + ", Delta time: " + std::to_string(deltaTime));
         }
         
         // Poll events
@@ -166,7 +206,7 @@ int main() {
         guiManager.update(deltaTime);
         
         // Debug: Log state machine and game update
-        if (frameCount % 60 == 0) {
+        if (debugFrameCount % 60 == 0) {
             SPARKY_LOG_DEBUG("Updating state machine and game");
         }
         
@@ -177,13 +217,13 @@ int main() {
         game.update(deltaTime);
         
         // Debug: Log render system info
-        if (frameCount % 60 == 0) {
+        if (debugFrameCount % 60 == 0) {
             Sparky::RenderSystem& renderSystem = engine.getRenderSystem();
             SPARKY_LOG_DEBUG("RenderSystem has " + std::to_string(renderSystem.getGameObjects().size()) + " game objects");
         }
         
         // Debug: Log render calls
-        if (frameCount % 60 == 0) {
+        if (debugFrameCount % 60 == 0) {
             SPARKY_LOG_DEBUG("Calling engine renderer");
         }
         
@@ -193,13 +233,37 @@ int main() {
         // Render GUI
         guiManager.render();
         
-        if (frameCount % 60 == 0) {
+        if (debugFrameCount % 60 == 0) {
             SPARKY_LOG_DEBUG("Calling game render");
         }
         
         game.render();
+        
+        // Update shouldClose flag
+        shouldClose = engine.getWindowManager().shouldClose();
+        
+        // Additional debug: Check for ESC key to manually exit
+#ifdef HAS_GLFW
+        if (inputManager.isKeyJustPressed(GLFW_KEY_ESCAPE)) {
+            SPARKY_LOG_INFO("ESC key pressed, setting shouldClose to true");
+            shouldClose = true; // Set shouldClose to true to exit the loop
+        }
+#endif
+        
+        // Additional debug: Log every 100 frames to see if we're still running
+        if (frameCounter % 100 == 0) {
+            SPARKY_LOG_INFO("Still running, frame: " + std::to_string(frameCounter));
+        }
+        
+        // If we've been in the loop for more than 1000 iterations, exit to prevent infinite loop
+        if (frameCounter > 1000) {
+            SPARKY_LOG_INFO("Exiting after 1000 frames to prevent infinite loop");
+            break;
+        }
     }
 
+    SPARKY_LOG_INFO("Exiting main game loop after " + std::to_string(frameCounter) + " frames");
+    
     // End the game
     game.endGame();
     

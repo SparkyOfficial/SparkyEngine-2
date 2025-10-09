@@ -1,4 +1,6 @@
 #include "../include/WindowManager.h"
+#include "../include/Logger.h"
+#include <string>
 
 #ifdef HAS_GLFW
 #include <GLFW/glfw3.h>
@@ -19,22 +21,33 @@ namespace Sparky {
         this->title = title;
 
         // Initialize GLFW
+        SPARKY_LOG_DEBUG("Initializing GLFW");
         if (!glfwInit()) {
             std::cerr << "Failed to initialize GLFW" << std::endl;
             return false;
         }
+        SPARKY_LOG_DEBUG("GLFW initialized successfully");
 
         // Configure GLFW for Vulkan
         glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
         glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
 
         // Create window
+        SPARKY_LOG_DEBUG("Creating GLFW window with size " + std::to_string(width) + "x" + std::to_string(height));
         window = glfwCreateWindow(width, height, title, nullptr, nullptr);
         if (!window) {
             std::cerr << "Failed to create GLFW window" << std::endl;
             glfwTerminate();
             return false;
         }
+        
+        // Debug: Check if window was created successfully
+        std::cout << "GLFW window created successfully" << std::endl;
+        SPARKY_LOG_DEBUG("GLFW window created successfully");
+
+        // Show and bring the window to front
+        glfwShowWindow(window);
+        glfwFocusWindow(window);
 
         // Set up framebuffer resize callback
         glfwSetWindowUserPointer(window, this);
@@ -51,7 +64,19 @@ namespace Sparky {
     }
 
     bool WindowManager::shouldClose() {
-        return glfwWindowShouldClose(window);
+        if (!window) {
+            SPARKY_LOG_DEBUG("Window is null, returning true for shouldClose");
+            return true;
+        }
+        
+        bool result = glfwWindowShouldClose(window);
+        // Debug: Log the shouldClose result
+        static bool firstCall = true;
+        if (firstCall) {
+            SPARKY_LOG_DEBUG("WindowManager::shouldClose() returned: " + std::to_string(result));
+            firstCall = false;
+        }
+        return result;
     }
 
     void WindowManager::pollEvents() {

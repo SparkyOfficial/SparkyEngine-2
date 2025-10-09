@@ -53,7 +53,26 @@ namespace Sparky {
         SPARKY_LOG_INFO("Starting game loop...");
         float lastTime = 0.0f;
         
+        SPARKY_LOG_INFO("About to enter game loop - if you see this message but not the 'Actually entering game loop' message, the program is crashing or exiting before entering the loop. Adding more debug info:");
+        int frameCount = 0;
+        
+        SPARKY_LOG_INFO("isRunning: " + std::to_string(isRunning));
+        SPARKY_LOG_INFO("windowManager.shouldClose(): " + std::to_string(windowManager.shouldClose()));
+        
+        // Add a check to see if we're entering the loop
+        if (!isRunning || windowManager.shouldClose()) {
+            SPARKY_LOG_INFO("Not entering game loop - isRunning: " + std::to_string(isRunning) + 
+                           ", shouldClose: " + std::to_string(windowManager.shouldClose()));
+            return;
+        }
+        
+        SPARKY_LOG_INFO("Actually entering game loop - this should be visible");
+        SPARKY_LOG_INFO("If you don't see this message, the program is crashing or exiting before entering the loop");
+        
         while (isRunning && !windowManager.shouldClose()) {
+            frameCount++;
+            SPARKY_LOG_DEBUG("Game loop frame: " + std::to_string(frameCount));
+            
             // Calculate delta time
 #ifdef HAS_GLFW
             float currentTime = static_cast<float>(glfwGetTime());
@@ -82,7 +101,7 @@ namespace Sparky {
             renderer.render();
         }
         
-        SPARKY_LOG_INFO("Game loop ended");
+        SPARKY_LOG_INFO("Game loop ended after " + std::to_string(frameCount) + " frames");
     }
 
     void Engine::shutdown() {

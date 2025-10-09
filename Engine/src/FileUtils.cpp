@@ -3,22 +3,53 @@
 #include <fstream>
 #include <sstream>
 #include <iostream>
-#include <windows.h>
 #include <vector>
 #include <string>
 #include <algorithm>
 
+#ifdef _WIN32
+#include <windows.h>
+#endif
+
 namespace Sparky {
 
     bool FileUtils::fileExists(const std::string& filepath) {
+        SPARKY_LOG_DEBUG("Checking if file exists: " + filepath);
+        
+#ifdef _WIN32
+        // Convert UTF-8 string to wide string for Windows
+        int size_needed = MultiByteToWideChar(CP_UTF8, 0, filepath.c_str(), (int)filepath.size(), NULL, 0);
+        if (size_needed == 0) {
+            SPARKY_LOG_ERROR("Failed to convert file path to wide string: " + filepath);
+            return false;
+        }
+        std::wstring wpath(size_needed, 0);
+        MultiByteToWideChar(CP_UTF8, 0, filepath.c_str(), (int)filepath.size(), &wpath[0], size_needed);
+        std::ifstream file(wpath);
+#else
         std::ifstream file(filepath);
-        return file.good();
+#endif
+        bool exists = file.good();
+        SPARKY_LOG_DEBUG("File exists: " + std::to_string(exists) + " for path: " + filepath);
+        return exists;
     }
 
     std::vector<char> FileUtils::readFile(const std::string& filepath) {
         SPARKY_LOG_DEBUG("Reading file: " + filepath);
         
+#ifdef _WIN32
+        // Convert UTF-8 string to wide string for Windows
+        int size_needed = MultiByteToWideChar(CP_UTF8, 0, filepath.c_str(), (int)filepath.size(), NULL, 0);
+        if (size_needed == 0) {
+            SPARKY_LOG_ERROR("Failed to convert file path to wide string: " + filepath);
+            throw std::runtime_error("failed to convert file path: " + filepath);
+        }
+        std::wstring wpath(size_needed, 0);
+        MultiByteToWideChar(CP_UTF8, 0, filepath.c_str(), (int)filepath.size(), &wpath[0], size_needed);
+        std::ifstream file(wpath, std::ios::ate | std::ios::binary);
+#else
         std::ifstream file(filepath, std::ios::ate | std::ios::binary);
+#endif
 
         if (!file.is_open()) {
             SPARKY_LOG_ERROR("Failed to open file: " + filepath);
@@ -44,7 +75,19 @@ namespace Sparky {
     bool FileUtils::writeFile(const std::string& filepath, const std::vector<char>& data) {
         SPARKY_LOG_DEBUG("Writing file: " + filepath);
         
+#ifdef _WIN32
+        // Convert UTF-8 string to wide string for Windows
+        int size_needed = MultiByteToWideChar(CP_UTF8, 0, filepath.c_str(), (int)filepath.size(), NULL, 0);
+        if (size_needed == 0) {
+            SPARKY_LOG_ERROR("Failed to convert file path to wide string: " + filepath);
+            return false;
+        }
+        std::wstring wpath(size_needed, 0);
+        MultiByteToWideChar(CP_UTF8, 0, filepath.c_str(), (int)filepath.size(), &wpath[0], size_needed);
+        std::ofstream file(wpath, std::ios::binary);
+#else
         std::ofstream file(filepath, std::ios::binary);
+#endif
 
         if (!file.is_open()) {
             SPARKY_LOG_ERROR("Failed to open file for writing: " + filepath);
@@ -83,26 +126,17 @@ namespace Sparky {
     }
 
     std::string FileUtils::getExecutablePath() {
+#ifdef _WIN32
         std::vector<wchar_t> pathBuf;
         DWORD copied = 0;
         do {
             pathBuf.resize(pathBuf.size() + MAX_PATH);
-            copied = GetModuleFileNameW(NULL, &pathBuf[0], pathBuf.size());
+            copied = GetModuleFileNameW(NULL, &pathBuf[0], (DWORD)pathBuf.size());
         } while (copied >= pathBuf.size());
 
         pathBuf.resize(copied);
 
         std::wstring widePath(pathBuf.begin(), pathBuf.end());
-        
-        // Log the wide path for debugging
-        SPARKY_LOG_DEBUG("Wide executable path: " + std::to_string(widePath.length()) + " chars");
-        
-        // Log each character of the wide path for debugging
-        std::string widePathDebug = "Wide path characters: ";
-        for (size_t i = 0; i < widePath.length() && i < 20; ++i) {
-            widePathDebug += std::to_string((int)widePath[i]) + " ";
-        }
-        SPARKY_LOG_DEBUG(widePathDebug);
         
         // Convert wide string to UTF-8 with error handling
         int size_needed = WideCharToMultiByte(CP_UTF8, 0, widePath.c_str(), (int)widePath.size(), NULL, 0, NULL, NULL);
@@ -118,8 +152,13 @@ namespace Sparky {
             return "";
         }
         
-        SPARKY_LOG_DEBUG("Final executable path: " + strTo);
-        
+        SPARKY_LOG_DEBUG("Executable path: " + strTo);
         return strTo;
+#else
+        // For non-Windows platforms, we would need different implementation
+        // This is a placeholder implementation
+        SPARKY_LOG_WARNING("getExecutablePath not implemented for this platform");
+        return "";
+#endif
     }
 }

@@ -112,6 +112,11 @@ add_executable(test_physics
     src/physics_test.cpp
 )
 
+# Create an audio test executable
+add_executable(test_audio
+    src/audio_test.cpp
+)
+
 # Include directories
 target_include_directories(SparkyEngine PUBLIC 
     ${CMAKE_CURRENT_SOURCE_DIR}/include
@@ -185,6 +190,13 @@ target_include_directories(test_physics PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/../external
 )
 
+target_include_directories(test_audio PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/include
+    ${GLM_INCLUDE_DIRS}
+    ${JSON_INCLUDE_DIRS}
+    ${CMAKE_CURRENT_SOURCE_DIR}/../external
+)
+
 # Only include Vulkan include directories for test executables if Vulkan was found
 if (Vulkan_FOUND)
     target_include_directories(simple_test PRIVATE
@@ -216,6 +228,10 @@ if (Vulkan_FOUND)
     )
     
     target_include_directories(test_physics PRIVATE
+        ${VULKAN_INCLUDE_DIRS}
+    )
+    
+    target_include_directories(test_audio PRIVATE
         ${VULKAN_INCLUDE_DIRS}
     )
 endif()
@@ -258,6 +274,10 @@ if (Vulkan_FOUND)
     )
     
     target_link_libraries(test_physics SparkyEngine
+        ${VULKAN_LIBRARIES}
+    )
+    
+    target_link_libraries(test_audio SparkyEngine
         ${VULKAN_LIBRARIES}
     )
 endif()

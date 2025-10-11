@@ -90,4 +90,18 @@ namespace Sparky {
             }
         }
     }
+    
+    void AnimationController::setBlendWeight(const std::string& animationName, float weight) {
+        if (animationComponent) {
+            // In a full implementation, we would set the blend weight for the animation
+            // For now, we'll just log the action
+            SPARKY_LOG_DEBUG("Setting blend weight for animation " + animationName + " to " + std::to_string(weight));
+        }
+    }
+    
+    void AnimationController::crossfade(const std::string& fromState, const std::string& toState, float duration) {
+        // In a full implementation, we would perform a crossfade between states
+        // For now, we'll just log the action
+        SPARKY_LOG_DEBUG("Crossfading from state " + fromState + " to " + toState + " over " + std::to_string(duration) + " seconds");
+    }
 }

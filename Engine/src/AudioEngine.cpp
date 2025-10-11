@@ -2,9 +2,11 @@
 #include "../include/Logger.h"
 #include <AL/al.h>
 #include <AL/alc.h>
+#include <AL/alext.h>
 #include <iostream>
 #include <fstream>
 #include <vector>
+#include <cmath>
 
 namespace Sparky {
     
@@ -13,7 +15,7 @@ namespace Sparky {
         return instance;
     }
     
-    AudioEngine::AudioEngine() : device(nullptr), context(nullptr), listenerPosition(0.0f), listenerOrientation(0.0f) {
+    AudioEngine::AudioEngine() : device(nullptr), context(nullptr), listenerPosition(0.0f), listenerOrientation(0.0f), listenerVelocity(0.0f) {
         SPARKY_LOG_DEBUG("AudioEngine created");
     }
     
@@ -203,6 +205,11 @@ namespace Sparky {
         alListenerfv(AL_ORIENTATION, orientation);
     }
     
+    void AudioEngine::setListenerVelocity(const glm::vec3& velocity) {
+        listenerVelocity = velocity;
+        alListener3f(AL_VELOCITY, velocity.x, velocity.y, velocity.z);
+    }
+    
     void AudioEngine::setSoundPosition(ALuint source, const glm::vec3& position) {
         if (source != 0) {
             alSource3f(source, AL_POSITION, position.x, position.y, position.z);
@@ -224,6 +231,55 @@ namespace Sparky {
     void AudioEngine::setSoundPitch(ALuint source, float pitch) {
         if (source != 0) {
             alSourcef(source, AL_PITCH, pitch);
+        }
+    }
+    
+    void AudioEngine::setSoundProperties(ALuint source, const AudioSourceProperties& properties) {
+        if (source != 0) {
+            // Set distance model parameters
+            alSourcef(source, AL_REFERENCE_DISTANCE, properties.minDistance);
+            alSourcef(source, AL_MAX_DISTANCE, properties.maxDistance);
+            alSourcef(source, AL_ROLLOFF_FACTOR, properties.rolloffFactor);
+            
+            // Set cone parameters
+            alSourcef(source, AL_CONE_INNER_ANGLE, properties.coneInnerAngle);
+            alSourcef(source, AL_CONE_OUTER_ANGLE, properties.coneOuterAngle);
+            alSourcef(source, AL_CONE_OUTER_GAIN, properties.coneOuterGain);
+            
+            // Set Doppler effect
+            if (properties.enableDoppler) {
+                alSourcef(source, AL_DOPPLER_FACTOR, properties.dopplerFactor);
+            } else {
+                alSourcef(source, AL_DOPPLER_FACTOR, 0.0f);
+            }
+        }
+    }
+    
+    void AudioEngine::setSoundDistanceModel(ALuint source, int model) {
+        if (source != 0) {
+            alSourcei(source, AL_DISTANCE_MODEL, model);
+        }
+    }
+    
+    void AudioEngine::setSoundAttenuation(ALuint source, float minDistance, float maxDistance, float rolloffFactor) {
+        if (source != 0) {
+            alSourcef(source, AL_REFERENCE_DISTANCE, minDistance);
+            alSourcef(source, AL_MAX_DISTANCE, maxDistance);
+            alSourcef(source, AL_ROLLOFF_FACTOR, rolloffFactor);
+        }
+    }
+    
+    void AudioEngine::setSoundCone(ALuint source, float innerAngle, float outerAngle, float outerGain) {
+        if (source != 0) {
+            alSourcef(source, AL_CONE_INNER_ANGLE, innerAngle);
+            alSourcef(source, AL_CONE_OUTER_ANGLE, outerAngle);
+            alSourcef(source, AL_CONE_OUTER_GAIN, outerGain);
+        }
+    }
+    
+    void AudioEngine::setSoundDoppler(ALuint source, bool enable, float factor) {
+        if (source != 0) {
+            alSourcef(source, AL_DOPPLER_FACTOR, enable ? factor : 0.0f);
         }
     }
     
@@ -281,5 +337,38 @@ namespace Sparky {
         // Play the music in a loop
         ALuint source = playSound("music", true);
         setSoundVolume(source, 0.5f); // Medium volume
+    }
+    
+    bool AudioEngine::createAudioEffect(AudioEffectType type, const std::string& name) {
+        // In a full implementation, we would create OpenAL effects
+        // For now, we'll just log that the method exists
+        SPARKY_LOG_DEBUG("Creating audio effect: " + name);
+        return true;
+    }
+    
+    void AudioEngine::applyAudioEffect(ALuint source, const std::string& effectName) {
+        // In a full implementation, we would apply OpenAL effects to the source
+        // For now, we'll just log that the method exists
+        SPARKY_LOG_DEBUG("Applying audio effect: " + effectName + " to source");
+    }
+    
+    void AudioEngine::removeAudioEffect(ALuint source, const std::string& effectName) {
+        // In a full implementation, we would remove OpenAL effects from the source
+        // For now, we'll just log that the method exists
+        SPARKY_LOG_DEBUG("Removing audio effect: " + effectName + " from source");
+    }
+    
+    float AudioEngine::calculateDistanceAttenuation(const glm::vec3& sourcePos, const glm::vec3& listenerPos, 
+                                                float minDistance, float maxDistance, float rolloffFactor) {
+        float distance = glm::distance(sourcePos, listenerPos);
+        
+        // Clamp distance to max distance
+        distance = std::min(distance, maxDistance);
+        
+        // Calculate attenuation using inverse distance model
+        float attenuation = minDistance / (minDistance + rolloffFactor * (distance - minDistance));
+        
+        // Clamp attenuation between 0 and 1
+        return std::max(0.0f, std::min(1.0f, attenuation));
     }
 }

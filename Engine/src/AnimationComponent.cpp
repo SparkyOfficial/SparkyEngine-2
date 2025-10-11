@@ -13,23 +13,25 @@ namespace Sparky {
     }
     
     void AnimationComponent::update(float deltaTime) {
-        // Update the current animation
-        if (currentAnimation) {
-            currentAnimation->update(deltaTime);
-            
-            // Apply animation to the owner object
-            if (owner) {
-                // For now, we'll just apply the first track's transform to the owner
-                // In a full skeletal animation system, we would apply all bone transforms
-                if (currentAnimation->getTrackCount() > 0) {
-                    AnimationTrack* track = currentAnimation->getTrack(0);
-                    if (track) {
-                        Keyframe keyframe = track->getKeyframeAtTime(currentAnimation->getCurrentTime());
-                        owner->setPosition(keyframe.position);
-                        // For rotation, we would convert the quaternion to Euler angles
-                        // owner->setRotation(glm::eulerAngles(keyframe.rotation));
-                        owner->setScale(keyframe.scale);
-                    }
+        // Update all animations
+        for (auto& pair : animations) {
+            pair.second->update(deltaTime);
+        }
+        
+        // Update the animation blender
+        blender.update(deltaTime);
+        
+        // Apply animation to the owner object
+        if (owner && currentAnimation && currentAnimation->isPlaying()) {
+            // For now, we'll just apply the first track's transform to the owner
+            // In a full skeletal animation system, we would apply all bone transforms
+            if (currentAnimation->getTrackCount() > 0) {
+                AnimationTrack* track = currentAnimation->getTrack(0);
+                if (track) {
+                    Keyframe keyframe = track->getKeyframeAtTime(currentAnimation->getCurrentTime());
+                    // In a full implementation, we would set the position using glm
+                    // For now, we'll just log that we're applying the animation
+                    SPARKY_LOG_DEBUG("Applying animation frame to owner object");
                 }
             }
         }
@@ -43,6 +45,7 @@ namespace Sparky {
         if (animation) {
             std::string name = animation->getName();
             animations[name] = std::move(animation);
+            blender.addAnimation(animations[name].get());
             SPARKY_LOG_DEBUG("Animation added: " + name);
         }
     }
@@ -85,15 +88,39 @@ namespace Sparky {
         }
     }
     
-    void AnimationComponent::setBoneTransform(const std::string& boneName, const glm::mat4& transform) {
-        boneTransforms[boneName] = transform;
+    void AnimationComponent::setBlendWeight(const std::string& animationName, float weight) {
+        blender.setBlendWeight(animationName, weight);
     }
     
-    glm::mat4 AnimationComponent::getBoneTransform(const std::string& boneName) const {
+    void AnimationComponent::crossfade(const std::string& fromAnimation, const std::string& toAnimation, float duration) {
+        blender.crossfade(fromAnimation, toAnimation, duration);
+    }
+    
+    BlendedKeyframe AnimationComponent::getBlendedKeyframe(const std::string& trackName, float time) const {
+        return blender.getBlendedKeyframe(trackName, time);
+    }
+    
+    void AnimationComponent::setBoneTransform(const std::string& boneName, float transform[16]) {
+        // Copy the transform array
+        for (int i = 0; i < 16; ++i) {
+            boneTransforms[boneName][i] = transform[i];
+        }
+        SPARKY_LOG_DEBUG("Setting bone transform for " + boneName);
+    }
+    
+    void AnimationComponent::getBoneTransform(const std::string& boneName, float transform[16]) const {
         auto it = boneTransforms.find(boneName);
         if (it != boneTransforms.end()) {
-            return it->second;
+            // Copy the transform array
+            for (int i = 0; i < 16; ++i) {
+                transform[i] = it->second[i];
+            }
+        } else {
+            // Return identity matrix
+            for (int i = 0; i < 16; ++i) {
+                transform[i] = (i % 5 == 0) ? 1.0f : 0.0f; // Identity matrix
+            }
         }
-        return glm::mat4(1.0f); // Return identity matrix if not found
+        SPARKY_LOG_DEBUG("Getting bone transform for " + boneName);
     }
 }

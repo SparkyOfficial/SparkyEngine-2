@@ -2,9 +2,12 @@
 
 #include "../../Engine/include/GameObject.h"
 #include "../../Engine/include/Camera.h"
-#include <glm/glm.hpp>
 
 namespace Sparky {
+    
+    // Forward declarations
+    class GunImpl; // Pimpl idiom to hide implementation details
+    
     class Gun : public GameObject {
     public:
         Gun();
@@ -16,27 +19,39 @@ namespace Sparky {
         // Weapon functions
         void shoot();
         void reload();
+        void aim();
+        void unaim();
         bool canShoot() const;
+        void applyRecoil();
+        
+        // Burst fire control
+        void startBurst();
+        void updateBurst(float deltaTime);
         
         // Getters and setters
-        int getAmmo() const { return currentAmmo; }
-        int getMagazineSize() const { return magazineSize; }
-        int getTotalAmmo() const { return totalAmmo; }
-        float getFireRate() const { return fireRate; }
-        float getSpread() const { return spread; }
-        float getDamage() const { return damage; }
+        int getAmmo() const;
+        int getMagazineSize() const;
+        int getTotalAmmo() const;
+        float getFireRate() const;
+        float getSpread() const;
+        float getDamage() const;
+        bool isAiming() const;
+        int getFiringMode() const; // Returns int instead of enum
+        int getAmmoType() const; // Returns int instead of enum
         
-        void setAmmo(int ammo) { currentAmmo = ammo; }
-        void setMagazineSize(int size) { magazineSize = size; }
-        void setTotalAmmo(int ammo) { totalAmmo = ammo; }
-        void setFireRate(float rate) { fireRate = rate; }
-        void setSpread(float sp) { spread = sp; }
-        void setDamage(float dmg) { damage = dmg; }
+        void setAmmo(int ammo);
+        void setMagazineSize(int size);
+        void setTotalAmmo(int ammo);
+        void setFireRate(float rate);
+        void setSpread(float sp);
+        void setDamage(float dmg);
+        void setFiringMode(int mode); // Takes int instead of enum
+        void setAmmoType(int type); // Takes int instead of enum
         
-        void setCamera(Camera* camera) { this->camera = camera; }
-        Camera* getCamera() const { return camera; }
+        void setCamera(Camera* camera);
+        Camera* getCamera() const;
         
-        // New getters and setters for advanced features
+        // Advanced weapon properties
         float getRecoil() const;
         void setRecoil(float recoil);
         
@@ -46,35 +61,47 @@ namespace Sparky {
         float getMuzzleVelocity() const;
         void setMuzzleVelocity(float velocity);
         
-        const std::string& getWeaponType() const;
-        void setWeaponType(const std::string& type);
+        const char* getWeaponType() const;
+        void setWeaponType(const char* type);
+        
+        // Recoil pattern system
+        void getRecoilPattern(float* pattern) const; // Returns 5 floats
+        void setRecoilPattern(const float* pattern); // Takes 5 floats
+        
+        // Weapon attachments
+        void addAttachment(const char* name, float modifier, bool active);
+        void removeAttachment(const char* name);
+        void toggleAttachment(const char* name);
+        int getAttachmentCount() const;
+        
+        // Weapon statistics
+        void getStats(int* stats) const; // Returns 5 ints + 2 floats
+        void resetStats();
+        
+        // Heat and wear system
+        float getHeat() const;
+        float getWear() const;
+        bool isOverheated() const;
+        void coolDown(float deltaTime);
+        
+        // Jamming system
+        bool isJammed() const;
+        void jam();
+        void unjam();
+        
+        // Reload mechanics
+        float getReloadTime() const;
+        void setReloadTime(float time);
+        
+        // Burst fire settings
+        int getBurstCount() const;
+        void setBurstCount(int count);
+        int getCurrentBurstShot() const;
+        
+        // Audio
+        void playShootSound();
 
     private:
-        Camera* camera;
-        
-        // Weapon properties
-        int currentAmmo;
-        int magazineSize;
-        int totalAmmo;
-        float fireRate;         // Shots per second
-        float spread;           // Accuracy spread in degrees
-        float damage;
-        float lastShotTime;
-        bool isReloading;
-        float reloadTime;
-        float lastReloadTime;
-        
-        // Advanced weapon properties
-        float recoil;           // Amount of camera kick per shot
-        float recoilRecovery;   // How fast recoil returns to normal
-        float currentRecoil;    // Current recoil amount
-        float muzzleVelocity;   // Speed of bullets when fired
-        std::string weaponType; // Type of weapon (e.g., "Assault Rifle", "Pistol")
-        
-        // Private helper methods
-        glm::vec3 calculateSpreadDirection() const;
-        void createBullet(const glm::vec3& direction);
-        void createMuzzleFlash(const glm::vec3& direction);
-        void playShootSound();
+        GunImpl* impl; // Pointer to implementation
     };
 }

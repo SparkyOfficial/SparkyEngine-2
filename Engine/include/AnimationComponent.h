@@ -23,17 +23,26 @@ namespace Sparky {
         void stopAnimation();
         void pauseAnimation();
         
+        // Animation blending
+        void setBlendWeight(const std::string& animationName, float weight);
+        void crossfade(const std::string& fromAnimation, const std::string& toAnimation, float duration);
+        BlendedKeyframe getBlendedKeyframe(const std::string& trackName, float time) const;
+        
         // Bone manipulation (for skeletal animation)
-        void setBoneTransform(const std::string& boneName, const glm::mat4& transform);
-        glm::mat4 getBoneTransform(const std::string& boneName) const;
+        void setBoneTransform(const std::string& boneName, float transform[16]); // 4x4 matrix as array
+        void getBoneTransform(const std::string& boneName, float transform[16]) const; // 4x4 matrix as array
         
         // Getters
         Animation* getCurrentAnimation() const { return currentAnimation; }
         bool isPlaying() const { return currentAnimation && currentAnimation->isPlaying(); }
+        
+        // Animation blending manager
+        AnimationBlender* getAnimationBlender() { return &blender; }
 
     private:
         std::unordered_map<std::string, std::unique_ptr<Animation>> animations;
         Animation* currentAnimation;
-        std::unordered_map<std::string, glm::mat4> boneTransforms;
+        std::unordered_map<std::string, float[16]> boneTransforms; // 4x4 matrices stored as arrays
+        AnimationBlender blender;
     };
 }

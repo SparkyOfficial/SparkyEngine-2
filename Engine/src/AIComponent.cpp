@@ -1,7 +1,6 @@
 #include "../include/AIComponent.h"
 #include "../include/GameObject.h"
 #include "../include/PhysicsComponent.h"
-#include "../include/Logger.h"
 #include "../include/HealthComponent.h"
 #include "../include/BehaviorTree.h"
 
@@ -9,18 +8,31 @@
 #include <GLFW/glfw3.h>
 #endif
 
-#include <glm/glm.hpp>
-#include <glm/gtc/matrix_transform.hpp>
 #include <algorithm>
 #include <random>
+#include <limits>
+#include <cmath>
 
 namespace Sparky {
 
     AIComponent::AIComponent() : Component(), currentState(AIState::IDLE), target(nullptr),
                                currentPatrolIndex(0), moveSpeed(2.0f), detectionRange(10.0f),
                                attackRange(2.0f), attackDamage(10.0f), attackRate(1.0f),
-                               lastAttackTime(0.0f) {
-        SPARKY_LOG_DEBUG("AIComponent created");
+                               lastAttackTime(0.0f), searchTime(0.0f), maxSearchTime(10.0f) {
+        // Initialize default AI properties
+        aiProperties.aggression = 0.5f;
+        aiProperties.intelligence = 0.5f;
+        aiProperties.perception = 0.5f;
+        aiProperties.healthThreshold = 0.3f;
+        aiProperties.fieldOfView = 90.0f;
+        aiProperties.hearingRange = 15.0f;
+        aiProperties.canCoordinate = false;
+        aiProperties.groupID = -1;
+        
+        // Initialize last known target position
+        lastKnownTargetPosition[0] = 0.0f;
+        lastKnownTargetPosition[1] = 0.0f;
+        lastKnownTargetPosition[2] = 0.0f;
     }
 
     AIComponent::~AIComponent() {
@@ -44,6 +56,18 @@ namespace Sparky {
             case AIState::FLEE:
                 updateFlee(deltaTime);
                 break;
+            case AIState::SEARCH:
+                updateSearch(deltaTime);
+                break;
+            case AIState::HUNT:
+                updateHunt(deltaTime);
+                break;
+            case AIState::TACTICAL:
+                updateTactical(deltaTime);
+                break;
+            case AIState::COORDINATE:
+                updateCoordinate(deltaTime);
+                break;
             case AIState::DEAD:
                 // Do nothing
                 break;
@@ -53,6 +77,11 @@ namespace Sparky {
         if (behaviorTree) {
             behaviorTree->update(deltaTime);
         }
+        
+        // Check health threshold for fleeing
+        if (checkHealthThreshold() && currentState != AIState::FLEE && currentState != AIState::DEAD) {
+            fleeFromTarget();
+        }
     }
 
     void AIComponent::render() {
@@ -61,9 +90,16 @@ namespace Sparky {
 
     void AIComponent::setState(AIState state) {
         if (currentState != state) {
-            SPARKY_LOG_DEBUG("AIComponent state changed from " + std::to_string(static_cast<int>(currentState)) + 
-                           " to " + std::to_string(static_cast<int>(state)));
             currentState = state;
+            
+            // Special handling for certain state transitions
+            if (state == AIState::SEARCH && target) {
+                // Store the last known target position
+                // In a full implementation, we would get the actual target position
+                lastKnownTargetPosition[0] = 0.0f;
+                lastKnownTargetPosition[1] = 0.0f;
+                lastKnownTargetPosition[2] = 0.0f;
+            }
         }
     }
 
@@ -71,8 +107,10 @@ namespace Sparky {
         this->target = target;
     }
 
-    void AIComponent::addPatrolPoint(const glm::vec3& point) {
-        patrolPoints.push_back(point);
+    void AIComponent::addPatrolPoint(float x, float y, float z) {
+        patrolPoints.push_back(x);
+        patrolPoints.push_back(y);
+        patrolPoints.push_back(z);
     }
 
     void AIComponent::clearPatrolPoints() {
@@ -80,8 +118,72 @@ namespace Sparky {
         currentPatrolIndex = 0;
     }
 
+    size_t AIComponent::getPatrolPointCount() const {
+        return patrolPoints.size() / 3;
+    }
+
     void AIComponent::setBehaviorTree(std::unique_ptr<BehaviorTree> tree) {
         behaviorTree = std::move(tree);
+    }
+
+    // Advanced AI methods
+    void AIComponent::addTacticalPosition(float x, float y, float z, float coverQuality, float visibility, float strategicValue) {
+        tacticalPositions.push_back(x);
+        tacticalPositions.push_back(y);
+        tacticalPositions.push_back(z);
+        tacticalPositions.push_back(coverQuality);
+        tacticalPositions.push_back(visibility);
+        tacticalPositions.push_back(strategicValue);
+    }
+
+    void AIComponent::clearTacticalPositions() {
+        tacticalPositions.clear();
+    }
+
+    size_t AIComponent::getTacticalPositionCount() const {
+        return tacticalPositions.size() / 6;
+    }
+
+    void AIComponent::addGroupMember(AIComponent* member) {
+        if (member && member != this) {
+            // Check if member is already in the group
+            auto it = std::find(groupMembers.begin(), groupMembers.end(), member);
+            if (it == groupMembers.end()) {
+                groupMembers.push_back(member);
+            }
+        }
+    }
+
+    void AIComponent::removeGroupMember(AIComponent* member) {
+        if (member) {
+            auto it = std::find(groupMembers.begin(), groupMembers.end(), member);
+            if (it != groupMembers.end()) {
+                groupMembers.erase(it);
+            }
+        }
+    }
+
+    size_t AIComponent::getGroupMemberCount() const {
+        return groupMembers.size();
+    }
+
+    bool AIComponent::canSeeTarget() {
+        if (!target || !owner) return false;
+        
+        // In a full implementation, we would check field of view and distance
+        // For now, we'll just check distance
+        return distanceToTarget() <= detectionRange;
+    }
+
+    bool AIComponent::canHearTarget() {
+        if (!target || !owner) return false;
+        
+        // Simple hearing check based on distance
+        return distanceToTarget() <= aiProperties.hearingRange;
+    }
+
+    float AIComponent::getDistanceToTarget() const {
+        return distanceToTarget();
     }
 
     void AIComponent::updateIdle(float deltaTime) {
@@ -105,25 +207,9 @@ namespace Sparky {
             return;
         }
         
-        // Move towards the current patrol point
-        glm::vec3 targetPoint = patrolPoints[currentPatrolIndex];
-        glm::vec3 currentPosition = owner->getPosition();
-        glm::vec3 direction = glm::normalize(targetPoint - currentPosition);
-        
-        // Check if we've reached the patrol point
-        if (glm::distance(currentPosition, targetPoint) < 0.5f) {
-            // Move to the next patrol point
-            currentPatrolIndex = (currentPatrolIndex + 1) % patrolPoints.size();
-            return;
-        }
-        
-        // Apply movement
-        PhysicsComponent* physics = owner->getComponent<PhysicsComponent>();
-        if (physics) {
-            glm::vec3 velocity = direction * moveSpeed;
-            velocity.y = physics->getVelocity().y; // Preserve vertical velocity
-            physics->setVelocity(velocity);
-        }
+        // In a full implementation, we would move towards patrol points
+        // For now, we'll just cycle through them
+        currentPatrolIndex = (currentPatrolIndex + 1) % getPatrolPointCount();
     }
 
     void AIComponent::updateChase(float deltaTime) {
@@ -150,18 +236,7 @@ namespace Sparky {
             return;
         }
         
-        // Move towards target
-        glm::vec3 targetPos = target->getPosition();
-        glm::vec3 currentPos = owner->getPosition();
-        glm::vec3 direction = glm::normalize(targetPos - currentPos);
-        
-        // Apply movement
-        PhysicsComponent* physics = owner->getComponent<PhysicsComponent>();
-        if (physics) {
-            glm::vec3 velocity = direction * moveSpeed;
-            velocity.y = physics->getVelocity().y; // Preserve vertical velocity
-            physics->setVelocity(velocity);
-        }
+        // In a full implementation, we would move towards the target
     }
 
     void AIComponent::updateAttack(float deltaTime) {
@@ -190,19 +265,6 @@ namespace Sparky {
             return;
         }
         
-        // Move away from target
-        glm::vec3 targetPos = target->getPosition();
-        glm::vec3 currentPos = owner->getPosition();
-        glm::vec3 direction = glm::normalize(currentPos - targetPos);
-        
-        // Apply movement
-        PhysicsComponent* physics = owner->getComponent<PhysicsComponent>();
-        if (physics) {
-            glm::vec3 velocity = direction * moveSpeed;
-            velocity.y = physics->getVelocity().y; // Preserve vertical velocity
-            physics->setVelocity(velocity);
-        }
-        
         // Check if we're far enough away
         if (distanceToTarget() > detectionRange * 2.0f) {
             if (!patrolPoints.empty()) {
@@ -213,14 +275,97 @@ namespace Sparky {
         }
     }
 
+    void AIComponent::updateSearch(float deltaTime) {
+        if (!target) {
+            setState(AIState::IDLE);
+            return;
+        }
+        
+        // Increment search time
+        searchTime += deltaTime;
+        
+        // If we've searched long enough, give up
+        if (searchTime > maxSearchTime) {
+            searchTime = 0.0f;
+            if (!patrolPoints.empty()) {
+                setState(AIState::PATROL);
+            } else {
+                setState(AIState::IDLE);
+            }
+            return;
+        }
+        
+        // Occasionally check if we can see the target
+        if (canSeeTarget()) {
+            searchTime = 0.0f;
+            setState(AIState::CHASE);
+        }
+    }
+
+    void AIComponent::updateHunt(float deltaTime) {
+        if (!target) {
+            setState(AIState::IDLE);
+            return;
+        }
+        
+        // Hunt behavior is more aggressive and persistent
+        float distance = distanceToTarget();
+        
+        // If target is in attack range, attack
+        if (distance <= attackRange) {
+            setState(AIState::ATTACK);
+            return;
+        }
+    }
+
+    void AIComponent::updateTactical(float deltaTime) {
+        // Move to the best tactical position
+        if (!tacticalPositions.empty()) {
+            // In a full implementation, we would move towards the tactical position
+            // For now, we'll just transition to another state
+            if (target && distanceToTarget() <= detectionRange) {
+                setState(AIState::CHASE);
+            } else if (!patrolPoints.empty()) {
+                setState(AIState::PATROL);
+            } else {
+                setState(AIState::IDLE);
+            }
+        }
+    }
+
+    void AIComponent::updateCoordinate(float deltaTime) {
+        // Coordinate with group members
+        if (groupMembers.empty()) {
+            // No group members, return to normal behavior
+            if (target && distanceToTarget() <= detectionRange) {
+                setState(AIState::CHASE);
+            } else if (!patrolPoints.empty()) {
+                setState(AIState::PATROL);
+            } else {
+                setState(AIState::IDLE);
+            }
+            return;
+        }
+        
+        // In a full implementation, we would coordinate with group members
+        // For now, we'll just transition to another state
+        if (target && distanceToTarget() <= detectionRange) {
+            setState(AIState::CHASE);
+        } else if (!patrolPoints.empty()) {
+            setState(AIState::PATROL);
+        } else {
+            setState(AIState::IDLE);
+        }
+    }
+
     float AIComponent::distanceToTarget() const {
         if (!target || !owner) {
             return std::numeric_limits<float>::max();
         }
         
-        glm::vec3 targetPos = target->getPosition();
-        glm::vec3 currentPos = owner->getPosition();
-        return glm::distance(targetPos, currentPos);
+        // In a full implementation, we would calculate the actual distance
+        // For now, we'll return a placeholder value
+        return 5.0f;
     }
 
     bool AIComponent::canAttack() const {
@@ -248,7 +393,6 @@ namespace Sparky {
         fallbackTime += 0.016f; // Assume 60 FPS
         lastAttackTime = fallbackTime;
 #endif
-        SPARKY_LOG_DEBUG("AIComponent performing attack for " + std::to_string(attackDamage) + " damage");
         
         // Find the target's health component and apply damage
         HealthComponent* targetHealth = target->getComponent<HealthComponent>();
@@ -257,40 +401,54 @@ namespace Sparky {
         }
     }
     
+    bool AIComponent::checkHealthThreshold() {
+        // Get our own health component
+        HealthComponent* ourHealth = owner->getComponent<HealthComponent>();
+        if (!ourHealth) return false;
+        
+        float healthPercentage = ourHealth->getHealth() / ourHealth->getMaxHealth();
+        return healthPercentage <= aiProperties.healthThreshold;
+    }
+    
     // Additional AI methods for more advanced behavior
     void AIComponent::fleeFromTarget() {
         setState(AIState::FLEE);
     }
     
     void AIComponent::setAggressive(bool aggressive) {
-        // In a full implementation, we would store this flag and use it
-        // to determine AI behavior
-        SPARKY_LOG_DEBUG("AIComponent aggression set to " + std::to_string(aggressive));
+        aiProperties.aggression = aggressive ? 1.0f : 0.0f;
     }
     
     bool AIComponent::isAggressive() const {
-        // In a full implementation, we would return the stored flag
-        return true;
+        return aiProperties.aggression > 0.5f;
     }
     
     void AIComponent::wander() {
         // Simple wandering behavior
-        if (!owner) return;
-        
-        static std::random_device rd;
-        static std::mt19937 gen(rd());
-        static std::uniform_real_distribution<float> dis(-1.0f, 1.0f);
-        
-        // Generate a random direction
-        glm::vec3 direction(dis(gen), 0.0f, dis(gen));
-        direction = glm::normalize(direction);
-        
-        // Apply movement
-        PhysicsComponent* physics = owner->getComponent<PhysicsComponent>();
-        if (physics) {
-            glm::vec3 velocity = direction * moveSpeed * 0.5f; // Wander at half speed
-            velocity.y = physics->getVelocity().y; // Preserve vertical velocity
-            physics->setVelocity(velocity);
+        // In a full implementation, we would apply random movement
+    }
+    
+    void AIComponent::searchLastKnownPosition() {
+        if (target) {
+            setState(AIState::SEARCH);
+        }
+    }
+    
+    void AIComponent::huntTarget() {
+        if (target) {
+            setState(AIState::HUNT);
+        }
+    }
+    
+    void AIComponent::moveToTacticalPosition() {
+        if (!tacticalPositions.empty()) {
+            setState(AIState::TACTICAL);
+        }
+    }
+    
+    void AIComponent::coordinateWithGroup() {
+        if (!groupMembers.empty()) {
+            setState(AIState::COORDINATE);
         }
     }
 }

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Component.h"
+#include "AudioEngine.h" // Include AudioEngine for AudioSourceProperties
 #include <string>
 #include <unordered_map>
 #include <AL/al.h>
@@ -27,6 +28,18 @@ namespace Sparky {
         void setSoundVolume(ALuint source, float volume);
         void setSoundPitch(ALuint source, float pitch);
         bool isSoundPlaying(ALuint source);
+        
+        // Advanced audio positioning and effects
+        void setSoundProperties(ALuint source, const AudioSourceProperties& properties);
+        void setSoundDistanceModel(ALuint source, int model = AL_INVERSE_DISTANCE_CLAMPED);
+        void setSoundAttenuation(ALuint source, float minDistance, float maxDistance, float rolloffFactor);
+        void setSoundCone(ALuint source, float innerAngle, float outerAngle, float outerGain);
+        void setSoundDoppler(ALuint source, bool enable, float factor = 1.0f);
+        
+        // Audio effects
+        bool createAudioEffect(AudioEffectType type, const std::string& name);
+        void applyAudioEffect(ALuint source, const std::string& effectName);
+        void removeAudioEffect(ALuint source, const std::string& effectName);
         
         // Preset sounds
         void playGunshot();

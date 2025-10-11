@@ -30,7 +30,7 @@ if (NOT glfw3_FOUND)
 endif()
 
 # Set include directories
-set(GLM_INCLUDE_DIRS "C:/glm-install/include")
+set(GLM_INCLUDE_DIRS "${CMAKE_CURRENT_SOURCE_DIR}/external/glm")
 set(JSON_INCLUDE_DIRS "${CMAKE_CURRENT_SOURCE_DIR}/external/json/include")
 set(STB_INCLUDE_DIRS "${CMAKE_CURRENT_SOURCE_DIR}/external/stb")
 

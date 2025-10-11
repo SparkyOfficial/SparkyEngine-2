@@ -44,6 +44,10 @@ namespace Sparky {
         
         // Getters
         AnimationComponent* getAnimationComponent() const { return animationComponent; }
+        
+        // Animation blending
+        void setBlendWeight(const std::string& animationName, float weight);
+        void crossfade(const std::string& fromState, const std::string& toState, float duration);
 
     private:
         AnimationComponent* animationComponent;

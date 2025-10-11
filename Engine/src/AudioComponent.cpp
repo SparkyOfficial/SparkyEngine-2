@@ -94,6 +94,38 @@ namespace Sparky {
         return AudioEngine::getInstance().isSoundPlaying(source);
     }
     
+    void AudioComponent::setSoundProperties(ALuint source, const AudioSourceProperties& properties) {
+        AudioEngine::getInstance().setSoundProperties(source, properties);
+    }
+    
+    void AudioComponent::setSoundDistanceModel(ALuint source, int model) {
+        AudioEngine::getInstance().setSoundDistanceModel(source, model);
+    }
+    
+    void AudioComponent::setSoundAttenuation(ALuint source, float minDistance, float maxDistance, float rolloffFactor) {
+        AudioEngine::getInstance().setSoundAttenuation(source, minDistance, maxDistance, rolloffFactor);
+    }
+    
+    void AudioComponent::setSoundCone(ALuint source, float innerAngle, float outerAngle, float outerGain) {
+        AudioEngine::getInstance().setSoundCone(source, innerAngle, outerAngle, outerGain);
+    }
+    
+    void AudioComponent::setSoundDoppler(ALuint source, bool enable, float factor) {
+        AudioEngine::getInstance().setSoundDoppler(source, enable, factor);
+    }
+    
+    bool AudioComponent::createAudioEffect(AudioEffectType type, const std::string& name) {
+        return AudioEngine::getInstance().createAudioEffect(type, name);
+    }
+    
+    void AudioComponent::applyAudioEffect(ALuint source, const std::string& effectName) {
+        AudioEngine::getInstance().applyAudioEffect(source, effectName);
+    }
+    
+    void AudioComponent::removeAudioEffect(ALuint source, const std::string& effectName) {
+        AudioEngine::getInstance().removeAudioEffect(source, effectName);
+    }
+    
     void AudioComponent::playGunshot() {
         // Play a gunshot sound at the owner's position
         if (owner) {

@@ -21,9 +21,19 @@ namespace Sparky {
         void setParticleSystem(std::unique_ptr<ParticleSystem> system);
         
         // Convenience methods for common effects
-        void emitMuzzleFlash(const glm::vec3& direction);
+        void emitMuzzleFlash(float dirX, float dirY, float dirZ);
         void emitExplosion();
         void emitSmoke();
+        void emitFire();
+        void emitSparks(int count = 10);
+        void emitBlood(float dirX, float dirY, float dirZ, int count = 5);
+        void emitMist();
+        void emitTrail(float endX, float endY, float endZ, float duration = 1.0f);
+        void emitShockwave(float radius = 5.0f, float intensity = 1.0f);
+        
+        // Combined effects
+        void emitExplosionWithSmoke(float intensity = 1.0f);
+        void emitFireWithSmoke(float intensity = 1.0f);
         
         // Configuration methods
         void setFollowOwner(bool follow) { followOwner = follow; }

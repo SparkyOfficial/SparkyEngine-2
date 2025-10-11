@@ -7,6 +7,7 @@ add_executable(SparkyGame
     src/Player.cpp
     src/Platform.cpp
     src/Gun.cpp
+    src/GunImpl.cpp
     src/Level.cpp
     src/Enemy.cpp
     src/PhysicsDemo.cpp
@@ -22,6 +23,11 @@ add_executable(PhysicsTest
     src/EnhancedPhysicsDemo.cpp
 )
 
+add_executable(AudioTest
+    src/AudioTest.cpp
+    src/AudioDemo.cpp
+)
+
 target_compile_definitions(SparkyGame PRIVATE PROJECT_SOURCE_DIR="${CMAKE_SOURCE_DIR}")
 
 # Only link Vulkan libraries if Vulkan was found
@@ -35,10 +41,14 @@ if (Vulkan_FOUND)
     target_link_libraries(PhysicsTest SparkyEngine 
         ${VULKAN_LIBRARIES}
     )
+    target_link_libraries(AudioTest SparkyEngine 
+        ${VULKAN_LIBRARIES}
+    )
 else()
     target_link_libraries(SparkyGame SparkyEngine)
     target_link_libraries(PBRTest SparkyEngine)
     target_link_libraries(PhysicsTest SparkyEngine)
+    target_link_libraries(AudioTest SparkyEngine)
 endif()
 
 # Only link GLFW libraries if GLFW was found
@@ -52,10 +62,14 @@ if (glfw3_FOUND)
     target_link_libraries(PhysicsTest 
         ${GLFW_LIBRARIES}
     )
+    target_link_libraries(AudioTest 
+        ${GLFW_LIBRARIES}
+    )
     # Add definition to indicate GLFW is available
     target_compile_definitions(SparkyGame PRIVATE HAS_GLFW)
     target_compile_definitions(PBRTest PRIVATE HAS_GLFW)
     target_compile_definitions(PhysicsTest PRIVATE HAS_GLFW)
+    target_compile_definitions(AudioTest PRIVATE HAS_GLFW)
 endif()
 
 target_include_directories(SparkyGame PRIVATE 
@@ -79,6 +93,13 @@ target_include_directories(PhysicsTest PRIVATE
     ${JSON_INCLUDE_DIRS}
 )
 
+target_include_directories(AudioTest PRIVATE 
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Engine/include
+    ${CMAKE_CURRENT_SOURCE_DIR}/../external
+    ${GLM_INCLUDE_DIRS}
+    ${JSON_INCLUDE_DIRS}
+)
+
 # Only include Vulkan include directories if Vulkan was found
 if (Vulkan_FOUND)
     target_include_directories(SparkyGame PRIVATE 
@@ -88,6 +109,9 @@ if (Vulkan_FOUND)
         ${VULKAN_INCLUDE_DIRS}
     )
     target_include_directories(PhysicsTest PRIVATE 
+        ${VULKAN_INCLUDE_DIRS}
+    )
+    target_include_directories(AudioTest PRIVATE 
         ${VULKAN_INCLUDE_DIRS}
     )
 endif()
@@ -101,6 +125,9 @@ if (glfw3_FOUND)
         ${GLFW_INCLUDE_DIRS}
     )
     target_include_directories(PhysicsTest PRIVATE 
+        ${GLFW_INCLUDE_DIRS}
+    )
+    target_include_directories(AudioTest PRIVATE 
         ${GLFW_INCLUDE_DIRS}
     )
 endif()
@@ -134,4 +161,14 @@ add_custom_command(TARGET PhysicsTest POST_BUILD
             "${CMAKE_SOURCE_DIR}/Engine/assets/engine.cfg"
             "$<TARGET_FILE_DIR:PhysicsTest>/"
     COMMENT "Copying assets and shaders for PhysicsTest..."
+)
+
+add_custom_command(TARGET AudioTest POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+            "${CMAKE_SOURCE_DIR}/Engine/shaders"
+            "$<TARGET_FILE_DIR:AudioTest>/Engine/shaders"
+    COMMAND ${CMAKE_COMMAND} -E copy
+            "${CMAKE_SOURCE_DIR}/Engine/assets/engine.cfg"
+            "$<TARGET_FILE_DIR:AudioTest>/"
+    COMMENT "Copying assets and shaders for AudioTest..."
 )

@@ -1,10 +1,16 @@
 #include "Gun.h"
+#include "GunImpl.h"
+#include <string>
+#include <memory>
 #include "../../Engine/include/InputManager.h"
 #include "../../Engine/include/Logger.h"
 #include "../../Engine/include/PhysicsWorld.h"
 #include "../../Engine/include/RigidBodyComponent.h"
 #include "../../Engine/include/RenderComponent.h"
 #include "../../Engine/include/Mesh.h"
+#include "../../Engine/include/ParticleComponent.h"
+#include <string>
+#include <memory>
 
 #ifdef HAS_GLFW
 #include <GLFW/glfw3.h>
@@ -23,11 +29,7 @@
 
 namespace Sparky {
 
-    Gun::Gun() : GameObject(), camera(nullptr), currentAmmo(30), magazineSize(30), 
-                totalAmmo(120), fireRate(10.0f), spread(1.0f), damage(10.0f),
-                lastShotTime(0.0f), isReloading(false), reloadTime(2.0f), lastReloadTime(0.0f),
-                recoil(0.5f), recoilRecovery(1.0f), currentRecoil(0.0f),
-                muzzleVelocity(500.0f), weaponType("Assault Rifle") {
+    Gun::Gun() : GameObject(), impl(new GunImpl()) {
         setName("Gun");
         
         // Add a particle component for muzzle flash effects
@@ -35,13 +37,15 @@ namespace Sparky {
         auto particleSystem = std::make_unique<ParticleSystem>();
         
         // Configure the particle system for muzzle flashes
-        particleSystem->setParticleLifetime(0.1f);
-        particleSystem->setStartColor(glm::vec4(1.0f, 1.0f, 0.0f, 1.0f)); // Yellow
-        particleSystem->setEndColor(glm::vec4(1.0f, 0.5f, 0.0f, 0.0f));   // Orange fading
-        particleSystem->setStartSize(0.05f);
-        particleSystem->setEndSize(0.0f);
-        particleSystem->setEmissionRate(0.0f); // No continuous emission
-        particleSystem->setGravity(glm::vec3(0.0f));
+        EmitterProperties props;
+        props.lifetime = 0.1f;
+        props.startColor[0] = 1.0f; props.startColor[1] = 1.0f; props.startColor[2] = 0.0f; props.startColor[3] = 1.0f; // Yellow
+        props.endColor[0] = 1.0f; props.endColor[1] = 0.5f; props.endColor[2] = 0.0f; props.endColor[3] = 0.0f;   // Orange fading
+        props.startSize = 0.05f;
+        props.endSize = 0.0f;
+        props.emissionRate = 0.0f; // No continuous emission
+        props.gravity[0] = 0.0f; props.gravity[1] = 0.0f; props.gravity[2] = 0.0f;
+        particleSystem->setEmitterProperties(props);
         
         particleComponent->setParticleSystem(std::move(particleSystem));
         
@@ -52,41 +56,16 @@ namespace Sparky {
         audioComponent->loadSound("gunshot", "gunshot.wav");
 #endif
 
-        SPARKY_LOG_INFO("Gun created with " + std::to_string(currentAmmo) + " ammo");
+        SPARKY_LOG_INFO("Gun created with " + std::to_string(impl->getAmmo()) + " ammo");
     }
 
     Gun::~Gun() {
+        delete impl;
     }
 
     void Gun::update(float deltaTime) {
-        GameObject::update(deltaTime);
-        
-        // Handle reloading
-        if (isReloading) {
-#ifdef HAS_GLFW
-            if (glfwGetTime() - lastReloadTime >= reloadTime) {
-#else
-            // Fallback implementation for non-GLFW builds
-            static float fallbackTime = 0.0f;
-            fallbackTime += deltaTime;
-            if (fallbackTime - lastReloadTime >= reloadTime) {
-#endif
-                isReloading = false;
-                int ammoNeeded = magazineSize - currentAmmo;
-                int ammoToLoad = std::min(ammoNeeded, totalAmmo);
-                currentAmmo += ammoToLoad;
-                totalAmmo -= ammoToLoad;
-                SPARKY_LOG_INFO("Reloaded. Current ammo: " + std::to_string(currentAmmo));
-            }
-        }
-        
-        // Handle recoil recovery
-        if (currentRecoil > 0.0f) {
-            currentRecoil -= recoilRecovery * deltaTime;
-            if (currentRecoil < 0.0f) {
-                currentRecoil = 0.0f;
-            }
-        }
+        Sparky::GameObject::update(deltaTime);
+        impl->update(deltaTime);
         
         // Handle shooting input
         InputManager& inputManager = InputManager::getInstance();
@@ -95,7 +74,7 @@ namespace Sparky {
             shoot();
         }
         
-        if (inputManager.isKeyPressed(GLFW_KEY_R) && !isReloading && currentAmmo < magazineSize && totalAmmo > 0) {
+        if (inputManager.isKeyPressed(GLFW_KEY_R) && !impl->isReloading && impl->getAmmo() < impl->getMagazineSize() && impl->getTotalAmmo() > 0) {
             reload();
         }
 #else
@@ -105,7 +84,7 @@ namespace Sparky {
     }
 
     void Gun::render() {
-        GameObject::render();
+        Sparky::GameObject::render();
         
         // In a full implementation, we would render the gun model here
         // For now, we'll just log that we're rendering
@@ -113,168 +92,116 @@ namespace Sparky {
     }
 
     void Gun::shoot() {
-        if (!canShoot() || !camera) {
-            return;
-        }
-        
-        // Update last shot time
-#ifdef HAS_GLFW
-        lastShotTime = static_cast<float>(glfwGetTime());
-#else
-        // Fallback implementation for non-GLFW builds
-        static float fallbackTime = 0.0f;
-        lastShotTime = fallbackTime;
-#endif
-        
-        // Decrease ammo
-        currentAmmo--;
-        
-        // Apply recoil
-        currentRecoil += recoil;
-        
-        // Calculate shot direction with spread and recoil
-        glm::vec3 shotDirection = calculateSpreadDirection();
-        
-        // Apply recoil to camera
-        if (camera) {
-            // Add some randomness to the recoil direction
-            static std::random_device rd;
-            static std::mt19937 gen(rd());
-            static std::uniform_real_distribution<float> dis(-0.5f, 0.5f);
-            
-            float recoilYaw = dis(gen) * currentRecoil;
-            float recoilPitch = -currentRecoil; // Recoil pushes the gun up
-            
-            camera->ProcessMouseMovement(recoilYaw, recoilPitch);
-        }
-        
-        // Create a bullet object
-        createBullet(shotDirection);
-        
-        // Play shooting sound
-        playShootSound();
-        
-        // Create muzzle flash effect
-        createMuzzleFlash(shotDirection);
-        
-        // Log the shot
-        SPARKY_LOG_INFO("Gun fired! Ammo: " + std::to_string(currentAmmo) + 
-                       ", Direction: (" + std::to_string(shotDirection.x) + ", " + 
-                       std::to_string(shotDirection.y) + ", " + std::to_string(shotDirection.z) + ")");
+        impl->shoot();
     }
 
     void Gun::reload() {
-        if (isReloading || currentAmmo >= magazineSize || totalAmmo <= 0) {
-            return;
-        }
-        
-        isReloading = true;
-#ifdef HAS_GLFW
-        lastReloadTime = static_cast<float>(glfwGetTime());
-#else
-        // Fallback implementation for non-GLFW builds
-        static float fallbackTime = 0.0f;
-        lastReloadTime = fallbackTime;
-#endif
-        SPARKY_LOG_INFO("Reloading weapon...");
+        impl->reload();
+    }
+    
+    void Gun::aim() {
+        impl->aim();
+    }
+    
+    void Gun::unaim() {
+        impl->unaim();
     }
 
     bool Gun::canShoot() const {
-        // Check if we have ammo and are not reloading
-        if (currentAmmo <= 0 || isReloading) {
-            return false;
-        }
-        
-        // Check fire rate cooldown
-#ifdef HAS_GLFW
-        float currentTime = static_cast<float>(glfwGetTime());
-#else
-        // Fallback implementation for non-GLFW builds
-        static float fallbackTime = 0.0f;
-        float currentTime = fallbackTime;
-#endif
-        float timeSinceLastShot = currentTime - lastShotTime;
-        float fireInterval = 1.0f / fireRate;
-        
-        return timeSinceLastShot >= fireInterval;
+        return impl->canShoot();
+    }
+    
+    void Gun::applyRecoil() {
+        impl->applyRecoil();
+    }
+    
+    // Burst fire control
+    void Gun::startBurst() {
+        impl->startBurst();
+    }
+    
+    void Gun::updateBurst(float deltaTime) {
+        impl->updateBurst(deltaTime);
     }
 
-    glm::vec3 Gun::calculateSpreadDirection() const {
-        if (!camera) {
-            return glm::vec3(0.0f, 0.0f, -1.0f);
-        }
-        
-        // Get the base direction from the camera
-        glm::vec3 direction = camera->Front;
-        
-        // Add spread by randomly perturbing the direction
-        if (spread > 0.0f) {
-            // Create a random number generator
-            static std::random_device rd;
-            static std::mt19937 gen(rd());
-            static std::uniform_real_distribution<float> dis(-1.0f, 1.0f);
-            
-            // Generate random offsets
-            float offsetX = dis(gen) * spread * 0.01f;
-            float offsetY = dis(gen) * spread * 0.01f;
-            
-            // Apply the offsets
-            direction += glm::vec3(offsetX, offsetY, 0.0f);
-            direction = glm::normalize(direction);
-        }
-        
-        return direction;
+    // Getters and setters
+    int Gun::getAmmo() const { return impl->getAmmo(); }
+    int Gun::getMagazineSize() const { return impl->getMagazineSize(); }
+    int Gun::getTotalAmmo() const { return impl->getTotalAmmo(); }
+    float Gun::getFireRate() const { return impl->getFireRate(); }
+    float Gun::getSpread() const { return impl->getSpread(); }
+    float Gun::getDamage() const { return impl->getDamage(); }
+    bool Gun::isAiming() const { return impl->getIsAiming(); }
+    int Gun::getFiringMode() const { return impl->getFiringMode(); }
+    int Gun::getAmmoType() const { return impl->getAmmoType(); }
+    
+    void Gun::setAmmo(int ammo) { impl->setAmmo(ammo); }
+    void Gun::setMagazineSize(int size) { impl->setMagazineSize(size); }
+    void Gun::setTotalAmmo(int ammo) { impl->setTotalAmmo(ammo); }
+    void Gun::setFireRate(float rate) { impl->setFireRate(rate); }
+    void Gun::setSpread(float sp) { impl->setSpread(sp); }
+    void Gun::setDamage(float dmg) { impl->setDamage(dmg); }
+    void Gun::setFiringMode(int mode) { impl->setFiringMode(mode); }
+    void Gun::setAmmoType(int type) { impl->setAmmoType(type); }
+    
+    void Gun::setCamera(Camera* camera) { impl->setCamera(camera); }
+    Camera* Gun::getCamera() const { return impl->getCamera(); }
+    
+    // Advanced weapon properties
+    float Gun::getRecoil() const { return impl->getRecoil(); }
+    void Gun::setRecoil(float recoil) { impl->setRecoil(recoil); }
+    
+    float Gun::getRecoilRecovery() const { return impl->getRecoilRecovery(); }
+    void Gun::setRecoilRecovery(float recovery) { impl->setRecoilRecovery(recovery); }
+    
+    float Gun::getMuzzleVelocity() const { return impl->getMuzzleVelocity(); }
+    void Gun::setMuzzleVelocity(float velocity) { impl->setMuzzleVelocity(velocity); }
+    
+    const char* Gun::getWeaponType() const { return impl->getWeaponType(); }
+    void Gun::setWeaponType(const char* type) { impl->setWeaponType(type); }
+    
+    // Recoil pattern system
+    void Gun::getRecoilPattern(float* pattern) const { impl->getRecoilPattern(pattern); }
+    void Gun::setRecoilPattern(const float* pattern) { impl->setRecoilPattern(pattern); }
+    
+    // Weapon attachments
+    void Gun::addAttachment(const char* name, float modifier, bool active) {
+        impl->addAttachment(std::string(name), modifier, active);
     }
     
-    void Gun::createBullet(const glm::vec3& direction) {
-        // Create a bullet object
-        auto bullet = std::make_unique<GameObject>("Bullet");
-        bullet->setPosition(camera->getPosition() + camera->Front * 0.5f); // Start slightly in front of camera
-        
-        // Add a render component
-        auto renderComponent = bullet->addComponent<RenderComponent>();
-        auto bulletMesh = Mesh::createSphere(0.02f, 8, 8); // Small sphere for bullet
-        renderComponent->setMesh(std::move(bulletMesh));
-        
-        // Add a rigid body component for physics
-        auto rigidBody = bullet->addComponent<RigidBodyComponent>();
-        rigidBody->setMass(0.01f); // Very light
-        rigidBody->setVelocity(direction * muzzleVelocity);
-        rigidBody->setAffectedByGravity(false); // Bullets aren't affected by gravity in most FPS games
-        
-        // Register with physics world
-        PhysicsWorld::getInstance().addRigidBody(rigidBody);
-        
-        // In a full implementation, we would add the bullet to the game world
-        // and set up collision detection for it to hit other objects
-        
-        SPARKY_LOG_DEBUG("Bullet created with velocity: " + 
-                        std::to_string(direction.x * muzzleVelocity) + ", " + 
-                        std::to_string(direction.y * muzzleVelocity) + ", " + 
-                        std::to_string(direction.z * muzzleVelocity));
+    void Gun::removeAttachment(const char* name) {
+        impl->removeAttachment(std::string(name));
     }
     
-    void Gun::createMuzzleFlash(const glm::vec3& direction) {
-        // Get the particle component
-        ParticleComponent* particleComponent = getComponent<ParticleComponent>();
-        if (particleComponent) {
-            // Emit a muzzle flash in the direction the gun is pointing
-            particleComponent->emitMuzzleFlash(direction);
-        }
+    void Gun::toggleAttachment(const char* name) {
+        impl->toggleAttachment(std::string(name));
     }
     
-    // Getters and setters for new properties
-    float Gun::getRecoil() const { return recoil; }
-    void Gun::setRecoil(float rec) { recoil = rec; }
+    int Gun::getAttachmentCount() const { return impl->getAttachmentCount(); }
     
-    float Gun::getRecoilRecovery() const { return recoilRecovery; }
-    void Gun::setRecoilRecovery(float recovery) { recoilRecovery = recovery; }
+    // Weapon statistics
+    void Gun::getStats(int* stats) const { impl->getStats(stats); }
+    void Gun::resetStats() { impl->resetStats(); }
     
-    float Gun::getMuzzleVelocity() const { return muzzleVelocity; }
-    void Gun::setMuzzleVelocity(float velocity) { muzzleVelocity = velocity; }
+    // Heat and wear system
+    float Gun::getHeat() const { return impl->getHeat(); }
+    float Gun::getWear() const { return impl->getWear(); }
+    bool Gun::isOverheated() const { return impl->isOverheated(); }
+    void Gun::coolDown(float deltaTime) { impl->coolDown(deltaTime); }
     
-    const std::string& Gun::getWeaponType() const { return weaponType; }
-    void Gun::setWeaponType(const std::string& type) { weaponType = type; }
+    // Jamming system
+    bool Gun::isJammed() const { return impl->isJammed(); }
+    void Gun::jam() { impl->jam(); }
+    void Gun::unjam() { impl->unjam(); }
+    
+    // Reload mechanics
+    float Gun::getReloadTime() const { return impl->getReloadTime(); }
+    void Gun::setReloadTime(float time) { impl->setReloadTime(time); }
+    
+    // Burst fire settings
+    int Gun::getBurstCount() const { return impl->getBurstCount(); }
+    void Gun::setBurstCount(int count) { impl->setBurstCount(count); }
+    int Gun::getCurrentBurstShot() const { return impl->getCurrentBurstShot(); }
 }
 
 #ifdef ENABLE_AUDIO
@@ -286,8 +213,8 @@ void Sparky::Gun::playShootSound() {
         audioComponent->playGunshot();
     } else {
         // Fallback to global audio engine
-        if (camera) {
-            AudioEngine::getInstance().playGunshotSound(camera->getPosition());
+        if (impl->getCamera()) {
+            AudioEngine::getInstance().playGunshotSound(impl->getCamera()->getPosition());
         }
     }
 }

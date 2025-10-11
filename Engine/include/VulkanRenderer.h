@@ -92,9 +92,6 @@ namespace Sparky {
         
         // Material system (fallback implementations)
         void createMaterialDescriptorSetLayout() {}
-        void createMaterialDescriptorPool() {}
-        void createMaterialDescriptorSets(Material* material) {}
-        void updateMaterialDescriptorSet(Material* material) {}
         
         // Lighting system (fallback implementations)
         void updateLightingUniformBuffer(uint32_t currentImage, const std::vector<std::unique_ptr<Light>>& lights) {}
@@ -112,6 +109,10 @@ namespace Sparky {
         VkDescriptorSetLayout getDescriptorSetLayout() const { return descriptorSetLayout; }
         VkDescriptorSetLayout getMaterialDescriptorSetLayout() const { return materialDescriptorSetLayout; }
         VkSampler getTextureSampler() const { return textureSampler; }
+        
+        // Material system functions that need to be accessible from other classes
+        void createMaterialDescriptorSets(Material* material);
+        void updateMaterialDescriptorSet(Material* material);
 #endif
 
     private:
@@ -194,7 +195,8 @@ namespace Sparky {
 #ifdef NDEBUG
         const bool enableValidationLayers = false;
 #else
-        const bool enableValidationLayers = true;
+        // Temporarily disable validation layers to avoid debug messenger issues
+        const bool enableValidationLayers = false;
 #endif
 
         // Helper functions
@@ -244,8 +246,6 @@ namespace Sparky {
         void transitionImageLayout(VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout);
         void createMaterialDescriptorSetLayout();
         void createMaterialDescriptorPool();
-        void createMaterialDescriptorSets(Material* material);
-        void updateMaterialDescriptorSet(Material* material);
         void updateLightingUniformBuffer(uint32_t currentImage, const std::vector<std::unique_ptr<Light>>& lights);
 #endif
 

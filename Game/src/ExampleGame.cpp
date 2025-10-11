@@ -194,115 +194,119 @@ namespace Sparky {
         // Clear existing meshes
         levelMeshes.clear();
         
-        // Create a floor platform with a mesh
+        // Create a larger floor platform with a mesh
         auto floor = std::make_unique<Platform>("Floor");
         floor->setPosition(glm::vec3(0.0f, -1.0f, 0.0f));
-        floor->setSize(glm::vec3(20.0f, 1.0f, 20.0f));
-        
+        floor->setSize(glm::vec3(30.0f, 1.0f, 30.0f)); // Make it larger
+    
         // Add a render component with a plane mesh
         RenderComponent* renderComponent = floor->addComponent<RenderComponent>();
-        auto planeMesh = Mesh::createPlane(20.0f, 20.0f);
+        auto planeMesh = Mesh::createPlane(30.0f, 30.0f);
         levelMeshes.push_back(std::move(planeMesh));
         renderComponent->setMesh(std::move(levelMeshes.back()));
-        
-        // Add material for the floor (gray)
+    
+        // Add simple material for the floor (no texture)
         auto floorMaterial = std::make_unique<Material>("FloorMaterial");
         floorMaterial->setDiffuse(glm::vec3(0.5f, 0.5f, 0.5f)); // Gray color
         floorMaterial->setAmbient(glm::vec3(0.2f, 0.2f, 0.2f));
         floorMaterial->setSpecular(glm::vec3(0.3f, 0.3f, 0.3f));
         floorMaterial->setShininess(16.0f);
+    
         renderComponent->setMaterial(std::move(floorMaterial));
-        
+    
         // Register with render system
         if (renderSystem) {
             renderSystem->registerGameObject(floor.get());
             SPARKY_LOG_DEBUG("Registered floor with render system");
         }
-        
+    
         allGameObjects.push_back(floor.get());
         platforms.push_back(std::move(floor));
-        
+    
         // Create some platforms with cube meshes
         auto platform1 = std::make_unique<Platform>("Platform1");
         platform1->setPosition(glm::vec3(5.0f, 1.0f, 0.0f)); // Raise platforms higher
         platform1->setSize(glm::vec3(3.0f, 1.0f, 3.0f));
-        
+    
         // Add a render component with a cube mesh
         RenderComponent* cubeRender1 = platform1->addComponent<RenderComponent>();
         auto cubeMesh1 = Mesh::createCube(1.0f);
         levelMeshes.push_back(std::move(cubeMesh1));
         cubeRender1->setMesh(std::move(levelMeshes.back()));
-        
-        // Add material for platform1 (blue)
+    
+        // Add simple material for platform1 (no texture)
         auto platform1Material = std::make_unique<Material>("Platform1Material");
         platform1Material->setDiffuse(glm::vec3(0.2f, 0.4f, 0.8f)); // Blue color
         platform1Material->setAmbient(glm::vec3(0.1f, 0.2f, 0.4f));
         platform1Material->setSpecular(glm::vec3(0.5f, 0.5f, 0.5f));
         platform1Material->setShininess(32.0f);
+    
         cubeRender1->setMaterial(std::move(platform1Material));
-        
+    
         // Register with render system
         if (renderSystem) {
             renderSystem->registerGameObject(platform1.get());
             SPARKY_LOG_DEBUG("Registered platform1 with render system");
         }
-        
+    
         allGameObjects.push_back(platform1.get());
         platforms.push_back(std::move(platform1));
-        
+    
         auto platform2 = std::make_unique<Platform>("Platform2");
         platform2->setPosition(glm::vec3(-5.0f, 2.0f, 0.0f)); // Raise platforms higher
         platform2->setSize(glm::vec3(3.0f, 1.0f, 3.0f));
-        
+    
         // Add a render component with a cube mesh
         RenderComponent* cubeRender2 = platform2->addComponent<RenderComponent>();
         auto cubeMesh2 = Mesh::createCube(1.0f);
         levelMeshes.push_back(std::move(cubeMesh2));
         cubeRender2->setMesh(std::move(levelMeshes.back()));
-        
-        // Add material for platform2 (red)
+    
+        // Add simple material for platform2 (no texture)
         auto platform2Material = std::make_unique<Material>("Platform2Material");
         platform2Material->setDiffuse(glm::vec3(0.8f, 0.2f, 0.2f)); // Red color
         platform2Material->setAmbient(glm::vec3(0.4f, 0.1f, 0.1f));
         platform2Material->setSpecular(glm::vec3(0.5f, 0.5f, 0.5f));
         platform2Material->setShininess(32.0f);
+    
         cubeRender2->setMaterial(std::move(platform2Material));
-        
+    
         // Register with render system
         if (renderSystem) {
             renderSystem->registerGameObject(platform2.get());
         }
-        
+    
         allGameObjects.push_back(platform2.get());
         platforms.push_back(std::move(platform2));
-        
+    
         // Create a ramp with a mesh
         auto ramp = std::make_unique<Platform>("Ramp");
         ramp->setPosition(glm::vec3(0.0f, 1.0f, 5.0f));
         ramp->setSize(glm::vec3(8.0f, 1.0f, 3.0f));
-        
+    
         // Add a render component with a plane mesh
         RenderComponent* rampRender = ramp->addComponent<RenderComponent>();
         auto rampMesh = Mesh::createPlane(8.0f, 3.0f);
         levelMeshes.push_back(std::move(rampMesh));
         rampRender->setMesh(std::move(levelMeshes.back()));
-        
-        // Add material for ramp (green)
+    
+        // Add simple material for ramp (no texture)
         auto rampMaterial = std::make_unique<Material>("RampMaterial");
         rampMaterial->setDiffuse(glm::vec3(0.2f, 0.8f, 0.2f)); // Green color
         rampMaterial->setAmbient(glm::vec3(0.1f, 0.4f, 0.1f));
         rampMaterial->setSpecular(glm::vec3(0.3f, 0.3f, 0.3f));
         rampMaterial->setShininess(16.0f);
+    
         rampRender->setMaterial(std::move(rampMaterial));
-        
+    
         // Register with render system
         if (renderSystem) {
             renderSystem->registerGameObject(ramp.get());
         }
-        
+    
         allGameObjects.push_back(ramp.get());
         platforms.push_back(std::move(ramp));
-        
+    
         // Create stairs with individual steps
         for (int i = 0; i < 5; i++) {
             auto step = std::make_unique<Platform>("Step" + std::to_string(i));
@@ -315,12 +319,13 @@ namespace Sparky {
             levelMeshes.push_back(std::move(stepMesh));
             stepRender->setMesh(std::move(levelMeshes.back()));
             
-            // Add material for steps (yellow)
+            // Add simple material for steps (no texture)
             auto stepMaterial = std::make_unique<Material>("StepMaterial" + std::to_string(i));
             stepMaterial->setDiffuse(glm::vec3(0.8f, 0.8f, 0.2f)); // Yellow color
             stepMaterial->setAmbient(glm::vec3(0.4f, 0.4f, 0.1f));
             stepMaterial->setSpecular(glm::vec3(0.5f, 0.5f, 0.5f));
             stepMaterial->setShininess(16.0f);
+            
             stepRender->setMaterial(std::move(stepMaterial));
             
             // Register with render system
@@ -331,7 +336,83 @@ namespace Sparky {
             allGameObjects.push_back(step.get());
             platforms.push_back(std::move(step));
         }
-        
+    
+        // Create some walls to make it more like a Half-Life level
+        // Wall 1 - Back wall
+        auto wall1 = std::make_unique<Platform>("BackWall");
+        wall1->setPosition(glm::vec3(0.0f, 2.0f, -15.0f));
+        wall1->setSize(glm::vec3(30.0f, 6.0f, 1.0f));
+    
+        RenderComponent* wall1Render = wall1->addComponent<RenderComponent>();
+        auto wall1Mesh = Mesh::createCube(1.0f);
+        levelMeshes.push_back(std::move(wall1Mesh));
+        wall1Render->setMesh(std::move(levelMeshes.back()));
+    
+        auto wall1Material = std::make_unique<Material>("Wall1Material");
+        wall1Material->setDiffuse(glm::vec3(0.7f, 0.7f, 0.7f)); // Light gray
+        wall1Material->setAmbient(glm::vec3(0.3f, 0.3f, 0.3f));
+        wall1Material->setSpecular(glm::vec3(0.2f, 0.2f, 0.2f));
+        wall1Material->setShininess(8.0f);
+    
+        wall1Render->setMaterial(std::move(wall1Material));
+    
+        if (renderSystem) {
+            renderSystem->registerGameObject(wall1.get());
+        }
+    
+        allGameObjects.push_back(wall1.get());
+        platforms.push_back(std::move(wall1));
+    
+        // Wall 2 - Left wall
+        auto wall2 = std::make_unique<Platform>("LeftWall");
+        wall2->setPosition(glm::vec3(-15.0f, 2.0f, 0.0f));
+        wall2->setSize(glm::vec3(1.0f, 6.0f, 30.0f));
+    
+        RenderComponent* wall2Render = wall2->addComponent<RenderComponent>();
+        auto wall2Mesh = Mesh::createCube(1.0f);
+        levelMeshes.push_back(std::move(wall2Mesh));
+        wall2Render->setMesh(std::move(levelMeshes.back()));
+    
+        auto wall2Material = std::make_unique<Material>("Wall2Material");
+        wall2Material->setDiffuse(glm::vec3(0.7f, 0.7f, 0.7f)); // Light gray
+        wall2Material->setAmbient(glm::vec3(0.3f, 0.3f, 0.3f));
+        wall2Material->setSpecular(glm::vec3(0.2f, 0.2f, 0.2f));
+        wall2Material->setShininess(8.0f);
+    
+        wall2Render->setMaterial(std::move(wall2Material));
+    
+        if (renderSystem) {
+            renderSystem->registerGameObject(wall2.get());
+        }
+    
+        allGameObjects.push_back(wall2.get());
+        platforms.push_back(std::move(wall2));
+    
+        // Wall 3 - Right wall
+        auto wall3 = std::make_unique<Platform>("RightWall");
+        wall3->setPosition(glm::vec3(15.0f, 2.0f, 0.0f));
+        wall3->setSize(glm::vec3(1.0f, 6.0f, 30.0f));
+    
+        RenderComponent* wall3Render = wall3->addComponent<RenderComponent>();
+        auto wall3Mesh = Mesh::createCube(1.0f);
+        levelMeshes.push_back(std::move(wall3Mesh));
+        wall3Render->setMesh(std::move(levelMeshes.back()));
+    
+        auto wall3Material = std::make_unique<Material>("Wall3Material");
+        wall3Material->setDiffuse(glm::vec3(0.7f, 0.7f, 0.7f)); // Light gray
+        wall3Material->setAmbient(glm::vec3(0.3f, 0.3f, 0.3f));
+        wall3Material->setSpecular(glm::vec3(0.2f, 0.2f, 0.2f));
+        wall3Material->setShininess(8.0f);
+    
+        wall3Render->setMaterial(std::move(wall3Material));
+    
+        if (renderSystem) {
+            renderSystem->registerGameObject(wall3.get());
+        }
+    
+        allGameObjects.push_back(wall3.get());
+        platforms.push_back(std::move(wall3));
+    
         SPARKY_LOG_DEBUG("Level created with " + std::to_string(platforms.size()) + " platforms");
     }
 
@@ -424,15 +505,15 @@ namespace Sparky {
         
         // Create directional light (sun)
         directionalLight = std::make_unique<Light>("Sun");
-        directionalLight->setDirection(/*glm::*/vec3(-0.5f, -1.0f, -0.5f));
-        directionalLight->setDiffuse(/*glm::*/vec3(1.0f, 1.0f, 1.0f)); // Color
-        directionalLight->setAmbient(/*glm::*/vec3(0.1f, 0.1f, 0.1f)); // Intensity-like effect
+        directionalLight->setDirection(glm::vec3(-0.5f, -1.0f, -0.5f));
+        directionalLight->setDiffuse(glm::vec3(1.0f, 1.0f, 1.0f)); // Color
+        directionalLight->setAmbient(glm::vec3(0.1f, 0.1f, 0.1f)); // Intensity-like effect
         
         // Create point light
         pointLight = std::make_unique<Light>("PointLight");
-        pointLight->setPosition(/*glm::*/vec3(0.0f, 5.0f, 0.0f));
-        pointLight->setDiffuse(/*glm::*/vec3(1.0f, 1.0f, 1.0f)); // Color
-        pointLight->setAmbient(/*glm::*/vec3(0.05f, 0.05f, 0.05f)); // Intensity-like effect
+        pointLight->setPosition(glm::vec3(0.0f, 5.0f, 0.0f));
+        pointLight->setDiffuse(glm::vec3(1.0f, 1.0f, 1.0f)); // Color
+        pointLight->setAmbient(glm::vec3(0.05f, 0.05f, 0.05f)); // Intensity-like effect
         pointLight->setConstant(1.0f);
         pointLight->setLinear(0.09f);
         pointLight->setQuadratic(0.032f);

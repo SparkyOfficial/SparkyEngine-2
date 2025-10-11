@@ -20,6 +20,9 @@ namespace Sparky {
         void update(float deltaTime);
         void render();
         
+        // Method to initialize materials with descriptor sets
+        void initializeMaterial(Material* material);
+        
         // Getter for game objects
         const std::vector<GameObject*>& getGameObjects() const { return gameObjects; }
 

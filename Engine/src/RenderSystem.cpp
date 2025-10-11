@@ -2,6 +2,7 @@
 #include "../include/RenderComponent.h"
 #include "../include/Logger.h"
 #include "../include/MeshRenderer.h"
+#include "../include/Material.h"
 #include <algorithm>
 
 namespace Sparky {
@@ -52,6 +53,8 @@ namespace Sparky {
             return;
         }
         
+        SPARKY_LOG_DEBUG("RenderSystem::render() called with " + std::to_string(gameObjects.size()) + " game objects");
+        
         // Render all registered game objects
         for (auto& gameObject : gameObjects) {
             renderGameObject(gameObject);
@@ -66,9 +69,12 @@ namespace Sparky {
             return;
         }
         
+        SPARKY_LOG_DEBUG("Processing GameObject: " + gameObject->getName());
+        
         // Get the render component
         RenderComponent* renderComponent = gameObject->getComponent<RenderComponent>();
         if (!renderComponent || !renderComponent->isVisible()) {
+            SPARKY_LOG_DEBUG("No render component or not visible for GameObject: " + gameObject->getName());
             return;
         }
         
@@ -77,9 +83,33 @@ namespace Sparky {
         Material* material = renderComponent->getMaterial();
         
         if (!mesh) {
+            SPARKY_LOG_DEBUG("No mesh found for GameObject: " + gameObject->getName());
             return;
         }
         
+        SPARKY_LOG_DEBUG("GameObject " + gameObject->getName() + " has mesh with " + std::to_string(mesh->getVertexCount()) + " vertices");
+        
+        // Initialize material with descriptor sets if needed (only when GLFW is available)
+#ifdef HAS_GLFW
+        if (material && renderer) {
+            SPARKY_LOG_DEBUG("GameObject " + gameObject->getName() + " has material: " + material->getName());
+            // Check if material needs to be initialized
+            if (material->descriptorSets.empty()) {
+                SPARKY_LOG_DEBUG("Initializing material descriptor sets for: " + material->getName());
+                renderer->createMaterialDescriptorSets(material);
+            } else {
+                SPARKY_LOG_DEBUG("Material descriptor sets already initialized for: " + material->getName());
+            }
+        } else {
+            if (!material) {
+                SPARKY_LOG_DEBUG("No material found for GameObject: " + gameObject->getName());
+            }
+            if (!renderer) {
+                SPARKY_LOG_DEBUG("No renderer found for GameObject: " + gameObject->getName());
+            }
+        }
+#endif
+    
         // In a full implementation, we would:
         // 1. Bind the material's descriptor set
         // 2. Set the push constants for the model matrix
@@ -88,5 +118,22 @@ namespace Sparky {
         // For now, we'll just log that we're rendering
         SPARKY_LOG_DEBUG("Rendering GameObject: " + gameObject->getName() + 
                         " with " + std::to_string(mesh->getVertexCount()) + " vertices");
+    }
+
+    void RenderSystem::initializeMaterial(Material* material) {
+        if (!material || !renderer) {
+            return;
+        }
+        
+        // Initialize material with descriptor sets if needed (only when GLFW is available)
+#ifdef HAS_GLFW
+        // Check if material needs to be initialized
+        if (material->descriptorSets.empty()) {
+            SPARKY_LOG_DEBUG("Initializing material descriptor sets for: " + material->getName());
+            renderer->createMaterialDescriptorSets(material);
+        } else {
+            SPARKY_LOG_DEBUG("Material descriptor sets already initialized for: " + material->getName());
+        }
+#endif
     }
 }

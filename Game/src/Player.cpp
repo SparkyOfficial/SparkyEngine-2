@@ -126,6 +126,7 @@ namespace Sparky {
             // Position camera at player position with slight offset for head height
             glm::vec3 playerPos = getPosition();
             camera->Position = playerPos + glm::vec3(0.0f, 1.8f, 0.0f); // Head height
+            // Camera vectors are updated by ProcessMouseMovement, no need to call updateCameraVectors directly
         }
     }
 
@@ -140,15 +141,12 @@ namespace Sparky {
         // Get input manager instance
         InputManager& inputManager = InputManager::getInstance();
         
-        // Mouse movement for camera
-        if (mouseLocked) {
-            glm::vec2 mouseDelta = inputManager.getMouseDelta();
-            if (camera) {
-                camera->ProcessMouseMovement(mouseDelta.x, -mouseDelta.y);
-            }
+        // Mouse movement for camera - always process mouse movement for smooth controls
+        glm::vec2 mouseDelta = inputManager.getMouseDelta();
+        if (camera) { // Always process mouse movement
+            camera->ProcessMouseMovement(mouseDelta.x, -mouseDelta.y);
         }
         
-#ifdef HAS_GLFW
 #ifdef HAS_GLFW
         // Keyboard movement
         if (inputManager.isKeyPressed(GLFW_KEY_W) || 
@@ -177,16 +175,19 @@ namespace Sparky {
             moveDown(deltaTime);
         }
         
-        // Toggle mouse lock
+        // Toggle mouse lock - but also enable it by default for FPS controls
         if (inputManager.isKeyJustPressed(GLFW_KEY_ESCAPE)) {
             mouseLocked = !mouseLocked;
             inputManager.setCursorMode(mouseLocked ? GLFW_CURSOR_DISABLED : GLFW_CURSOR_NORMAL);
         }
-#else
-        // Fallback implementation for non-GLFW builds
-        // For now, we'll just keep isMoving as false
-        isMoving = false;
-#endif
+        
+        // Enable mouse lock by default when game starts
+        static bool firstUpdate = true;
+        if (firstUpdate) {
+            mouseLocked = true;
+            inputManager.setCursorMode(GLFW_CURSOR_DISABLED);
+            firstUpdate = false;
+        }
 #else
         // Fallback implementation for non-GLFW builds
         // For now, we'll just keep isMoving as false

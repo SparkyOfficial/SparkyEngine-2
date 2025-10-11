@@ -5,6 +5,7 @@
 #include "../../Engine/include/BehaviorTree.h"
 #include "../../Engine/include/GUIManager.h"
 #include "../../Engine/include/Mesh.h"  // Add this include for Mesh class
+#include "../../Engine/include/Texture.h"  // Add this include for Texture class
 
 namespace Sparky {
     class Engine;
@@ -56,6 +57,7 @@ namespace Sparky {
         std::unique_ptr<Mesh> playerMesh;
         std::unique_ptr<Mesh> enemyMesh;
         std::vector<std::unique_ptr<Mesh>> levelMeshes;
+        std::vector<std::unique_ptr<Texture>> levelTextures; // Add this line for storing textures
 
         // Game systems
         std::unique_ptr<ParticleSystem> particleSystem;

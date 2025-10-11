@@ -255,11 +255,16 @@ int main() {
             SPARKY_LOG_INFO("Still running, frame: " + std::to_string(frameCounter));
         }
         
+        // Remove the artificial frame limit to allow the game to run indefinitely
+        // This was only added for debugging purposes
+        // The game will now only exit when the window is closed or ESC is pressed
+        /*
         // If we've been in the loop for more than 1000 iterations, exit to prevent infinite loop
         if (frameCounter > 1000) {
             SPARKY_LOG_INFO("Exiting after 1000 frames to prevent infinite loop");
             break;
         }
+        */
     }
 
     SPARKY_LOG_INFO("Exiting main game loop after " + std::to_string(frameCounter) + " frames");

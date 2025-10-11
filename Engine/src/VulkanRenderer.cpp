@@ -130,6 +130,8 @@ namespace Sparky {
             createFramebuffers();
             createUniformBuffers();
             createLightingUniformBuffers();  // Add this missing call
+            createMaterialUniformBuffers();  // Add this missing call
+            createMaterialDescriptorPool();  // Add this missing call
             createDescriptorPool();
             createDescriptorSets();
             createSyncObjects();
@@ -170,8 +172,17 @@ namespace Sparky {
         
         cleanupUniformBuffers();
         
+        // Cleanup material descriptor pool
+        if (materialDescriptorPool) {
+            vkDestroyDescriptorPool(device, materialDescriptorPool, nullptr);
+        }
+        
         if (descriptorPool) {
             vkDestroyDescriptorPool(device, descriptorPool, nullptr);
+        }
+        
+        if (materialDescriptorSetLayout) {
+            vkDestroyDescriptorSetLayout(device, materialDescriptorSetLayout, nullptr);
         }
         
         if (descriptorSetLayout) {
@@ -1647,6 +1658,24 @@ namespace Sparky {
         SPARKY_LOG_INFO("Lighting uniform buffers created");
     }
     
+    void VulkanRenderer::createMaterialUniformBuffers() {
+        VkDeviceSize bufferSize = sizeof(MaterialUniformBufferObject);
+        
+        materialUniformBuffers.resize(swapChainImages.size());
+        materialUniformBuffersMemory.resize(swapChainImages.size());
+        materialUniformBuffersMapped.resize(swapChainImages.size());
+        
+        for (size_t i = 0; i < swapChainImages.size(); i++) {
+            createBuffer(bufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, 
+                        VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, 
+                        materialUniformBuffers[i], materialUniformBuffersMemory[i]);
+            
+            vkMapMemory(device, materialUniformBuffersMemory[i], 0, bufferSize, 0, &materialUniformBuffersMapped[i]);
+        }
+        
+        SPARKY_LOG_INFO("Material uniform buffers created");
+    }
+    
     void VulkanRenderer::updateLightingUniformBuffer(uint32_t currentImage, const std::vector<std::unique_ptr<Light>>& lights) {
         // Create a vector of uniform buffer objects from the lights
         std::vector<LightUniformBufferObject> lightUBOs;
@@ -1761,6 +1790,147 @@ namespace Sparky {
         }
         
         vkBindBufferMemory(device, buffer, bufferMemory, 0);
+    }
+    
+    void VulkanRenderer::createMaterialDescriptorPool() {
+        std::array<VkDescriptorPoolSize, 3> poolSizes{};
+        poolSizes[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+        poolSizes[0].descriptorCount = static_cast<uint32_t>(swapChainImages.size()) * 10; // Material buffers
+        poolSizes[1].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+        poolSizes[1].descriptorCount = static_cast<uint32_t>(swapChainImages.size()) * 10; // Texture samplers
+        
+        VkDescriptorPoolCreateInfo poolInfo{};
+        poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
+        poolInfo.poolSizeCount = static_cast<uint32_t>(poolSizes.size());
+        poolInfo.pPoolSizes = poolSizes.data();
+        poolInfo.maxSets = static_cast<uint32_t>(swapChainImages.size()) * 10; // Allow for multiple materials
+        
+        if (vkCreateDescriptorPool(device, &poolInfo, nullptr, &materialDescriptorPool) != VK_SUCCESS) {
+            throw std::runtime_error("failed to create material descriptor pool!");
+        }
+        
+        SPARKY_LOG_INFO("Material descriptor pool created successfully");
+    }
+    
+    void VulkanRenderer::createMaterialDescriptorSets(Material* material) {
+        if (!material || materialDescriptorPool == VK_NULL_HANDLE) {
+            SPARKY_LOG_ERROR("Cannot create material descriptor sets: material is null or descriptor pool is null");
+            return;
+        }
+        
+        SPARKY_LOG_DEBUG("Creating material descriptor sets for material: " + material->getName());
+        
+        // Resize descriptor sets vector if needed
+        material->descriptorSets.resize(swapChainImages.size());
+        
+        // Create descriptor set layouts for each swap chain image
+        std::vector<VkDescriptorSetLayout> layouts(swapChainImages.size(), materialDescriptorSetLayout);
+        
+        VkDescriptorSetAllocateInfo allocInfo{};
+        allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+        allocInfo.descriptorPool = materialDescriptorPool;
+        allocInfo.descriptorSetCount = static_cast<uint32_t>(swapChainImages.size());
+        allocInfo.pSetLayouts = layouts.data();
+        
+        if (vkAllocateDescriptorSets(device, &allocInfo, material->descriptorSets.data()) != VK_SUCCESS) {
+            SPARKY_LOG_ERROR("Failed to allocate material descriptor sets for material: " + material->getName());
+            return;
+        }
+        
+        SPARKY_LOG_DEBUG("Material descriptor sets allocated successfully for material: " + material->getName());
+        
+        // Update the descriptor sets with material data
+        updateMaterialDescriptorSet(material);
+    }
+    
+    void VulkanRenderer::updateMaterialDescriptorSet(Material* material) {
+        if (!material) {
+            SPARKY_LOG_ERROR("Cannot update material descriptor set: material is null");
+            return;
+        }
+        
+        SPARKY_LOG_DEBUG("Updating material descriptor set for material: " + material->getName());
+        
+        // Make sure descriptor sets are allocated
+        if (material->descriptorSets.size() != swapChainImages.size()) {
+            SPARKY_LOG_ERROR("Material descriptor sets not allocated properly for material: " + material->getName());
+            return;
+        }
+        
+        for (size_t i = 0; i < swapChainImages.size(); i++) {
+            // Create material uniform buffer object
+            MaterialUniformBufferObject materialUBO{};
+            
+            // Get material properties
+            auto ambientVec = material->getAmbient();
+            auto diffuseVec = material->getDiffuse();
+            auto specularVec = material->getSpecular();
+            
+            // Copy values to the uniform buffer struct
+            materialUBO.ambient[0] = ambientVec.x;
+            materialUBO.ambient[1] = ambientVec.y;
+            materialUBO.ambient[2] = ambientVec.z;
+            materialUBO.ambient[3] = 1.0f;
+            
+            materialUBO.diffuse[0] = diffuseVec.x;
+            materialUBO.diffuse[1] = diffuseVec.y;
+            materialUBO.diffuse[2] = diffuseVec.z;
+            materialUBO.diffuse[3] = 1.0f;
+            
+            materialUBO.specular[0] = specularVec.x;
+            materialUBO.specular[1] = specularVec.y;
+            materialUBO.specular[2] = specularVec.z;
+            materialUBO.specular[3] = 1.0f;
+            
+            materialUBO.shininess = material->getShininess();
+            materialUBO.hasTexture = material->getTexture() ? 1 : 0;
+            
+            // Update material uniform buffer
+            if (i < materialUniformBuffers.size()) {
+                void* data;
+                vkMapMemory(device, materialUniformBuffersMemory[i], 0, sizeof(materialUBO), 0, &data);
+                memcpy(data, &materialUBO, sizeof(materialUBO));
+                vkUnmapMemory(device, materialUniformBuffersMemory[i]);
+            }
+            
+            // Update the material bindings in the material descriptor set
+            // Material uniform buffer (binding = 2)
+            VkDescriptorBufferInfo materialBufferInfo{};
+            materialBufferInfo.buffer = materialUniformBuffers[i];
+            materialBufferInfo.offset = 0;
+            materialBufferInfo.range = sizeof(MaterialUniformBufferObject);
+            
+            VkWriteDescriptorSet materialWrite{};
+            materialWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+            materialWrite.dstSet = material->descriptorSets[i];  // Use material descriptor set
+            materialWrite.dstBinding = 2;  // Binding 2 for material buffer in material descriptor set
+            materialWrite.dstArrayElement = 0;
+            materialWrite.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+            materialWrite.descriptorCount = 1;
+            materialWrite.pBufferInfo = &materialBufferInfo;
+            
+            // Texture sampler (binding = 3)
+            VkDescriptorImageInfo imageInfo{};
+            imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+            // TODO: Implement createTextureImageView for actual texture loading
+            // For now, we'll use a placeholder
+            imageInfo.imageView = VK_NULL_HANDLE;
+            imageInfo.sampler = textureSampler;
+            
+            VkWriteDescriptorSet textureWrite{};
+            textureWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+            textureWrite.dstSet = material->descriptorSets[i];  // Use material descriptor set
+            textureWrite.dstBinding = 3;  // Binding 3 for texture sampler in material descriptor set
+            textureWrite.dstArrayElement = 0;
+            textureWrite.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+            textureWrite.descriptorCount = 1;
+            textureWrite.pImageInfo = &imageInfo;
+            
+            std::array<VkWriteDescriptorSet, 2> descriptorWrites = {materialWrite, textureWrite};
+            vkUpdateDescriptorSets(device, static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);
+        }
+        
+        SPARKY_LOG_DEBUG("Material descriptor set updated successfully for material: " + material->getName());
     }
 
 }

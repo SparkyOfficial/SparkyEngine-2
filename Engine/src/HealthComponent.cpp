@@ -1,5 +1,6 @@
 #include "../include/HealthComponent.h"
 #include "../include/Logger.h"
+#include "../include/DamageFeedbackComponent.h"
 
 #ifdef HAS_GLFW
 #include <GLFW/glfw3.h>
@@ -9,7 +10,8 @@ namespace Sparky {
 
     HealthComponent::HealthComponent(float maxHealth) 
         : Component(), currentHealth(maxHealth), maxHealth(maxHealth), 
-          regenerationRate(0.0f), lastRegenerationTime(0.0f) {
+          regenerationRate(0.0f), lastRegenerationTime(0.0f),
+          damageFeedback(nullptr) {
         SPARKY_LOG_DEBUG("HealthComponent created with " + std::to_string(maxHealth) + " max health");
     }
 
@@ -44,6 +46,11 @@ namespace Sparky {
             if (onHealCallback) {
                 onHealCallback(healthToRegenerate);
             }
+            
+            // Trigger healing feedback
+            if (damageFeedback) {
+                damageFeedback->onHeal(healthToRegenerate);
+            }
         }
     }
 
@@ -63,6 +70,12 @@ namespace Sparky {
         
         SPARKY_LOG_DEBUG("HealthComponent took " + std::to_string(damage) + " damage. Health: " + std::to_string(currentHealth));
         
+        // Trigger damage feedback
+        if (damageFeedback) {
+            // For now, we'll use a default direction (from front)
+            damageFeedback->onDamageTaken(damage, 0.0f, 0.0f, 1.0f);
+        }
+        
         if (onDamageCallback) {
             onDamageCallback(damage);
         }
@@ -70,6 +83,11 @@ namespace Sparky {
         // Check for death
         if (currentHealth <= 0 && onDeathCallback) {
             onDeathCallback();
+            
+            // Trigger death feedback
+            if (damageFeedback) {
+                damageFeedback->onDeath();
+            }
         }
     }
 
@@ -84,6 +102,11 @@ namespace Sparky {
         }
         
         SPARKY_LOG_DEBUG("HealthComponent healed " + std::to_string(amount) + " health. Health: " + std::to_string(currentHealth));
+        
+        // Trigger healing feedback
+        if (damageFeedback) {
+            damageFeedback->onHeal(amount);
+        }
         
         if (onHealCallback) {
             onHealCallback(amount);
@@ -107,14 +130,29 @@ namespace Sparky {
             float difference = currentHealth - oldHealth;
             if (difference > 0 && onHealCallback) {
                 onHealCallback(difference);
+                
+                // Trigger healing feedback
+                if (damageFeedback) {
+                    damageFeedback->onHeal(difference);
+                }
             } else if (difference < 0 && onDamageCallback) {
                 onDamageCallback(-difference);
+                
+                // Trigger damage feedback
+                if (damageFeedback) {
+                    damageFeedback->onDamageTaken(-difference, 0.0f, 0.0f, 1.0f);
+                }
             }
         }
         
         // Check for death
         if (currentHealth <= 0 && onDeathCallback) {
             onDeathCallback();
+            
+            // Trigger death feedback
+            if (damageFeedback) {
+                damageFeedback->onDeath();
+            }
         }
     }
 

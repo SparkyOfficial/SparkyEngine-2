@@ -1,12 +1,18 @@
 #pragma once
 
+#include "../../Engine/include/GameObject.h"
+#include "../../Engine/include/PhysicsComponent.h"
+#include "../../Engine/include/AIComponent.h"
+#include "../../Engine/include/HealthComponent.h"
+#include <glm/glm.hpp>
+
 namespace Sparky {
     class HealthComponent;
     
-    class Player {
+    class Enemy {
     public:
-        Player();
-        ~Player();
+        Enemy();
+        ~Enemy();
 
         void update(float deltaTime);
         void render();

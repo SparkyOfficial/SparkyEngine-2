@@ -10,6 +10,8 @@
 #include "../../Engine/include/Material.h"
 #include "../../Engine/include/Logger.h"
 #include "../../Engine/include/FileUtils.h"
+#include "../../Engine/include/InteractiveObject.h"
+#include "../../Engine/include/Pickup.h"
 
 // Only include JSON if available
 #ifdef __has_include
@@ -25,6 +27,8 @@
 
 #include <fstream>
 #include <sstream>
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
 
 #if HAS_JSON
 using json = nlohmann::json;
@@ -104,6 +108,26 @@ namespace Sparky {
         }
     }
 
+    void Level::addInteractiveElement(const InteractiveElement& element) {
+        interactiveElements.push_back(element);
+    }
+
+    void Level::removeInteractiveElement(size_t index) {
+        if (index < interactiveElements.size()) {
+            interactiveElements.erase(interactiveElements.begin() + index);
+        }
+    }
+
+    void Level::addTriggerVolume(const TriggerVolume& volume) {
+        triggerVolumes.push_back(volume);
+    }
+
+    void Level::removeTriggerVolume(size_t index) {
+        if (index < triggerVolumes.size()) {
+            triggerVolumes.erase(triggerVolumes.begin() + index);
+        }
+    }
+
     void Level::spawnObjects() {
         SPARKY_LOG_INFO("Spawning " + std::to_string(levelObjects.size()) + " objects in level");
         
@@ -115,14 +139,20 @@ namespace Sparky {
             auto gameObject = createObject(obj);
             if (gameObject) {
                 // Set the object's transform
-                gameObject->setPosition(obj.position);
-                gameObject->setRotation(obj.rotation);
-                gameObject->setScale(obj.scale);
+                gameObject->setPosition(glm::vec3(obj.position[0], obj.position[1], obj.position[2]));
+                gameObject->setRotation(glm::vec3(obj.rotation[0], obj.rotation[1], obj.rotation[2]));
+                gameObject->setScale(glm::vec3(obj.scale[0], obj.scale[1], obj.scale[2]));
                 gameObject->setName(obj.name);
                 
                 // Add to spawned objects
                 spawnedObjects.push_back(std::move(gameObject));
             }
+        }
+        
+        // Spawn interactive elements
+        for (const auto& element : interactiveElements) {
+            auto interactiveObj = createInteractiveElement(element);
+            // In a full implementation, we would add these to a separate collection
         }
         
         SPARKY_LOG_INFO("Spawned " + std::to_string(spawnedObjects.size()) + " objects");
@@ -158,7 +188,7 @@ namespace Sparky {
             
             // Add physics component
             auto physicsComponent = crate->addComponent<PhysicsComponent>();
-            physicsComponent->setMass(10.0f); // Heavy crate
+            physicsComponent->setMass(obj.mass > 0.0f ? obj.mass : 10.0f); // Heavy crate
             
             return crate;
         } else if (obj.type == "wall") {
@@ -197,6 +227,14 @@ namespace Sparky {
             physicsComponent->setMass(0.0f); // Static object
             
             return floor;
+        } else if (obj.type == "health_pickup") {
+            auto pickup = std::make_unique<HealthPickup>(25.0f);
+            pickup->setName(obj.name);
+            return std::unique_ptr<GameObject>(static_cast<GameObject*>(pickup.release()));
+        } else if (obj.type == "ammo_pickup") {
+            auto pickup = std::make_unique<AmmoPickup>("default", 30);
+            pickup->setName(obj.name);
+            return std::unique_ptr<GameObject>(static_cast<GameObject*>(pickup.release()));
         } else {
             SPARKY_LOG_WARNING("Unknown object type in level: " + obj.type);
             auto genericObject = std::make_unique<GameObject>(obj.name);
@@ -212,6 +250,33 @@ namespace Sparky {
             renderComponent->setMaterial(std::move(material));
             
             return genericObject;
+        }
+    }
+
+    std::unique_ptr<InteractiveObject> Level::createInteractiveElement(const InteractiveElement& element) const {
+        if (element.type == "door") {
+            auto door = std::make_unique<Door>();
+            door->setName(element.name);
+            door->setLocked(false); // Default unlocked
+            return door;
+        } else if (element.type == "button") {
+            auto button = std::make_unique<Button>();
+            button->setName(element.name);
+            return button;
+        } else {
+            SPARKY_LOG_WARNING("Unknown interactive element type: " + element.type);
+            auto generic = std::make_unique<InteractiveObject>(element.name);
+            return generic;
+        }
+    }
+
+    std::unique_ptr<Pickup> Level::createPickup(const LevelObject& obj) const {
+        if (obj.type == "health_pickup") {
+            return std::make_unique<HealthPickup>(25.0f);
+        } else if (obj.type == "ammo_pickup") {
+            return std::make_unique<AmmoPickup>("default", 30);
+        } else {
+            return nullptr;
         }
     }
 
@@ -232,6 +297,8 @@ namespace Sparky {
             
             // Clear existing objects
             levelObjects.clear();
+            interactiveElements.clear();
+            triggerVolumes.clear();
             
             // Extract objects
             if (levelData.contains("objects") && levelData["objects"].is_array()) {
@@ -241,35 +308,121 @@ namespace Sparky {
                     // Extract object properties
                     obj.type = objData.value("type", "generic");
                     obj.name = objData.value("name", "UnnamedObject");
+                    obj.material = objData.value("material", "default");
+                    obj.mass = objData.value("mass", 0.0f);
+                    obj.interactive = objData.value("interactive", false);
+                    obj.interactionType = objData.value("interactionType", "");
+                    obj.target = objData.value("target", "");
                     
                     // Extract position
                     if (objData.contains("position") && objData["position"].is_array() && objData["position"].size() == 3) {
-                        obj.position.x = objData["position"][0];
-                        obj.position.y = objData["position"][1];
-                        obj.position.z = objData["position"][2];
+                        obj.position[0] = objData["position"][0];
+                        obj.position[1] = objData["position"][1];
+                        obj.position[2] = objData["position"][2];
                     } else {
-                        obj.position = glm::vec3(0.0f);
+                        obj.position[0] = obj.position[1] = obj.position[2] = 0.0f;
                     }
                     
                     // Extract rotation
                     if (objData.contains("rotation") && objData["rotation"].is_array() && objData["rotation"].size() == 3) {
-                        obj.rotation.x = objData["rotation"][0];
-                        obj.rotation.y = objData["rotation"][1];
-                        obj.rotation.z = objData["rotation"][2];
+                        obj.rotation[0] = objData["rotation"][0];
+                        obj.rotation[1] = objData["rotation"][1];
+                        obj.rotation[2] = objData["rotation"][2];
                     } else {
-                        obj.rotation = glm::vec3(0.0f);
+                        obj.rotation[0] = obj.rotation[1] = obj.rotation[2] = 0.0f;
                     }
                     
                     // Extract scale
                     if (objData.contains("scale") && objData["scale"].is_array() && objData["scale"].size() == 3) {
-                        obj.scale.x = objData["scale"][0];
-                        obj.scale.y = objData["scale"][1];
-                        obj.scale.z = objData["scale"][2];
+                        obj.scale[0] = objData["scale"][0];
+                        obj.scale[1] = objData["scale"][1];
+                        obj.scale[2] = objData["scale"][2];
                     } else {
-                        obj.scale = glm::vec3(1.0f);
+                        obj.scale[0] = obj.scale[1] = obj.scale[2] = 1.0f;
                     }
                     
                     levelObjects.push_back(obj);
+                }
+            }
+            
+            // Extract interactive elements
+            if (levelData.contains("interactive_elements") && levelData["interactive_elements"].is_array()) {
+                for (const auto& elemData : levelData["interactive_elements"]) {
+                    InteractiveElement element;
+                    
+                    element.type = elemData.value("type", "generic");
+                    element.name = elemData.value("name", "UnnamedElement");
+                    element.targetObject = elemData.value("targetObject", "");
+                    element.state = elemData.value("state", "default");
+                    
+                    // Extract position
+                    if (elemData.contains("position") && elemData["position"].is_array() && elemData["position"].size() == 3) {
+                        element.position[0] = elemData["position"][0];
+                        element.position[1] = elemData["position"][1];
+                        element.position[2] = elemData["position"][2];
+                    } else {
+                        element.position[0] = element.position[1] = element.position[2] = 0.0f;
+                    }
+                    
+                    // Extract rotation
+                    if (elemData.contains("rotation") && elemData["rotation"].is_array() && elemData["rotation"].size() == 3) {
+                        element.rotation[0] = elemData["rotation"][0];
+                        element.rotation[1] = elemData["rotation"][1];
+                        element.rotation[2] = elemData["rotation"][2];
+                    } else {
+                        element.rotation[0] = element.rotation[1] = element.rotation[2] = 0.0f;
+                    }
+                    
+                    // Extract connected elements
+                    if (elemData.contains("connectedElements") && elemData["connectedElements"].is_array()) {
+                        for (const auto& connected : elemData["connectedElements"]) {
+                            if (connected.is_string()) {
+                                element.connectedElements.push_back(connected);
+                            }
+                        }
+                    }
+                    
+                    interactiveElements.push_back(element);
+                }
+            }
+            
+            // Extract trigger volumes
+            if (levelData.contains("trigger_volumes") && levelData["trigger_volumes"].is_array()) {
+                for (const auto& volData : levelData["trigger_volumes"]) {
+                    TriggerVolume volume;
+                    
+                    volume.name = volData.value("name", "UnnamedTrigger");
+                    volume.triggerType = volData.value("triggerType", "enter");
+                    volume.target = volData.value("target", "");
+                    
+                    // Extract position
+                    if (volData.contains("position") && volData["position"].is_array() && volData["position"].size() == 3) {
+                        volume.position[0] = volData["position"][0];
+                        volume.position[1] = volData["position"][1];
+                        volume.position[2] = volData["position"][2];
+                    } else {
+                        volume.position[0] = volume.position[1] = volume.position[2] = 0.0f;
+                    }
+                    
+                    // Extract size
+                    if (volData.contains("size") && volData["size"].is_array() && volData["size"].size() == 3) {
+                        volume.size[0] = volData["size"][0];
+                        volume.size[1] = volData["size"][1];
+                        volume.size[2] = volData["size"][2];
+                    } else {
+                        volume.size[0] = volume.size[1] = volume.size[2] = 1.0f;
+                    }
+                    
+                    // Extract conditions
+                    if (volData.contains("conditions") && volData["conditions"].is_array()) {
+                        for (const auto& condition : volData["conditions"]) {
+                            if (condition.is_string()) {
+                                volume.conditions.push_back(condition);
+                            }
+                        }
+                    }
+                    
+                    triggerVolumes.push_back(volume);
                 }
             }
             
@@ -298,13 +451,49 @@ namespace Sparky {
             json objData;
             objData["type"] = obj.type;
             objData["name"] = obj.name;
-            objData["position"] = {obj.position.x, obj.position.y, obj.position.z};
-            objData["rotation"] = {obj.rotation.x, obj.rotation.y, obj.rotation.z};
-            objData["scale"] = {obj.scale.x, obj.scale.y, obj.scale.z};
+            objData["material"] = obj.material;
+            objData["mass"] = obj.mass;
+            objData["interactive"] = obj.interactive;
+            objData["interactionType"] = obj.interactionType;
+            objData["target"] = obj.target;
+            objData["position"] = {obj.position[0], obj.position[1], obj.position[2]};
+            objData["rotation"] = {obj.rotation[0], obj.rotation[1], obj.rotation[2]};
+            objData["scale"] = {obj.scale[0], obj.scale[1], obj.scale[2]};
             objectsArray.push_back(objData);
         }
         
         levelData["objects"] = objectsArray;
+        
+        // Add interactive elements
+        json elementsArray = json::array();
+        for (const auto& element : interactiveElements) {
+            json elemData;
+            elemData["type"] = element.type;
+            elemData["name"] = element.name;
+            elemData["targetObject"] = element.targetObject;
+            elemData["state"] = element.state;
+            elemData["position"] = {element.position[0], element.position[1], element.position[2]};
+            elemData["rotation"] = {element.rotation[0], element.rotation[1], element.rotation[2]};
+            elemData["connectedElements"] = element.connectedElements;
+            elementsArray.push_back(elemData);
+        }
+        
+        levelData["interactive_elements"] = elementsArray;
+        
+        // Add trigger volumes
+        json volumesArray = json::array();
+        for (const auto& volume : triggerVolumes) {
+            json volData;
+            volData["name"] = volume.name;
+            volData["triggerType"] = volume.triggerType;
+            volData["target"] = volume.target;
+            volData["position"] = {volume.position[0], volume.position[1], volume.position[2]};
+            volData["size"] = {volume.size[0], volume.size[1], volume.size[2]};
+            volData["conditions"] = volume.conditions;
+            volumesArray.push_back(volData);
+        }
+        
+        levelData["trigger_volumes"] = volumesArray;
         
         // In a full implementation, we would also serialize lights, materials, etc.
         

@@ -1,0 +1,302 @@
+{
+    "name": "Advanced Gameplay Level",
+    "description": "Level showcasing advanced gameplay features including puzzles, multiple enemy types, and complex interactions",
+    "objects": [
+        {
+            "type": "floor",
+            "name": "MainFloor",
+            "position": [0.0, -1.0, 0.0],
+            "rotation": [0.0, 0.0, 0.0],
+            "scale": [50.0, 1.0, 50.0],
+            "material": "floor_material",
+            "mass": 0.0
+        },
+        {
+            "type": "floor",
+            "name": "UpperFloor",
+            "position": [0.0, 5.0, 0.0],
+            "rotation": [0.0, 0.0, 0.0],
+            "scale": [20.0, 1.0, 20.0],
+            "material": "floor_material",
+            "mass": 0.0
+        },
+        {
+            "type": "wall",
+            "name": "PerimeterWall1",
+            "position": [0.0, 4.0, -25.0],
+            "rotation": [0.0, 0.0, 0.0],
+            "scale": [50.0, 8.0, 1.0],
+            "material": "wall_material",
+            "mass": 0.0
+        },
+        {
+            "type": "wall",
+            "name": "PerimeterWall2",
+            "position": [0.0, 4.0, 25.0],
+            "rotation": [0.0, 0.0, 0.0],
+            "scale": [50.0, 8.0, 1.0],
+            "material": "wall_material",
+            "mass": 0.0
+        },
+        {
+            "type": "wall",
+            "name": "PerimeterWall3",
+            "position": [-25.0, 4.0, 0.0],
+            "rotation": [0.0, 0.0, 0.0],
+            "scale": [1.0, 8.0, 50.0],
+            "material": "wall_material",
+            "mass": 0.0
+        },
+        {
+            "type": "wall",
+            "name": "PerimeterWall4",
+            "position": [25.0, 4.0, 0.0],
+            "rotation": [0.0, 0.0, 0.0],
+            "scale": [1.0, 8.0, 50.0],
+            "material": "wall_material",
+            "mass": 0.0
+        },
+        {
+            "type": "wall",
+            "name": "CenterWall1",
+            "position": [0.0, 4.0, -10.0],
+            "rotation": [0.0, 0.0, 0.0],
+            "scale": [10.0, 8.0, 1.0],
+            "material": "wall_material",
+            "mass": 0.0
+        },
+        {
+            "type": "wall",
+            "name": "CenterWall2",
+            "position": [0.0, 4.0, 10.0],
+            "rotation": [0.0, 0.0, 0.0],
+            "scale": [10.0, 8.0, 1.0],
+            "material": "wall_material",
+            "mass": 0.0
+        },
+        {
+            "type": "crate",
+            "name": "PuzzleCrate1",
+            "position": [-15.0, 0.0, -15.0],
+            "rotation": [0.0, 0.0, 0.0],
+            "scale": [1.0, 1.0, 1.0],
+            "material": "crate_material",
+            "mass": 5.0
+        },
+        {
+            "type": "crate",
+            "name": "PuzzleCrate2",
+            "position": [15.0, 0.0, -15.0],
+            "rotation": [0.0, 0.0, 0.0],
+            "scale": [1.0, 1.0, 1.0],
+            "material": "crate_material",
+            "mass": 5.0
+        },
+        {
+            "type": "crate",
+            "name": "PuzzleCrate3",
+            "position": [-15.0, 0.0, 15.0],
+            "rotation": [0.0, 0.0, 0.0],
+            "scale": [1.0, 1.0, 1.0],
+            "material": "crate_material",
+            "mass": 5.0
+        },
+        {
+            "type": "crate",
+            "name": "PuzzleCrate4",
+            "position": [15.0, 0.0, 15.0],
+            "rotation": [0.0, 0.0, 0.0],
+            "scale": [1.0, 1.0, 1.0],
+            "material": "crate_material",
+            "mass": 5.0
+        },
+        {
+            "type": "health_pickup",
+            "name": "HealthPack1",
+            "position": [-20.0, 0.5, 0.0],
+            "rotation": [0.0, 0.0, 0.0],
+            "scale": [0.5, 0.5, 0.5],
+            "material": "health_material",
+            "mass": 0.0
+        },
+        {
+            "type": "health_pickup",
+            "name": "HealthPack2",
+            "position": [20.0, 0.5, 0.0],
+            "rotation": [0.0, 0.0, 0.0],
+            "scale": [0.5, 0.5, 0.5],
+            "material": "health_material",
+            "mass": 0.0
+        },
+        {
+            "type": "ammo_pickup",
+            "name": "AmmoPack1",
+            "position": [0.0, 0.5, -20.0],
+            "rotation": [0.0, 0.0, 0.0],
+            "scale": [0.5, 0.5, 0.5],
+            "material": "ammo_material",
+            "mass": 0.0
+        },
+        {
+            "type": "ammo_pickup",
+            "name": "AmmoPack2",
+            "position": [0.0, 0.5, 20.0],
+            "rotation": [0.0, 0.0, 0.0],
+            "scale": [0.5, 0.5, 0.5],
+            "material": "ammo_material",
+            "mass": 0.0
+        },
+        {
+            "type": "enemy",
+            "name": "FastEnemy1",
+            "position": [-18.0, 0.0, -18.0],
+            "rotation": [0.0, 0.0, 0.0],
+            "scale": [1.0, 1.0, 1.0],
+            "material": "fast_enemy_material",
+            "mass": 0.0
+        },
+        {
+            "type": "enemy",
+            "name": "TankEnemy1",
+            "position": [18.0, 0.0, -18.0],
+            "rotation": [0.0, 0.0, 0.0],
+            "scale": [1.5, 1.5, 1.5],
+            "material": "tank_enemy_material",
+            "mass": 0.0
+        },
+        {
+            "type": "enemy",
+            "name": "RangedEnemy1",
+            "position": [-18.0, 0.0, 18.0],
+            "rotation": [0.0, 0.0, 0.0],
+            "scale": [1.0, 1.0, 1.0],
+            "material": "ranged_enemy_material",
+            "mass": 0.0
+        },
+        {
+            "type": "enemy",
+            "name": "FastEnemy2",
+            "position": [18.0, 0.0, 18.0],
+            "rotation": [0.0, 0.0, 0.0],
+            "scale": [1.0, 1.0, 1.0],
+            "material": "fast_enemy_material",
+            "mass": 0.0
+        }
+    ],
+    "interactive_elements": [
+        {
+            "type": "door",
+            "name": "UpperLevelDoor",
+            "position": [0.0, 6.0, -10.0],
+            "rotation": [0.0, 0.0, 0.0],
+            "targetObject": "CenterWall1",
+            "state": "closed",
+            "connectedElements": ["PressurePlate1"]
+        },
+        {
+            "type": "button",
+            "name": "Button1",
+            "position": [-10.0, 1.0, -24.0],
+            "rotation": [0.0, 0.0, 0.0],
+            "targetObject": "SecretWall1",
+            "state": "released",
+            "connectedElements": ["SecretWall1"]
+        },
+        {
+            "type": "door",
+            "name": "ExitDoor",
+            "position": [0.0, 6.0, 10.0],
+            "rotation": [0.0, 0.0, 0.0],
+            "targetObject": "CenterWall2",
+            "state": "locked",
+            "connectedElements": ["KeyPickup1"]
+        },
+        {
+            "type": "switch",
+            "name": "LightSwitch1",
+            "position": [-24.0, 6.0, 0.0],
+            "rotation": [0.0, 90.0, 0.0],
+            "targetObject": "RoomLight1",
+            "state": "off",
+            "connectedElements": ["RoomLight1"]
+        }
+    ],
+    "trigger_volumes": [
+        {
+            "name": "EnemySpawnTrigger1",
+            "position": [-10.0, 0.0, -10.0],
+            "size": [5.0, 5.0, 5.0],
+            "triggerType": "enter",
+            "target": "EnemySpawnScript1",
+            "conditions": ["player_entered"]
+        },
+        {
+            "name": "EnemySpawnTrigger2",
+            "position": [10.0, 0.0, -10.0],
+            "size": [5.0, 5.0, 5.0],
+            "triggerType": "enter",
+            "target": "EnemySpawnScript2",
+            "conditions": ["player_entered"]
+        },
+        {
+            "name": "PuzzleCompletionTrigger",
+            "position": [0.0, 1.0, 0.0],
+            "size": [20.0, 10.0, 20.0],
+            "triggerType": "stay",
+            "target": "PuzzleCheckScript",
+            "conditions": ["all_crates_in_position"]
+        },
+        {
+            "name": "BossRoomTrigger",
+            "position": [0.0, 6.0, 0.0],
+            "size": [10.0, 10.0, 10.0],
+            "triggerType": "enter",
+            "target": "BossSpawnScript",
+            "conditions": ["player_reached_upper_level"]
+        }
+    ],
+    "lights": [
+        {
+            "type": "point",
+            "name": "MainLight",
+            "position": [0.0, 12.0, 0.0],
+            "color": [1.0, 1.0, 1.0],
+            "intensity": 1.0
+        },
+        {
+            "type": "point",
+            "name": "UpperLevelLight",
+            "position": [0.0, 9.0, 0.0],
+            "color": [0.9, 0.9, 1.0],
+            "intensity": 0.8
+        },
+        {
+            "type": "point",
+            "name": "CornerLight1",
+            "position": [-20.0, 4.0, -20.0],
+            "color": [0.8, 0.8, 1.0],
+            "intensity": 0.6
+        },
+        {
+            "type": "point",
+            "name": "CornerLight2",
+            "position": [20.0, 4.0, -20.0],
+            "color": [0.8, 0.8, 1.0],
+            "intensity": 0.6
+        },
+        {
+            "type": "point",
+            "name": "CornerLight3",
+            "position": [-20.0, 4.0, 20.0],
+            "color": [0.8, 0.8, 1.0],
+            "intensity": 0.6
+        },
+        {
+            "type": "point",
+            "name": "CornerLight4",
+            "position": [20.0, 4.0, 20.0],
+            "color": [0.8, 0.8, 1.0],
+            "intensity": 0.6
+        }
+    ]
+}

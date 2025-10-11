@@ -59,6 +59,20 @@ set(SPARKY_ENGINE_SOURCES
     src/WindowManager.cpp
     src/HealthComponent.cpp
     src/AIComponent.cpp
+    src/Pickup.cpp
+    src/InteractiveObject.cpp
+    src/SaveGameManager.cpp
+    src/Enemy.cpp
+    src/FastEnemy.cpp
+    src/TankEnemy.cpp
+    src/RangedEnemy.cpp
+    src/BossEnemy.cpp
+    src/WeaponItem.cpp
+    src/AmmoItem.cpp
+    src/WeaponSystem.cpp
+    src/SoundManager.cpp
+    src/DamageFeedbackComponent.cpp
+    src/LevelProgressionSystem.cpp
 )
 
 # Add audio components only if audio is enabled
@@ -115,6 +129,75 @@ add_executable(test_physics
 # Create an audio test executable
 add_executable(test_audio
     src/audio_test.cpp
+)
+
+# Create a save/load test executable
+add_executable(test_save_load
+    src/save_load_test.cpp
+)
+
+# Create an enemy test executable
+add_executable(test_enemy
+    src/enemy_test.cpp
+)
+
+# Create a level test executable
+add_executable(test_level
+    src/level_test.cpp
+)
+
+# Create a weapon test executable
+add_executable(test_weapon
+    src/weapon_test.cpp
+)
+
+# Create a sound test executable
+add_executable(test_sound
+    src/sound_test.cpp
+)
+
+# Create a damage feedback test executable
+add_executable(test_damage_feedback
+    src/damage_feedback_test.cpp
+)
+
+# Create a health and damage feedback integration test executable
+add_executable(test_health_damage
+    src/health_damage_test.cpp
+)
+
+# Create a damage feedback demo executable
+add_executable(damage_demo
+    src/damage_demo.cpp
+)
+
+# Create a simple damage feedback test executable
+add_executable(simple_damage_test
+    src/simple_damage_test.cpp
+)
+
+# Create a level progression system test executable
+add_executable(test_level_progression
+    src/level_progression_test.cpp
+)
+
+# Create a progression demo executable
+add_executable(progression_demo
+    src/progression_demo.cpp
+)
+
+target_include_directories(test_level PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/include
+    ${GLM_INCLUDE_DIRS}
+    ${JSON_INCLUDE_DIRS}
+    ${CMAKE_CURRENT_SOURCE_DIR}/../external
+)
+
+target_include_directories(test_weapon PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/include
+    ${GLM_INCLUDE_DIRS}
+    ${JSON_INCLUDE_DIRS}
+    ${CMAKE_CURRENT_SOURCE_DIR}/../external
 )
 
 # Include directories
@@ -191,6 +274,27 @@ target_include_directories(test_physics PRIVATE
 )
 
 target_include_directories(test_audio PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/include
+    ${GLM_INCLUDE_DIRS}
+    ${JSON_INCLUDE_DIRS}
+    ${CMAKE_CURRENT_SOURCE_DIR}/../external
+)
+
+target_include_directories(test_save_load PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/include
+    ${GLM_INCLUDE_DIRS}
+    ${JSON_INCLUDE_DIRS}
+    ${CMAKE_CURRENT_SOURCE_DIR}/../external
+)
+
+target_include_directories(test_enemy PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/include
+    ${GLM_INCLUDE_DIRS}
+    ${JSON_INCLUDE_DIRS}
+    ${CMAKE_CURRENT_SOURCE_DIR}/../external
+)
+
+target_include_directories(test_sound PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/include
     ${GLM_INCLUDE_DIRS}
     ${JSON_INCLUDE_DIRS}
@@ -348,3 +452,199 @@ add_custom_command(TARGET SparkyEngine POST_BUILD
     ${CMAKE_CURRENT_SOURCE_DIR}/shaders
     ${CMAKE_CURRENT_BINARY_DIR}/shaders
 )
+
+target_link_libraries(test_save_load SparkyEngine)
+
+# Only link Vulkan libraries if Vulkan was found
+if (Vulkan_FOUND)
+    target_link_libraries(test_save_load
+        ${VULKAN_LIBRARIES}
+    )
+endif()
+
+# Only link GLFW libraries if GLFW was found
+if (glfw3_FOUND)
+    if (TARGET glfw)
+        # GLFW found as target
+        target_link_libraries(test_save_load glfw)
+    else()
+        # GLFW found via manual configuration
+        target_include_directories(test_save_load PRIVATE
+            ${GLFW_INCLUDE_DIRS}
+        )
+        target_link_libraries(test_save_load
+            ${GLFW_LIBRARIES}
+        )
+    endif()
+endif()
+
+target_link_libraries(test_enemy SparkyEngine)
+
+# Only link Vulkan libraries if Vulkan was found
+if (Vulkan_FOUND)
+    target_link_libraries(test_enemy
+        ${VULKAN_LIBRARIES}
+    )
+endif()
+
+# Only link GLFW libraries if GLFW was found
+if (glfw3_FOUND)
+    if (TARGET glfw)
+        # GLFW found as target
+        target_link_libraries(test_enemy glfw)
+    else()
+        # GLFW found via manual configuration
+        target_include_directories(test_enemy PRIVATE
+            ${GLFW_INCLUDE_DIRS}
+        )
+        target_link_libraries(test_enemy
+            ${GLFW_LIBRARIES}
+        )
+    endif()
+endif()
+
+target_link_libraries(test_level SparkyEngine)
+
+# Only link Vulkan libraries if Vulkan was found
+if (Vulkan_FOUND)
+    target_link_libraries(test_level
+        ${VULKAN_LIBRARIES}
+    )
+endif()
+
+# Only link GLFW libraries if GLFW was found
+if (glfw3_FOUND)
+    if (TARGET glfw)
+        # GLFW found as target
+        target_link_libraries(test_level glfw)
+    else()
+        # GLFW found via manual configuration
+        target_include_directories(test_level PRIVATE
+            ${GLFW_INCLUDE_DIRS}
+        )
+        target_link_libraries(test_level
+            ${GLFW_LIBRARIES}
+        )
+    endif()
+endif()
+
+target_link_libraries(test_weapon SparkyEngine)
+
+# Only link Vulkan libraries if Vulkan was found
+if (Vulkan_FOUND)
+    target_link_libraries(test_weapon
+        ${VULKAN_LIBRARIES}
+    )
+endif()
+
+# Only link GLFW libraries if GLFW was found
+if (glfw3_FOUND)
+    if (TARGET glfw)
+        # GLFW found as target
+        target_link_libraries(test_weapon glfw)
+    else()
+        # GLFW found via manual configuration
+        target_include_directories(test_weapon PRIVATE
+            ${GLFW_INCLUDE_DIRS}
+        )
+        target_link_libraries(test_weapon
+            ${GLFW_LIBRARIES}
+        )
+    endif()
+endif()
+
+target_link_libraries(test_sound SparkyEngine)
+
+# Only link Vulkan libraries if Vulkan was found
+if (Vulkan_FOUND)
+    target_link_libraries(test_sound
+        ${VULKAN_LIBRARIES}
+    )
+endif()
+
+target_link_libraries(test_damage_feedback SparkyEngine)
+target_link_libraries(test_health_damage SparkyEngine)
+target_link_libraries(damage_demo SparkyEngine)
+target_link_libraries(simple_damage_test SparkyEngine)
+target_link_libraries(test_level_progression SparkyEngine)
+target_link_libraries(progression_demo SparkyEngine)
+
+# Only link Vulkan libraries if Vulkan was found
+if (Vulkan_FOUND)
+    target_link_libraries(test_damage_feedback
+        ${VULKAN_LIBRARIES}
+    )
+    target_link_libraries(test_health_damage
+        ${VULKAN_LIBRARIES}
+    )
+    target_link_libraries(damage_demo
+        ${VULKAN_LIBRARIES}
+    )
+    target_link_libraries(simple_damage_test
+        ${VULKAN_LIBRARIES}
+    )
+    target_link_libraries(test_level_progression
+        ${VULKAN_LIBRARIES}
+    )
+    target_link_libraries(progression_demo
+        ${VULKAN_LIBRARIES}
+    )
+endif()
+
+# Only link GLFW libraries if GLFW was found
+if (glfw3_FOUND)
+    if (TARGET glfw)
+        # GLFW found as target
+        target_link_libraries(test_sound glfw)
+        target_link_libraries(test_damage_feedback glfw)
+    else()
+        # GLFW found via manual configuration
+        target_include_directories(test_sound PRIVATE
+            ${GLFW_INCLUDE_DIRS}
+        )
+        target_link_libraries(test_sound
+            ${GLFW_LIBRARIES}
+        )
+        target_include_directories(test_damage_feedback PRIVATE
+            ${GLFW_INCLUDE_DIRS}
+        )
+        target_link_libraries(test_damage_feedback
+            ${GLFW_LIBRARIES}
+        )
+        
+        target_include_directories(test_health_damage PRIVATE
+            ${GLFW_INCLUDE_DIRS}
+        )
+        target_link_libraries(test_health_damage
+            ${GLFW_LIBRARIES}
+        )
+        
+        target_include_directories(damage_demo PRIVATE
+            ${GLFW_INCLUDE_DIRS}
+        )
+        target_link_libraries(damage_demo
+            ${GLFW_LIBRARIES}
+        )
+        
+        target_include_directories(simple_damage_test PRIVATE
+            ${GLFW_INCLUDE_DIRS}
+        )
+        target_link_libraries(simple_damage_test
+            ${GLFW_LIBRARIES}
+        )
+        
+        target_include_directories(test_level_progression PRIVATE
+            ${GLFW_INCLUDE_DIRS}
+        )
+        target_link_libraries(test_level_progression
+            ${GLFW_LIBRARIES}
+        )
+        
+        target_include_directories(progression_demo PRIVATE
+            ${GLFW_INCLUDE_DIRS}
+        )
+        target_link_libraries(progression_demo
+            ${GLFW_LIBRARIES}
+        )
+    endif()
+endif()

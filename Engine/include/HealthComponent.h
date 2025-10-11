@@ -4,6 +4,9 @@
 #include <functional>
 
 namespace Sparky {
+    // Forward declaration
+    class DamageFeedbackComponent;
+    
     class HealthComponent : public Component {
     public:
         HealthComponent(float maxHealth = 100.0f);
@@ -29,6 +32,10 @@ namespace Sparky {
         void setOnDeathCallback(std::function<void()> callback) { onDeathCallback = callback; }
         void setOnDamageCallback(std::function<void(float)> callback) { onDamageCallback = callback; }
         void setOnHealCallback(std::function<void(float)> callback) { onHealCallback = callback; }
+        
+        // Damage feedback integration
+        void setDamageFeedbackComponent(DamageFeedbackComponent* feedback) { damageFeedback = feedback; }
+        DamageFeedbackComponent* getDamageFeedbackComponent() const { return damageFeedback; }
 
     private:
         float currentHealth;
@@ -40,5 +47,8 @@ namespace Sparky {
         std::function<void()> onDeathCallback;
         std::function<void(float)> onDamageCallback;
         std::function<void(float)> onHealCallback;
+        
+        // Damage feedback component
+        DamageFeedbackComponent* damageFeedback;
     };
 }

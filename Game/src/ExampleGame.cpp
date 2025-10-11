@@ -16,6 +16,7 @@
 #include "../../Engine/include/OBJLoader.h"
 #include "../../Engine/include/RenderSystem.h"
 #include <glm/glm.hpp>
+#include "../../Engine/include/SaveGameManager.h"
 
 namespace Sparky {
 
@@ -89,6 +90,8 @@ namespace Sparky {
         }
 
         SPARKY_LOG_DEBUG("Game updated with delta time: " + std::to_string(deltaTime));
+        
+        handleSaveLoadInput();
     }
 
     void ExampleGame::render() {
@@ -634,5 +637,46 @@ namespace Sparky {
             }
         }
         SPARKY_LOG_INFO("All meshes initialized.");
+    }
+
+    void ExampleGame::handleSaveLoadInput() {
+        // Handle save/load input
+        InputManager& inputManager = InputManager::getInstance();
+        
+        // Save game (F5)
+        if (inputManager.isKeyJustPressed(GLFW_KEY_F5)) {
+            SaveGameManager& saveManager = SaveGameManager::getInstance();
+            // In a full implementation, we would pass the actual player, level, and inventory
+            bool saved = saveManager.saveGame("quicksave", nullptr, nullptr, nullptr);
+            if (saved) {
+                Logger::getInstance().info("Game saved successfully!");
+            } else {
+                Logger::getInstance().error("Failed to save game!");
+            }
+        }
+        
+        // Load game (F9)
+        if (inputManager.isKeyJustPressed(GLFW_KEY_F9)) {
+            SaveGameManager& saveManager = SaveGameManager::getInstance();
+            // In a full implementation, we would pass the actual player, level, and inventory
+            bool loaded = saveManager.loadGame("quicksave", nullptr, nullptr, nullptr);
+            if (loaded) {
+                Logger::getInstance().info("Game loaded successfully!");
+            } else {
+                Logger::getInstance().error("Failed to load game!");
+            }
+        }
+        
+        // Auto-save every 30 seconds if enabled
+        static float autoSaveTimer = 0.0f;
+        autoSaveTimer += deltaTime;
+        if (autoSaveTimer >= 30.0f) {
+            SaveGameManager& saveManager = SaveGameManager::getInstance();
+            if (saveManager.getAutoSave()) {
+                saveManager.saveGame("autosave", nullptr, nullptr, nullptr);
+                Logger::getInstance().info("Auto-saved game");
+            }
+            autoSaveTimer = 0.0f;
+        }
     }
 }

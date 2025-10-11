@@ -1,6 +1,7 @@
 #pragma once
 
 namespace Sparky {
+    // Forward declarations
     class HealthComponent;
     
     class Player {

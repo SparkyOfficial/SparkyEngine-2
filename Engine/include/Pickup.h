@@ -2,6 +2,7 @@
 
 #include <string>
 #include <memory>
+#include "Inventory.h"
 
 namespace Sparky {
     // Forward declarations

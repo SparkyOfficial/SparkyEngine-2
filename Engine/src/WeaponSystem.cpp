@@ -1,5 +1,5 @@
 #include "../include/WeaponSystem.h"
-#include "../include/Gun.h"
+#include "../../Game/src/Gun.h"
 #include "../include/WeaponItem.h"
 #include "../include/Player.h"
 #include "../include/Logger.h"

@@ -2,6 +2,7 @@
 #include "../include/Player.h"
 #include "../include/Logger.h"
 #include "../include/FastEnemy.h"
+#include "../include/HealthComponent.h"
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <memory>

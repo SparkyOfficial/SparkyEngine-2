@@ -20,7 +20,7 @@ namespace Sparky {
         const float YAW = -90.0f;
         const float PITCH = 0.0f;
         const float SPEED = 2.5f;
-        const float SENSITIVITY = 0.1f;
+        const float SENSITIVITY = 0.2f;
         const float ZOOM = 45.0f;
 
         // Camera Attributes
@@ -38,6 +38,13 @@ namespace Sparky {
         float MovementSpeed;
         float MouseSensitivity;
         float Zoom;
+        
+        // Mouse look enhancements
+        bool mouseSmoothing;
+        float smoothingFactor;
+        glm::vec2 smoothedMouseDelta;
+        float fov;
+        bool invertY;
 
         // Constructor with vectors
         Camera(glm::vec3 position = glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3 up = glm::vec3(0.0f, 1.0f, 0.0f), float yaw = -90.0f, float pitch = 0.0f);
@@ -50,6 +57,7 @@ namespace Sparky {
         
         // Returns the view matrix calculated using Euler Angles and the LookAt Matrix
         glm::mat4 GetViewMatrix();
+        glm::mat4 GetProjectionMatrix(float aspectRatio);
         
         // Processes input received from any keyboard-like input system. Accepts input parameter in the form of camera defined ENUM (to abstract it from windowing systems)
         void ProcessKeyboard(Camera_Movement direction, float deltaTime);
@@ -62,6 +70,16 @@ namespace Sparky {
         
         // Additional FPS camera method
         void LookAt(const glm::vec3& target);
+        
+        // Enhanced mouse look methods
+        void setMouseSmoothing(bool enabled) { mouseSmoothing = enabled; }
+        void setSmoothingFactor(float factor) { smoothingFactor = factor; }
+        void setInvertY(bool invert) { invertY = invert; }
+        void setFOV(float fovDegrees);
+        float getFOV() const { return fov; }
+        bool isMouseSmoothingEnabled() const { return mouseSmoothing; }
+        float getSmoothingFactor() const { return smoothingFactor; }
+        bool isInvertY() const { return invertY; }
 
         // Getters
         glm::vec3 getPosition() const { return Position; }

@@ -18,6 +18,9 @@ namespace Sparky {
                       animationController(nullptr) {
         setName("Player");
         
+        // Enable mouse smoothing for smoother camera controls
+        // This will be applied when the camera is set
+        
         // Add physics component
         addComponent<PhysicsComponent>();
         
@@ -181,6 +184,24 @@ namespace Sparky {
             inputManager.setCursorMode(mouseLocked ? GLFW_CURSOR_DISABLED : GLFW_CURSOR_NORMAL);
         }
         
+        // Toggle mouse smoothing
+        if (inputManager.isKeyJustPressed(GLFW_KEY_M)) {
+            if (camera) {
+                bool smoothingEnabled = camera->isMouseSmoothingEnabled();
+                camera->setMouseSmoothing(!smoothingEnabled);
+                SPARKY_LOG_INFO("Mouse smoothing " + std::string(!smoothingEnabled ? "enabled" : "disabled"));
+            }
+        }
+        
+        // Toggle Y inversion
+        if (inputManager.isKeyJustPressed(GLFW_KEY_I)) {
+            if (camera) {
+                bool invertY = camera->isInvertY();
+                camera->setInvertY(!invertY);
+                SPARKY_LOG_INFO("Y-axis inversion " + std::string(!invertY ? "enabled" : "disabled"));
+            }
+        }
+        
         // Enable mouse lock by default when game starts
         static bool firstUpdate = true;
         if (firstUpdate) {
@@ -263,6 +284,22 @@ namespace Sparky {
 
     void Player::setCamera(Camera* camera) {
         this->camera = camera;
+        
+        // Configure enhanced camera settings
+        if (camera) {
+            // Enable mouse smoothing for smoother camera controls
+            camera->setMouseSmoothing(true);
+            camera->setSmoothingFactor(0.7f); // Higher value = more smoothing
+            
+            // Set appropriate sensitivity
+            camera->setSensitivity(0.2f);
+            
+            // Set field of view
+            camera->setFOV(90.0f); // Wider FOV for better peripheral vision
+            
+            // Enable Y-inversion option (can be toggled by player)
+            camera->setInvertY(false);
+        }
     }
 
     bool Player::isOnGround() const {

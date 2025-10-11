@@ -8,7 +8,8 @@ namespace Sparky {
 
     // Constructor with vectors
     Camera::Camera(glm::vec3 position, glm::vec3 up, float yaw, float pitch) : 
-        Front(glm::vec3(0.0f, 0.0f, -1.0f)), MovementSpeed(SPEED), MouseSensitivity(SENSITIVITY), Zoom(ZOOM)
+        Front(glm::vec3(0.0f, 0.0f, -1.0f)), MovementSpeed(SPEED), MouseSensitivity(SENSITIVITY), Zoom(ZOOM),
+        mouseSmoothing(false), smoothingFactor(0.5f), smoothedMouseDelta(0.0f, 0.0f), fov(45.0f), invertY(false)
     {
         Position = position;
         WorldUp = up;
@@ -21,7 +22,8 @@ namespace Sparky {
 
     // Constructor with scalar values
     Camera::Camera(float posX, float posY, float posZ, float upX, float upY, float upZ, float yaw, float pitch) : 
-        Front(glm::vec3(0.0f, 0.0f, -1.0f)), MovementSpeed(SPEED), MouseSensitivity(SENSITIVITY), Zoom(ZOOM)
+        Front(glm::vec3(0.0f, 0.0f, -1.0f)), MovementSpeed(SPEED), MouseSensitivity(SENSITIVITY), Zoom(ZOOM),
+        mouseSmoothing(false), smoothingFactor(0.5f), smoothedMouseDelta(0.0f, 0.0f), fov(45.0f), invertY(false)
     {
         Position = glm::vec3(posX, posY, posZ);
         WorldUp = glm::vec3(upX, upY, upZ);
@@ -60,9 +62,19 @@ namespace Sparky {
     void Camera::setZoom(float zoom) {
         this->Zoom = zoom;
     }
+    
+    void Camera::setFOV(float fovDegrees) {
+        this->fov = fovDegrees;
+        // Update the zoom as well since they're related
+        this->Zoom = fovDegrees;
+    }
 
     glm::mat4 Camera::GetViewMatrix() {
         return glm::lookAt(Position, Position + Front, Up);
+    }
+    
+    glm::mat4 Camera::GetProjectionMatrix(float aspectRatio) {
+        return glm::perspective(glm::radians(fov), aspectRatio, 0.1f, 1000.0f);
     }
 
     void Camera::ProcessKeyboard(Camera_Movement direction, float deltaTime) {
@@ -82,6 +94,20 @@ namespace Sparky {
     }
 
     void Camera::ProcessMouseMovement(float xoffset, float yoffset, bool constrainPitch) {
+        // Apply inversion if enabled
+        if (invertY) {
+            yoffset = -yoffset;
+        }
+        
+        // Apply mouse smoothing if enabled
+        if (mouseSmoothing) {
+            // Simple exponential smoothing
+            smoothedMouseDelta.x = smoothedMouseDelta.x * smoothingFactor + xoffset * (1.0f - smoothingFactor);
+            smoothedMouseDelta.y = smoothedMouseDelta.y * smoothingFactor + yoffset * (1.0f - smoothingFactor);
+            xoffset = smoothedMouseDelta.x;
+            yoffset = smoothedMouseDelta.y;
+        }
+        
         xoffset *= MouseSensitivity;
         yoffset *= MouseSensitivity;
 

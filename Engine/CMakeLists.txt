@@ -97,6 +97,21 @@ add_executable(test_simple_engine
     src/simple_engine_test.cpp
 )
 
+# Create a mouse look test executable
+add_executable(test_mouse_look
+    src/mouse_look_test.cpp
+)
+
+# Create a PBR material test executable
+add_executable(test_pbr_material
+    src/pbr_material_test.cpp
+)
+
+# Create a physics test executable
+add_executable(test_physics
+    src/physics_test.cpp
+)
+
 # Include directories
 target_include_directories(SparkyEngine PUBLIC 
     ${CMAKE_CURRENT_SOURCE_DIR}/include
@@ -149,6 +164,27 @@ target_include_directories(test_simple_engine PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/../external
 )
 
+target_include_directories(test_mouse_look PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/include
+    ${GLM_INCLUDE_DIRS}
+    ${JSON_INCLUDE_DIRS}
+    ${CMAKE_CURRENT_SOURCE_DIR}/../external
+)
+
+target_include_directories(test_pbr_material PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/include
+    ${GLM_INCLUDE_DIRS}
+    ${JSON_INCLUDE_DIRS}
+    ${CMAKE_CURRENT_SOURCE_DIR}/../external
+)
+
+target_include_directories(test_physics PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/include
+    ${GLM_INCLUDE_DIRS}
+    ${JSON_INCLUDE_DIRS}
+    ${CMAKE_CURRENT_SOURCE_DIR}/../external
+)
+
 # Only include Vulkan include directories for test executables if Vulkan was found
 if (Vulkan_FOUND)
     target_include_directories(simple_test PRIVATE
@@ -168,6 +204,18 @@ if (Vulkan_FOUND)
     )
     
     target_include_directories(test_simple_engine PRIVATE
+        ${VULKAN_INCLUDE_DIRS}
+    )
+    
+    target_include_directories(test_mouse_look PRIVATE
+        ${VULKAN_INCLUDE_DIRS}
+    )
+    
+    target_include_directories(test_pbr_material PRIVATE
+        ${VULKAN_INCLUDE_DIRS}
+    )
+    
+    target_include_directories(test_physics PRIVATE
         ${VULKAN_INCLUDE_DIRS}
     )
 endif()
@@ -196,6 +244,20 @@ if (Vulkan_FOUND)
     )
     
     target_link_libraries(test_simple_engine SparkyEngine
+        ${VULKAN_LIBRARIES}
+    )
+    
+    target_link_libraries(test_mouse_look SparkyEngine)
+    
+    target_link_libraries(test_mouse_look SparkyEngine
+        ${VULKAN_LIBRARIES}
+    )
+    
+    target_link_libraries(test_pbr_material SparkyEngine
+        ${VULKAN_LIBRARIES}
+    )
+    
+    target_link_libraries(test_physics SparkyEngine
         ${VULKAN_LIBRARIES}
     )
 endif()

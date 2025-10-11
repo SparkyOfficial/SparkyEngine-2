@@ -760,8 +760,33 @@ namespace Sparky {
         samplerBinding.descriptorCount = 1;
         samplerBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
         samplerBinding.pImmutableSamplers = nullptr;
+        
+        // Normal map sampler (binding = 4)
+        VkDescriptorSetLayoutBinding normalMapBinding{};
+        normalMapBinding.binding = 4;
+        normalMapBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+        normalMapBinding.descriptorCount = 1;
+        normalMapBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+        normalMapBinding.pImmutableSamplers = nullptr;
+        
+        // Roughness map sampler (binding = 5)
+        VkDescriptorSetLayoutBinding roughnessMapBinding{};
+        roughnessMapBinding.binding = 5;
+        roughnessMapBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+        roughnessMapBinding.descriptorCount = 1;
+        roughnessMapBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+        roughnessMapBinding.pImmutableSamplers = nullptr;
+        
+        // Metalness map sampler (binding = 6)
+        VkDescriptorSetLayoutBinding metalnessMapBinding{};
+        metalnessMapBinding.binding = 6;
+        metalnessMapBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+        metalnessMapBinding.descriptorCount = 1;
+        metalnessMapBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+        metalnessMapBinding.pImmutableSamplers = nullptr;
 
-        std::array<VkDescriptorSetLayoutBinding, 3> bindings = {lightingBinding, materialBinding, samplerBinding};
+        std::array<VkDescriptorSetLayoutBinding, 6> bindings = {lightingBinding, materialBinding, samplerBinding, 
+                                                                normalMapBinding, roughnessMapBinding, metalnessMapBinding};
         VkDescriptorSetLayoutCreateInfo layoutInfo{};
         layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
         layoutInfo.bindingCount = static_cast<uint32_t>(bindings.size());
@@ -814,9 +839,9 @@ namespace Sparky {
         
         for (size_t i = 0; i < searchPaths.size(); ++i) {
             const auto& path = searchPaths[i];
-            // Try basic shaders first as they're simpler and more compatible
-            std::string vertPath = path + "basic.vert.spv";
-            std::string fragPath = path + "basic.frag.spv";
+            // Try PBR shaders first as they support advanced materials
+            std::string vertPath = path + "pbr.vert.spv";
+            std::string fragPath = path + "pbr.frag.spv";
             
             SPARKY_LOG_INFO("Trying shader path " + std::to_string(i) + ": " + path);
             SPARKY_LOG_INFO("Checking vertex shader: " + vertPath);
@@ -829,11 +854,11 @@ namespace Sparky {
                 vertShaderPathFound = vertPath;
                 fragShaderPathFound = fragPath;
                 found = true;
-                SPARKY_LOG_INFO("Found basic shaders at: " + path);
+                SPARKY_LOG_INFO("Found PBR shaders at: " + path);
                 break;
             }
             
-            // Fall back to material shaders if basic shaders don't exist
+            // Fall back to material shaders if PBR shaders don't exist
             vertPath = path + "material.vert.spv";
             fragPath = path + "material.frag.spv";
             
@@ -848,6 +873,24 @@ namespace Sparky {
                 fragShaderPathFound = fragPath;
                 found = true;
                 SPARKY_LOG_INFO("Found material shaders at: " + path);
+                break;
+            }
+            
+            // Fall back to basic shaders if material shaders don't exist
+            vertPath = path + "basic.vert.spv";
+            fragPath = path + "basic.frag.spv";
+            
+            SPARKY_LOG_INFO("Trying basic shaders - vertex: " + vertPath);
+            SPARKY_LOG_INFO("Trying basic shaders - fragment: " + fragPath);
+            vertExists = Sparky::FileUtils::fileExists(vertPath);
+            fragExists = Sparky::FileUtils::fileExists(fragPath);
+            SPARKY_LOG_INFO("Basic vertex shader exists: " + std::to_string(vertExists));
+            SPARKY_LOG_INFO("Basic fragment shader exists: " + std::to_string(fragExists));
+            if (vertExists && fragExists) {
+                vertShaderPathFound = vertPath;
+                fragShaderPathFound = fragPath;
+                found = true;
+                SPARKY_LOG_INFO("Found basic shaders at: " + path);
                 break;
             }
         }
@@ -1633,7 +1676,10 @@ namespace Sparky {
         
         // Get matrices from the actual game camera
         ubo.view = engine->getCamera().GetViewMatrix();
-        ubo.proj = glm::perspective(glm::radians(45.0f), swapChainExtent.width / (float) swapChainExtent.height, 0.1f, 100.0f); // Increase range
+        
+        // Use camera's FOV setting instead of hardcoded 45.0f
+        float fov = engine->getCamera().getFOV();
+        ubo.proj = glm::perspective(glm::radians(fov), swapChainExtent.width / (float) swapChainExtent.height, 0.1f, 1000.0f);
         ubo.proj[1][1] *= -1; // Y-flip for Vulkan
     
         // model is no longer needed here
@@ -1793,11 +1839,11 @@ namespace Sparky {
     }
     
     void VulkanRenderer::createMaterialDescriptorPool() {
-        std::array<VkDescriptorPoolSize, 3> poolSizes{};
+        std::array<VkDescriptorPoolSize, 2> poolSizes{};
         poolSizes[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
         poolSizes[0].descriptorCount = static_cast<uint32_t>(swapChainImages.size()) * 10; // Material buffers
         poolSizes[1].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-        poolSizes[1].descriptorCount = static_cast<uint32_t>(swapChainImages.size()) * 10; // Texture samplers
+        poolSizes[1].descriptorCount = static_cast<uint32_t>(swapChainImages.size()) * 10 * 4; // Texture samplers (base + normal + roughness + metalness)
         
         VkDescriptorPoolCreateInfo poolInfo{};
         poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
@@ -1884,6 +1930,11 @@ namespace Sparky {
             
             materialUBO.shininess = material->getShininess();
             materialUBO.hasTexture = material->getTexture() ? 1 : 0;
+            materialUBO.roughness = material->getRoughness();
+            materialUBO.metalness = material->getMetalness();
+            materialUBO.hasNormalMap = material->getNormalMap() ? 1 : 0;
+            materialUBO.hasRoughnessMap = material->getRoughnessMap() ? 1 : 0;
+            materialUBO.hasMetalnessMap = material->getMetalnessMap() ? 1 : 0;
             
             // Update material uniform buffer
             if (i < materialUniformBuffers.size()) {
@@ -1926,7 +1977,53 @@ namespace Sparky {
             textureWrite.descriptorCount = 1;
             textureWrite.pImageInfo = &imageInfo;
             
-            std::array<VkWriteDescriptorSet, 2> descriptorWrites = {materialWrite, textureWrite};
+            // Normal map sampler (binding = 4)
+            VkDescriptorImageInfo normalMapInfo{};
+            normalMapInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+            normalMapInfo.imageView = VK_NULL_HANDLE; // TODO: Implement actual normal map loading
+            normalMapInfo.sampler = textureSampler;
+            
+            VkWriteDescriptorSet normalMapWrite{};
+            normalMapWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+            normalMapWrite.dstSet = material->descriptorSets[i];
+            normalMapWrite.dstBinding = 4;
+            normalMapWrite.dstArrayElement = 0;
+            normalMapWrite.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+            normalMapWrite.descriptorCount = 1;
+            normalMapWrite.pImageInfo = &normalMapInfo;
+            
+            // Roughness map sampler (binding = 5)
+            VkDescriptorImageInfo roughnessMapInfo{};
+            roughnessMapInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+            roughnessMapInfo.imageView = VK_NULL_HANDLE; // TODO: Implement actual roughness map loading
+            roughnessMapInfo.sampler = textureSampler;
+            
+            VkWriteDescriptorSet roughnessMapWrite{};
+            roughnessMapWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+            roughnessMapWrite.dstSet = material->descriptorSets[i];
+            roughnessMapWrite.dstBinding = 5;
+            roughnessMapWrite.dstArrayElement = 0;
+            roughnessMapWrite.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+            roughnessMapWrite.descriptorCount = 1;
+            roughnessMapWrite.pImageInfo = &roughnessMapInfo;
+            
+            // Metalness map sampler (binding = 6)
+            VkDescriptorImageInfo metalnessMapInfo{};
+            metalnessMapInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+            metalnessMapInfo.imageView = VK_NULL_HANDLE; // TODO: Implement actual metalness map loading
+            metalnessMapInfo.sampler = textureSampler;
+            
+            VkWriteDescriptorSet metalnessMapWrite{};
+            metalnessMapWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+            metalnessMapWrite.dstSet = material->descriptorSets[i];
+            metalnessMapWrite.dstBinding = 6;
+            metalnessMapWrite.dstArrayElement = 0;
+            metalnessMapWrite.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+            metalnessMapWrite.descriptorCount = 1;
+            metalnessMapWrite.pImageInfo = &metalnessMapInfo;
+            
+            std::array<VkWriteDescriptorSet, 5> descriptorWrites = {materialWrite, textureWrite, normalMapWrite, 
+                                                                   roughnessMapWrite, metalnessMapWrite};
             vkUpdateDescriptorSets(device, static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);
         }
         

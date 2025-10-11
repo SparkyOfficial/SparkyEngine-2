@@ -3,6 +3,7 @@
 #include "../include/RigidBodyComponent.h"
 #include "../include/GameObject.h"
 #include "../include/Logger.h"
+#include "../include/CollisionSystem.h"
 #include <algorithm>
 #include <cmath>
 
@@ -170,17 +171,8 @@ namespace Sparky {
         
         if (!objA || !objB) return false;
         
-        // Simple sphere collision detection
-        glm::vec3 posA = objA->getPosition();
-        glm::vec3 posB = objB->getPosition();
-        float distance = glm::distance(posA, posB);
-        
-        // For now, we'll assume a fixed radius of 1.0 for all objects
-        // In a full implementation, we would get the actual collision shapes
-        float radiusA = 1.0f;
-        float radiusB = 1.0f;
-        
-        return distance < (radiusA + radiusB);
+        // Use enhanced collision system
+        return CollisionSystem::checkCollision(objA, objB);
     }
     
     bool PhysicsWorld::checkCollisionRB(RigidBodyComponent* bodyA, RigidBodyComponent* bodyB) {
@@ -192,17 +184,8 @@ namespace Sparky {
         
         if (!objA || !objB) return false;
         
-        // Simple sphere collision detection
-        glm::vec3 posA = objA->getPosition();
-        glm::vec3 posB = objB->getPosition();
-        float distance = glm::distance(posA, posB);
-        
-        // For now, we'll assume a fixed radius of 1.0 for all objects
-        // In a full implementation, we would get the actual collision shapes
-        float radiusA = 1.0f;
-        float radiusB = 1.0f;
-        
-        return distance < (radiusA + radiusB);
+        // Use enhanced collision system
+        return CollisionSystem::checkCollision(objA, objB);
     }
     
     bool PhysicsWorld::checkCollisionCR(PhysicsComponent* component, RigidBodyComponent* rigidBody) {
@@ -214,17 +197,8 @@ namespace Sparky {
         
         if (!objA || !objB) return false;
         
-        // Simple sphere collision detection
-        glm::vec3 posA = objA->getPosition();
-        glm::vec3 posB = objB->getPosition();
-        float distance = glm::distance(posA, posB);
-        
-        // For now, we'll assume a fixed radius of 1.0 for all objects
-        // In a full implementation, we would get the actual collision shapes
-        float radiusA = 1.0f;
-        float radiusB = 1.0f;
-        
-        return distance < (radiusA + radiusB);
+        // Use enhanced collision system
+        return CollisionSystem::checkCollision(objA, objB);
     }
     
     void PhysicsWorld::resolveCollisions(const std::vector<CollisionData>& collisions) {
@@ -251,8 +225,29 @@ namespace Sparky {
     }
     
     void PhysicsWorld::resolveCollision(CollisionData& collision) {
-        // Simple collision response - just mark as resolved
-        // In a full implementation, we would apply forces and update positions
+        if (!collision.componentA || !collision.componentB) return;
+        
+        // Get the game objects
+        GameObject* objA = collision.componentA->getOwner();
+        GameObject* objB = collision.componentB->getOwner();
+        
+        if (!objA || !objB) return;
+        
+        // Create a collision structure for the enhanced collision system
+        Sparky::Collision enhancedCollision;
+        enhancedCollision.objectA = objA;
+        enhancedCollision.objectB = objB;
+        enhancedCollision.rigidBodyA = nullptr;
+        enhancedCollision.rigidBodyB = nullptr;
+        enhancedCollision.contactPoint = collision.contactPoint;
+        enhancedCollision.normal = collision.normal;
+        enhancedCollision.penetrationDepth = collision.penetrationDepth;
+        enhancedCollision.restitution = 0.3f; // Default restitution
+        enhancedCollision.friction = 0.5f;    // Default friction
+        
+        // Use enhanced collision resolution
+        CollisionSystem::resolveCollision(enhancedCollision);
+        
         collision.resolved = true;
         SPARKY_LOG_DEBUG("Collision resolved between PhysicsComponents");
     }
@@ -266,39 +261,28 @@ namespace Sparky {
         
         if (!objA || !objB) return;
         
-        // Simple elastic collision response
-        glm::vec3 posA = objA->getPosition();
-        glm::vec3 posB = objB->getPosition();
-        glm::vec3 velA = collision.bodyA->getVelocity();
-        glm::vec3 velB = collision.bodyB->getVelocity();
-        float massA = collision.bodyA->getMass();
-        float massB = collision.bodyB->getMass();
+        // Create a collision structure for the enhanced collision system
+        Sparky::Collision enhancedCollision;
+        enhancedCollision.objectA = objA;
+        enhancedCollision.objectB = objB;
+        enhancedCollision.rigidBodyA = collision.bodyA;
+        enhancedCollision.rigidBodyB = collision.bodyB;
+        enhancedCollision.contactPoint = collision.contactPoint;
+        enhancedCollision.normal = collision.normal;
+        enhancedCollision.penetrationDepth = collision.penetrationDepth;
         
-        // Calculate collision normal
-        glm::vec3 normal = glm::normalize(posB - posA);
+        // Calculate combined restitution and friction
+        float restitutionA = collision.bodyA->getRestitution();
+        float restitutionB = collision.bodyB->getRestitution();
+        enhancedCollision.restitution = (restitutionA + restitutionB) * 0.5f;
         
-        // Calculate relative velocity
-        glm::vec3 relVel = velB - velA;
+        float frictionA = collision.bodyA->getFriction();
+        float frictionB = collision.bodyB->getFriction();
+        enhancedCollision.friction = (frictionA + frictionB) * 0.5f;
         
-        // Calculate velocity along normal
-        float velAlongNormal = glm::dot(relVel, normal);
+        // Use enhanced collision resolution
+        CollisionSystem::resolveCollision(enhancedCollision);
         
-        // Do not resolve if velocities are separating
-        if (velAlongNormal > 0) return;
-        
-        // Calculate restitution (bounciness)
-        float restitution = 0.8f; // Default value
-        
-        // Calculate impulse scalar
-        float j = -(1 + restitution) * velAlongNormal;
-        j /= 1/massA + 1/massB;
-        
-        // Apply impulse
-        glm::vec3 impulse = j * normal;
-        collision.bodyA->setVelocity(velA - 1/massA * impulse);
-        collision.bodyB->setVelocity(velB + 1/massB * impulse);
-        
-        // Mark as resolved
         collision.resolved = true;
         SPARKY_LOG_DEBUG("RigidBody collision resolved");
     }
@@ -312,10 +296,26 @@ namespace Sparky {
         
         if (!objA || !objB) return;
         
-        // Simple response - stop the rigid body
-        collision.rigidBody->setVelocity(glm::vec3(0.0f));
+        // Create a collision structure for the enhanced collision system
+        Sparky::Collision enhancedCollision;
+        enhancedCollision.objectA = objA;
+        enhancedCollision.objectB = objB;
+        enhancedCollision.rigidBodyA = nullptr; // PhysicsComponent doesn't have rigid body
+        enhancedCollision.rigidBodyB = collision.rigidBody;
+        enhancedCollision.contactPoint = collision.contactPoint;
+        enhancedCollision.normal = collision.normal;
+        enhancedCollision.penetrationDepth = collision.penetrationDepth;
         
-        // Mark as resolved
+        // Calculate combined restitution and friction
+        float restitutionB = collision.rigidBody->getRestitution();
+        enhancedCollision.restitution = restitutionB * 0.5f; // Average with default
+        
+        float frictionB = collision.rigidBody->getFriction();
+        enhancedCollision.friction = frictionB * 0.5f; // Average with default
+        
+        // Use enhanced collision resolution
+        CollisionSystem::resolveCollision(enhancedCollision);
+        
         collision.resolved = true;
         SPARKY_LOG_DEBUG("Component-RigidBody collision resolved");
     }

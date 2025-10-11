@@ -32,6 +32,15 @@ if %ERRORLEVEL% EQU 0 (
     exit /b %ERRORLEVEL%
 )
 
+echo Compiling PBR vertex shader...
+%VULKAN_SDK%\Bin\glslc.exe pbr.vert -o pbr.vert.spv
+if %ERRORLEVEL% EQU 0 (
+    echo PBR vertex shader compiled successfully!
+) else (
+    echo Failed to compile PBR vertex shader!
+    exit /b %ERRORLEVEL%
+)
+
 REM Compile fragment shaders
 echo Compiling advanced fragment shader...
 %VULKAN_SDK%\Bin\glslc.exe advanced.frag -o advanced.frag.spv
@@ -57,6 +66,15 @@ if %ERRORLEVEL% EQU 0 (
     echo Material fragment shader compiled successfully!
 ) else (
     echo Failed to compile material fragment shader!
+    exit /b %ERRORLEVEL%
+)
+
+echo Compiling PBR fragment shader...
+%VULKAN_SDK%\Bin\glslc.exe pbr.frag -o pbr.frag.spv
+if %ERRORLEVEL% EQU 0 (
+    echo PBR fragment shader compiled successfully!
+) else (
+    echo Failed to compile PBR fragment shader!
     exit /b %ERRORLEVEL%
 )
 

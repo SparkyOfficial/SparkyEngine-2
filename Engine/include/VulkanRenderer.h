@@ -52,7 +52,12 @@ namespace Sparky {
         glm::vec4 specular;
         float shininess;
         int hasTexture;
-        int padding[2]; // For alignment
+        float roughness;
+        float metalness;
+        int hasNormalMap;
+        int hasRoughnessMap;
+        int hasMetalnessMap;
+        int padding[1]; // For alignment
     };
 
     struct QueueFamilyIndices {

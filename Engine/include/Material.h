@@ -24,12 +24,24 @@ namespace Sparky {
         void setSpecular(const glm::vec3& specular);
         void setShininess(float shininess);
         void setEmissive(const glm::vec3& emissive);
+        
+        // Advanced PBR material properties
+        void setRoughness(float roughness);
+        void setMetalness(float metalness);
+        void setNormalMap(Texture* normalMap);
+        void setRoughnessMap(Texture* roughnessMap);
+        void setMetalnessMap(Texture* metalnessMap);
 
         const glm::vec3& getAmbient() const { return ambient; }
         const glm::vec3& getDiffuse() const { return diffuse; }
         const glm::vec3& getSpecular() const { return specular; }
         float getShininess() const { return shininess; }
         const glm::vec3& getEmissive() const { return emissive; }
+        float getRoughness() const { return roughness; }
+        float getMetalness() const { return metalness; }
+        Texture* getNormalMap() const { return normalMap; }
+        Texture* getRoughnessMap() const { return roughnessMap; }
+        Texture* getMetalnessMap() const { return metalnessMap; }
 
         // Texture support
         void setTexture(Texture* texture);
@@ -60,6 +72,13 @@ namespace Sparky {
         glm::vec3 specular;
         float shininess;
         glm::vec3 emissive;
+        
+        // Advanced PBR material properties
+        float roughness;
+        float metalness;
+        Texture* normalMap;
+        Texture* roughnessMap;
+        Texture* metalnessMap;
 
         // Texture
         Texture* texture;

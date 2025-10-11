@@ -13,6 +13,7 @@
 #include "ExampleGame.h"
 #include "Player.h"
 #include "Gun.h"
+#include "PBRExample.h"
 #include <iostream>
 #include <vector>
 
@@ -101,6 +102,8 @@ int main() {
     SPARKY_LOG_INFO("  Left Mouse Button - Shoot");
     SPARKY_LOG_INFO("  R - Reload");
     SPARKY_LOG_INFO("  ESC - Toggle mouse lock");
+    SPARKY_LOG_INFO("  M - Toggle mouse smoothing");
+    SPARKY_LOG_INFO("  I - Toggle Y-axis inversion");
     SPARKY_LOG_INFO("  F1 - Show main menu");
     SPARKY_LOG_INFO("  F2 - Show pause menu");
     SPARKY_LOG_INFO("  F3 - Hide menus");

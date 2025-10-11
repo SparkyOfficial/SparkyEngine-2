@@ -8,14 +8,18 @@ namespace Sparky {
     Material::Material() : name("DefaultMaterial"), ambient(0.2f, 0.2f, 0.2f), 
                           diffuse(0.8f, 0.8f, 0.8f), specular(1.0f, 1.0f, 1.0f), 
                           shininess(32.0f), emissive(0.0f, 0.0f, 0.0f),
-                          texture(nullptr),
+                          roughness(0.5f), metalness(0.0f),
+                          texture(nullptr), normalMap(nullptr),
+                          roughnessMap(nullptr), metalnessMap(nullptr),
                           shaderProgram(nullptr) {
     }
 
     Material::Material(const std::string& name) : name(name), ambient(0.2f, 0.2f, 0.2f), 
                                                  diffuse(0.8f, 0.8f, 0.8f), specular(1.0f, 1.0f, 1.0f), 
                                                  shininess(32.0f), emissive(0.0f, 0.0f, 0.0f),
-                                                 texture(nullptr),
+                                                 roughness(0.5f), metalness(0.0f),
+                                                 texture(nullptr), normalMap(nullptr),
+                                                 roughnessMap(nullptr), metalnessMap(nullptr),
                                                  shaderProgram(nullptr) {
     }
 
@@ -40,6 +44,26 @@ namespace Sparky {
 
     void Material::setEmissive(const glm::vec3& emissive) {
         this->emissive = emissive;
+    }
+    
+    void Material::setRoughness(float roughness) {
+        this->roughness = roughness;
+    }
+    
+    void Material::setMetalness(float metalness) {
+        this->metalness = metalness;
+    }
+    
+    void Material::setNormalMap(Texture* normalMap) {
+        this->normalMap = normalMap;
+    }
+    
+    void Material::setRoughnessMap(Texture* roughnessMap) {
+        this->roughnessMap = roughnessMap;
+    }
+    
+    void Material::setMetalnessMap(Texture* metalnessMap) {
+        this->metalnessMap = metalnessMap;
     }
 
     void Material::setTexture(Texture* texture) {

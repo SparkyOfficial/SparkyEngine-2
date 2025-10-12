@@ -20,9 +20,9 @@ int main() {
         for (size_t i = 0; i < level.getLevelObjects().size(); ++i) {
             const auto& obj = level.getLevelObjects()[i];
             std::cout << "Object " << i << ": " << obj.type << " - " << obj.name << "\n";
-            std::cout << "  Position: (" << obj.position.x << ", " << obj.position.y << ", " << obj.position.z << ")\n";
-            std::cout << "  Rotation: (" << obj.rotation.x << ", " << obj.rotation.y << ", " << obj.rotation.z << ")\n";
-            std::cout << "  Scale: (" << obj.scale.x << ", " << obj.scale.y << ", " << obj.scale.z << ")\n";
+            std::cout << "  Position: (" << obj.position[0] << ", " << obj.position[1] << ", " << obj.position[2] << ")\n";
+            std::cout << "  Rotation: (" << obj.rotation[0] << ", " << obj.rotation[1] << ", " << obj.rotation[2] << ")\n";
+            std::cout << "  Scale: (" << obj.scale[0] << ", " << obj.scale[1] << ", " << obj.scale[2] << ")\n";
         }
         
         // Try to save the level to a new file

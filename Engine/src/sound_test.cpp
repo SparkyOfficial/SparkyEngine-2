@@ -7,6 +7,7 @@
 int main() {
     Sparky::Logger::getInstance().setLogLevel(Sparky::LogLevel::DEBUG);
     
+#ifdef ENABLE_AUDIO
     Sparky::Logger::getInstance().info("=== Sound Effects System Test ===");
     
     // Initialize sound manager
@@ -112,5 +113,9 @@ int main() {
     soundManager.cleanup();
     Sparky::Logger::getInstance().info("");
     Sparky::Logger::getInstance().info("Sound effects system test completed successfully!");
+#else
+    Sparky::Logger::getInstance().info("Audio system is disabled. Sound test skipped.");
+    Sparky::Logger::getInstance().info("To enable audio, build with -DENABLE_AUDIO=ON");
+#endif
     return 0;
 }

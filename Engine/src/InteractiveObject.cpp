@@ -62,14 +62,14 @@ namespace Sparky {
         Logger::getInstance().info("Door is now " + std::string(open ? "open" : "closed"));
     }
     
-    // Button implementation
-    Button::Button() : InteractiveObject("Button"), pressed(false) {
+    // InteractiveButton implementation
+    InteractiveButton::InteractiveButton() : InteractiveObject("Button"), pressed(false) {
     }
 
-    Button::~Button() {
+    InteractiveButton::~InteractiveButton() {
     }
     
-    void Button::onInteract(Player* player) {
+    void InteractiveButton::onInteract(Player* player) {
         if (!canInteract(player)) {
             return;
         }

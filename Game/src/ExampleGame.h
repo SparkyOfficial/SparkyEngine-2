@@ -94,5 +94,6 @@ namespace Sparky {
         void updateAI(float deltaTime);
         void checkCollisions();
         void updateUI();
+        void handleSaveLoadInput(); // Add this line
     };
 }

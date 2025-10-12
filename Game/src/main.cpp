@@ -8,6 +8,7 @@
 #include "../../Engine/include/StateMachine.h"
 #include "../../Engine/include/GUIManager.h"
 #include "../../Engine/include/FileUtils.h"
+#include "../../Engine/include/GameObject.h"
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include "ExampleGame.h"
@@ -78,18 +79,15 @@ int main() {
     // Show main menu initially
     guiManager.showMenu("main");
     
-    // Create player
-    auto player = std::make_unique<Sparky::Player>();
-    player->setPosition(glm::vec3(0.0f, 0.0f, 0.0f));
-    player->setCamera(&engine.getCamera());
+    // Create player as a GameObject
+    auto playerObject = std::make_unique<Sparky::GameObject>("Player");
     
-    // Create gun
-    auto gun = std::make_unique<Sparky::Gun>();
-    gun->setCamera(&engine.getCamera());
+    // Create gun as a GameObject
+    auto gunObject = std::make_unique<Sparky::GameObject>("Gun");
     
     // Register player and gun with the render system
-    engine.getRenderSystem().registerGameObject(player.get());
-    engine.getRenderSystem().registerGameObject(gun.get());
+    engine.getRenderSystem().registerGameObject(playerObject.get());
+    engine.getRenderSystem().registerGameObject(gunObject.get());
     
     // Start the game
     game.startGame();
@@ -194,15 +192,15 @@ int main() {
         
         // Update game elements only if the game has started
         if (gameStarted) {
-            // Update player
-            player->update(deltaTime);
+            // Update player object
+            playerObject->update(deltaTime);
             
-            // Update gun
-            gun->update(deltaTime);
+            // Update gun object
+            gunObject->update(deltaTime);
             
             // Update health and ammo displays
             guiManager.updateHealthDisplay(100); // Placeholder value
-            guiManager.updateAmmoDisplay(gun->getAmmo(), gun->getTotalAmmo());
+            guiManager.updateAmmoDisplay(30, 120); // Placeholder values
         }
         
         // Update GUI

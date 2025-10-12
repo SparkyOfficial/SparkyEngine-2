@@ -53,10 +53,10 @@ namespace Sparky {
         bool open;
     };
     
-    class Button : public InteractiveObject {
+    class InteractiveButton : public InteractiveObject {
     public:
-        Button();
-        virtual ~Button();
+        InteractiveButton();
+        virtual ~InteractiveButton();
         
         virtual void onInteract(Player* player) override;
         

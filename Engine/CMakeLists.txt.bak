@@ -1,4 +1,4 @@
-﻿cmake_minimum_required(VERSION 3.20)
+cmake_minimum_required(VERSION 3.20)
 project(SparkyEngine)
 
 # Create the engine library
@@ -70,8 +70,6 @@ set(SPARKY_ENGINE_SOURCES
     src/WeaponItem.cpp
     src/AmmoItem.cpp
     src/WeaponSystem.cpp
-    src/Gun.cpp
-    src/GunImpl.cpp
     src/SoundManager.cpp
     src/DamageFeedbackComponent.cpp
     src/LevelProgressionSystem.cpp

@@ -1,3 +1,4 @@
+#ifdef ENABLE_AUDIO
 #include "../include/SoundManager.h"
 #include "../include/Logger.h"
 #include <AL/al.h>
@@ -217,52 +218,47 @@ namespace Sparky {
     void SoundManager::playBackgroundMusic(const std::string& filepath) {
         if (categoryMuted[SoundCategory::MUSIC]) return;
         
-        audioEngine->playBackgroundMusic(filepath);
+        audioEngine->playMusic(filepath);
+        audioEngine->setMusicVolume(musicVolume);
     }
     
     void SoundManager::stopBackgroundMusic() {
-        // In a full implementation, we would stop the music
-        Logger::getInstance().info("Stopping background music");
+        audioEngine->stopMusic();
     }
     
     void SoundManager::setMusicVolume(float volume) {
-        musicVolume = std::max(0.0f, std::min(1.0f, volume));
-        Logger::getInstance().info("Music volume set to: " + std::to_string(musicVolume));
+        musicVolume = volume;
+        audioEngine->setMusicVolume(volume);
     }
     
     // Sound settings
     void SoundManager::setMasterVolume(float volume) {
-        masterVolume = std::max(0.0f, std::min(1.0f, volume));
-        Logger::getInstance().info("Master volume set to: " + std::to_string(masterVolume));
+        masterVolume = volume;
+        audioEngine->setMasterVolume(volume);
     }
     
     void SoundManager::setCategoryVolume(SoundCategory category, float volume) {
-        volume = std::max(0.0f, std::min(1.0f, volume));
         categoryVolumes[category] = volume;
-        Logger::getInstance().info("Category volume set for category " + std::to_string(static_cast<int>(category)) + 
-                                 " to: " + std::to_string(volume));
+        // Update all active sounds in this category
+        // This would require tracking which sources belong to which category
     }
     
     float SoundManager::getCategoryVolume(SoundCategory category) const {
         auto it = categoryVolumes.find(category);
-        if (it != categoryVolumes.end()) {
-            return it->second;
-        }
-        return 1.0f;
+        return (it != categoryVolumes.end()) ? it->second : 1.0f;
     }
     
     void SoundManager::muteCategory(SoundCategory category, bool mute) {
         categoryMuted[category] = mute;
-        Logger::getInstance().info("Category " + std::to_string(static_cast<int>(category)) + 
-                                 (mute ? " muted" : " unmuted"));
+        // Stop all active sounds in this category if muting
+        if (mute) {
+            // This would require tracking which sources belong to which category
+        }
     }
     
     bool SoundManager::isCategoryMuted(SoundCategory category) const {
         auto it = categoryMuted.find(category);
-        if (it != categoryMuted.end()) {
-            return it->second;
-        }
-        return false;
+        return (it != categoryMuted.end()) ? it->second : false;
     }
     
     // 3D positioning
@@ -280,13 +276,11 @@ namespace Sparky {
     
     // Sound effects
     void SoundManager::enableReverb(bool enable) {
-        Logger::getInstance().info("Reverb " + std::string(enable ? "enabled" : "disabled"));
+        audioEngine->enableReverb(enable);
     }
     
     void SoundManager::setReverbProperties(float density, float diffusion, float gain) {
-        Logger::getInstance().info("Reverb properties set - Density: " + std::to_string(density) + 
-                                 ", Diffusion: " + std::to_string(diffusion) + 
-                                 ", Gain: " + std::to_string(gain));
+        audioEngine->setReverbProperties(density, diffusion, gain);
     }
     
     // Utility functions
@@ -295,7 +289,7 @@ namespace Sparky {
     }
     
     bool SoundManager::isSoundPlaying(const std::string& soundName) const {
-        // In a full implementation, we would check if the sound is playing
+        // This would require tracking active sources
         return false;
     }
     
@@ -304,7 +298,6 @@ namespace Sparky {
             audioEngine->stopSound(source);
         }
         activeSources.clear();
-        Logger::getInstance().info("All sounds stopped");
     }
     
     // Helper methods
@@ -315,7 +308,7 @@ namespace Sparky {
             case WeaponSoundType::EMPTY: return "weapon_empty";
             case WeaponSoundType::PICKUP: return "weapon_pickup";
             case WeaponSoundType::DROP: return "weapon_drop";
-            default: return "weapon_default";
+            default: return "weapon_shoot";
         }
     }
     
@@ -327,7 +320,7 @@ namespace Sparky {
             case EnemySoundType::DEATH: return "enemy_death";
             case EnemySoundType::FOOTSTEP: return "enemy_footstep";
             case EnemySoundType::DETECT: return "enemy_detect";
-            default: return "enemy_default";
+            default: return "enemy_attack";
         }
     }
     
@@ -340,7 +333,7 @@ namespace Sparky {
             case EnvironmentSoundType::EXPLOSION: return "explosion";
             case EnvironmentSoundType::WATER: return "water";
             case EnvironmentSoundType::WIND: return "wind";
-            default: return "environment_default";
+            default: return "ambient";
         }
     }
     
@@ -352,60 +345,78 @@ namespace Sparky {
             case PlayerSoundType::JUMP: return "player_jump";
             case PlayerSoundType::LAND: return "player_land";
             case PlayerSoundType::INTERACT: return "player_interact";
-            default: return "player_default";
+            default: return "player_hurt";
         }
     }
     
     void SoundManager::loadDefaultSounds() {
-        Logger::getInstance().info("Loading default sounds");
+        // Load default weapon sounds
+        audioEngine->loadSound("weapon_shoot", "sounds/weapon_shoot.wav");
+        audioEngine->loadSound("weapon_reload", "sounds/weapon_reload.wav");
+        audioEngine->loadSound("weapon_empty", "sounds/weapon_empty.wav");
+        audioEngine->loadSound("weapon_pickup", "sounds/weapon_pickup.wav");
+        audioEngine->loadSound("weapon_drop", "sounds/weapon_drop.wav");
         
-        // In a real implementation, we would load actual sound files
-        // For now, we'll just log that we're loading them
+        // Load default enemy sounds
+        audioEngine->loadSound("enemy_spawn", "sounds/enemy_spawn.wav");
+        audioEngine->loadSound("enemy_attack", "sounds/enemy_attack.wav");
+        audioEngine->loadSound("enemy_hurt", "sounds/enemy_hurt.wav");
+        audioEngine->loadSound("enemy_death", "sounds/enemy_death.wav");
+        audioEngine->loadSound("enemy_footstep", "sounds/enemy_footstep.wav");
+        audioEngine->loadSound("enemy_detect", "sounds/enemy_detect.wav");
         
-        // Weapon sounds
-        audioEngine->loadSound("weapon_shoot", "sounds/weapon/shoot.wav");
-        audioEngine->loadSound("weapon_reload", "sounds/weapon/reload.wav");
-        audioEngine->loadSound("weapon_empty", "sounds/weapon/empty.wav");
-        audioEngine->loadSound("weapon_pickup", "sounds/weapon/pickup.wav");
-        audioEngine->loadSound("weapon_drop", "sounds/weapon/drop.wav");
+        // Load default environmental sounds
+        audioEngine->loadSound("door_open", "sounds/door_open.wav");
+        audioEngine->loadSound("door_close", "sounds/door_close.wav");
+        audioEngine->loadSound("button_press", "sounds/button_press.wav");
+        audioEngine->loadSound("explosion", "sounds/explosion.wav");
+        audioEngine->loadSound("water", "sounds/water.wav");
+        audioEngine->loadSound("wind", "sounds/wind.wav");
         
-        // Enemy sounds
-        audioEngine->loadSound("enemy_spawn", "sounds/enemy/spawn.wav");
-        audioEngine->loadSound("enemy_attack", "sounds/enemy/attack.wav");
-        audioEngine->loadSound("enemy_hurt", "sounds/enemy/hurt.wav");
-        audioEngine->loadSound("enemy_death", "sounds/enemy/death.wav");
-        audioEngine->loadSound("enemy_footstep", "sounds/enemy/footstep.wav");
-        audioEngine->loadSound("enemy_detect", "sounds/enemy/detect.wav");
-        
-        // Environmental sounds
-        audioEngine->loadSound("ambient", "sounds/environment/ambient.wav");
-        audioEngine->loadSound("door_open", "sounds/environment/door_open.wav");
-        audioEngine->loadSound("door_close", "sounds/environment/door_close.wav");
-        audioEngine->loadSound("button_press", "sounds/environment/button_press.wav");
-        audioEngine->loadSound("explosion", "sounds/environment/explosion.wav");
-        audioEngine->loadSound("water", "sounds/environment/water.wav");
-        audioEngine->loadSound("wind", "sounds/environment/wind.wav");
-        
-        // Player sounds
-        audioEngine->loadSound("player_hurt", "sounds/player/hurt.wav");
-        audioEngine->loadSound("player_death", "sounds/player/death.wav");
-        audioEngine->loadSound("player_footstep", "sounds/player/footstep.wav");
-        audioEngine->loadSound("player_jump", "sounds/player/jump.wav");
-        audioEngine->loadSound("player_land", "sounds/player/land.wav");
-        audioEngine->loadSound("player_interact", "sounds/player/interact.wav");
-        
-        Logger::getInstance().info("Default sounds loaded");
+        // Load default player sounds
+        audioEngine->loadSound("player_hurt", "sounds/player_hurt.wav");
+        audioEngine->loadSound("player_death", "sounds/player_death.wav");
+        audioEngine->loadSound("player_footstep", "sounds/player_footstep.wav");
+        audioEngine->loadSound("player_jump", "sounds/player_jump.wav");
+        audioEngine->loadSound("player_land", "sounds/player_land.wav");
+        audioEngine->loadSound("player_interact", "sounds/player_interact.wav");
     }
     
     void SoundManager::setSoundVolume(ALuint source, float volume) {
-        if (source != 0) {
-            float finalVolume = masterVolume * volume;
-            audioEngine->setSoundVolume(source, finalVolume);
-        }
+        audioEngine->setSoundVolume(source, volume * masterVolume);
     }
     
     void SoundManager::setSoundCategory(ALuint source, SoundCategory category) {
-        // In a full implementation, we would track sound categories
-        // For now, this is just a placeholder
+        // This would require a way to associate sources with categories
     }
 }
+#else
+// Audio is disabled, provide empty implementation
+#include "../include/SoundManager.h"
+#include "../include/Logger.h"
+
+namespace Sparky {
+    
+    SoundManager& SoundManager::getInstance() {
+        static SoundManager instance;
+        return instance;
+    }
+    
+    SoundManager::SoundManager() : masterVolume(1.0f), musicVolume(0.7f) {
+        Logger::getInstance().info("SoundManager created (audio disabled)");
+    }
+    
+    SoundManager::~SoundManager() {
+        Logger::getInstance().info("SoundManager destroyed (audio disabled)");
+    }
+    
+    bool SoundManager::initialize() {
+        Logger::getInstance().info("SoundManager initialized (audio disabled)");
+        return true;
+    }
+    
+    void SoundManager::cleanup() {
+        Logger::getInstance().info("SoundManager cleaned up (audio disabled)");
+    }
+}
+#endif

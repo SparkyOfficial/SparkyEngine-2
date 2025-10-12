@@ -3,16 +3,17 @@
 
 namespace Sparky {
 
-    Enemy::Enemy() : healthComponent(nullptr) {
+    Enemy::Enemy() : GameObject("Enemy"), healthComponent(nullptr) {
         // Add health component
-        healthComponent = new HealthComponent();
+        healthComponent = addComponent<HealthComponent>();
     }
 
     Enemy::~Enemy() {
-        delete healthComponent;
+        // Components are automatically cleaned up by GameObject destructor
     }
 
     void Enemy::update(float deltaTime) {
+        GameObject::update(deltaTime);
         // Update health component
         if (healthComponent) {
             healthComponent->update(deltaTime);
@@ -20,6 +21,7 @@ namespace Sparky {
     }
 
     void Enemy::render() {
+        GameObject::render();
         // Render enemy
     }
 }

@@ -7,6 +7,8 @@
 #include "../../Engine/include/Mesh.h"
 #include "../../Engine/include/Camera.h"
 #include "../../Engine/include/Light.h"
+#include "../../Engine/include/PointLight.h"
+#include "../../Engine/include/DirectionalLight.h"
 #include "../../Engine/include/InputManager.h"
 
 namespace Sparky {
@@ -20,7 +22,7 @@ namespace Sparky {
         void cleanup();
 
     private:
-        SparkyEngine engine;
+        Engine engine;
         std::unique_ptr<GameObject> sphereObject;
         std::unique_ptr<GameObject> cubeObject;
         std::unique_ptr<GameObject> planeObject;

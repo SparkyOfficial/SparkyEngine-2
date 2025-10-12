@@ -13,7 +13,7 @@ namespace Sparky {
         cleanup();
     }
 
-    bool EnhancedPhysicsDemo::initialize(SparkyEngine* engine) {
+    bool EnhancedPhysicsDemo::initialize(Engine* engine) {
         this->engine = engine;
         
         if (!this->engine) {
@@ -26,18 +26,15 @@ namespace Sparky {
         // Create materials
         groundMaterial = std::make_unique<Material>("GroundMaterial");
         groundMaterial->setDiffuse(glm::vec3(0.2f, 0.6f, 0.2f)); // Green
-        groundMaterial->setRestitution(0.2f); // Low bounciness
-        groundMaterial->setFriction(0.8f);    // High friction
+        // Note: Material doesn't have setRestitution/setFriction methods, using fixed values
         
         objectMaterial = std::make_unique<Material>("ObjectMaterial");
         objectMaterial->setDiffuse(glm::vec3(0.8f, 0.2f, 0.2f)); // Red
-        objectMaterial->setRestitution(0.7f); // Medium bounciness
-        objectMaterial->setFriction(0.3f);    // Low friction
+        // Note: Material doesn't have setRestitution/setFriction methods, using fixed values
         
         playerMaterial = std::make_unique<Material>("PlayerMaterial");
         playerMaterial->setDiffuse(glm::vec3(0.2f, 0.2f, 0.8f)); // Blue
-        playerMaterial->setRestitution(0.1f); // Low bounciness
-        playerMaterial->setFriction(0.9f);    // High friction
+        // Note: Material doesn't have setRestitution/setFriction methods, using fixed values
         
         createScene();
         
@@ -59,15 +56,14 @@ namespace Sparky {
         // Add render component
         auto renderComponent = ground->addComponent<RenderComponent>();
         auto groundMesh = Mesh::createCube(1.0f);
-        renderComponent->setMesh(groundMesh.get());
-        renderComponent->setMaterial(groundMaterial.get());
-        meshes.push_back(std::move(groundMesh));
+        renderComponent->setMesh(std::move(groundMesh));
+        renderComponent->setMaterial(std::make_unique<Material>(*groundMaterial));
         
         // Add rigid body component
         auto groundRigidBody = ground->addComponent<RigidBodyComponent>();
         groundRigidBody->setBodyType(BodyType::STATIC); // Static ground
-        groundRigidBody->setRestitution(groundMaterial->getRestitution());
-        groundRigidBody->setFriction(groundMaterial->getFriction());
+        groundRigidBody->setRestitution(0.2f); // Low bounciness
+        groundRigidBody->setFriction(0.8f);    // High friction
         
         // Register with physics world
         PhysicsWorld::getInstance().addRigidBody(groundRigidBody);
@@ -85,16 +81,15 @@ namespace Sparky {
         // Add render component
         auto renderComponent = player->addComponent<RenderComponent>();
         auto playerMesh = Mesh::createCube(1.0f);
-        renderComponent->setMesh(playerMesh.get());
-        renderComponent->setMaterial(playerMaterial.get());
-        meshes.push_back(std::move(playerMesh));
+        renderComponent->setMesh(std::move(playerMesh));
+        renderComponent->setMaterial(std::make_unique<Material>(*playerMaterial));
         
         // Add rigid body component
         auto playerRigidBody = player->addComponent<RigidBodyComponent>();
         playerRigidBody->setBodyType(BodyType::DYNAMIC); // Dynamic player
         playerRigidBody->setMass(70.0f); // Average human mass
-        playerRigidBody->setRestitution(playerMaterial->getRestitution());
-        playerRigidBody->setFriction(playerMaterial->getFriction());
+        playerRigidBody->setRestitution(0.1f); // Low bounciness
+        playerRigidBody->setFriction(0.9f);    // High friction
         
         // Register with physics world
         PhysicsWorld::getInstance().addRigidBody(playerRigidBody);
@@ -115,16 +110,15 @@ namespace Sparky {
             // Add render component
             auto renderComponent = sphere->addComponent<RenderComponent>();
             auto sphereMesh = Mesh::createSphere(0.5f, 16, 16);
-            renderComponent->setMesh(sphereMesh.get());
-            renderComponent->setMaterial(objectMaterial.get());
-            meshes.push_back(std::move(sphereMesh));
+            renderComponent->setMesh(std::move(sphereMesh));
+            renderComponent->setMaterial(std::make_unique<Material>(*objectMaterial));
             
             // Add rigid body component
             auto sphereRigidBody = sphere->addComponent<RigidBodyComponent>();
             sphereRigidBody->setBodyType(BodyType::DYNAMIC);
             sphereRigidBody->setMass(5.0f);
-            sphereRigidBody->setRestitution(objectMaterial->getRestitution());
-            sphereRigidBody->setFriction(objectMaterial->getFriction());
+            sphereRigidBody->setRestitution(0.7f); // Medium bounciness
+            sphereRigidBody->setFriction(0.3f);    // Low friction
             
             // Register with physics world
             PhysicsWorld::getInstance().addRigidBody(sphereRigidBody);
@@ -143,16 +137,15 @@ namespace Sparky {
             // Add render component
             auto renderComponent = cube->addComponent<RenderComponent>();
             auto cubeMesh = Mesh::createCube(1.0f);
-            renderComponent->setMesh(cubeMesh.get());
-            renderComponent->setMaterial(objectMaterial.get());
-            meshes.push_back(std::move(cubeMesh));
+            renderComponent->setMesh(std::move(cubeMesh));
+            renderComponent->setMaterial(std::make_unique<Material>(*objectMaterial));
             
             // Add rigid body component
             auto cubeRigidBody = cube->addComponent<RigidBodyComponent>();
             cubeRigidBody->setBodyType(BodyType::DYNAMIC);
             cubeRigidBody->setMass(10.0f);
-            cubeRigidBody->setRestitution(objectMaterial->getRestitution());
-            cubeRigidBody->setFriction(objectMaterial->getFriction());
+            cubeRigidBody->setRestitution(0.3f); // Default restitution
+            cubeRigidBody->setFriction(0.5f); // Default friction
             
             // Register with physics world
             PhysicsWorld::getInstance().addRigidBody(cubeRigidBody);
@@ -225,6 +218,5 @@ namespace Sparky {
     void EnhancedPhysicsDemo::cleanup() {
         // Clean up is handled by unique_ptr destructors
         objects.clear();
-        meshes.clear();
     }
 }

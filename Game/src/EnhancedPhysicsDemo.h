@@ -18,7 +18,7 @@ namespace Sparky {
         EnhancedPhysicsDemo();
         ~EnhancedPhysicsDemo();
 
-        bool initialize(SparkyEngine* engine);
+        bool initialize(Engine* engine);
         void update(float deltaTime);
         void render();
         void cleanup();
@@ -26,7 +26,7 @@ namespace Sparky {
         void createScene();
 
     private:
-        SparkyEngine* engine;
+        Engine* engine;
         std::vector<std::unique_ptr<GameObject>> objects;
         std::vector<std::unique_ptr<Mesh>> meshes;
         std::unique_ptr<GameObject> player;

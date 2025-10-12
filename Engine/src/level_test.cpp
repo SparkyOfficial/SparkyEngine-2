@@ -50,7 +50,7 @@ int main() {
     Sparky::Logger::getInstance().info("1. Multiple rooms with doors and walls");
     Sparky::Logger::getInstance().info("2. Interactive elements (doors, buttons, switches)");
     Sparky::Logger::getInstance().info("3. Trigger volumes for gameplay events");
-    Sparky::getInstance().info("4. Diverse enemy placement");
+    Sparky::Logger::getInstance().info("4. Diverse enemy placement");
     Sparky::Logger::getInstance().info("5. Pickup items (health, ammo)");
     Sparky::Logger::getInstance().info("6. Complex lighting setups");
     Sparky::Logger::getInstance().info("7. Puzzle elements requiring interaction");

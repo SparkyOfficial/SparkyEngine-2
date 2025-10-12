@@ -17,6 +17,9 @@ set(GLFW_PATH "C:/glfw-install")
 # Set the path to glslang installation
 set(GLSLANG_PATH "E:/VulkanSDK/1.4.321.1")
 
+# Set the path to Bullet Physics installation
+set(BULLET_PHYSICS_PATH "C:/bullet3-install")
+
 # Try to find Vulkan, but make it optional
 find_package(Vulkan QUIET)
 
@@ -24,9 +27,17 @@ find_package(Vulkan QUIET)
 # First try with the specified path, then try in PATH
 find_package(glfw3 QUIET HINTS "${GLFW_PATH}")
 
+# Try to find Bullet Physics, but make it optional
+find_package(Bullet QUIET HINTS "${BULLET_PHYSICS_PATH}")
+
 # If not found in the specified path, try to find it in PATH
 if (NOT glfw3_FOUND)
     find_package(glfw3 QUIET)
+endif()
+
+# If not found in the specified path, try to find Bullet in PATH
+if (NOT Bullet_FOUND)
+    find_package(Bullet QUIET)
 endif()
 
 # Set include directories
@@ -66,6 +77,32 @@ if (glfw3_FOUND)
     endif()
 else()
     message(WARNING "GLFW not found. Building without window support.")
+endif()
+
+# Set Bullet Physics libraries based on how it was found
+if (Bullet_FOUND)
+    # If Bullet was found via find_package, use the variables it provides
+    set(BULLET_INCLUDE_DIRS ${BULLET_INCLUDE_DIRS})
+    set(BULLET_LIBRARIES ${BULLET_LIBRARIES})
+else()
+    # Check if Bullet Physics is in the external directory
+    if (EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/external/bullet3")
+        set(BULLET_INCLUDE_DIRS "${CMAKE_CURRENT_SOURCE_DIR}/external/bullet3/src")
+        # We'll need to build Bullet Physics as part of the project
+        message(STATUS "Using Bullet Physics from external/bullet3")
+        # Add Bullet Physics as a subdirectory
+        add_subdirectory(external/bullet3)
+        set(BULLET_LIBRARIES BulletDynamics BulletCollision LinearMath)
+    else()
+        # Fallback to manual path specification
+        set(BULLET_INCLUDE_DIRS "${BULLET_PHYSICS_PATH}/include")
+        set(BULLET_LIBRARIES 
+            "${BULLET_PHYSICS_PATH}/lib/BulletDynamics.lib"
+            "${BULLET_PHYSICS_PATH}/lib/BulletCollision.lib"
+            "${BULLET_PHYSICS_PATH}/lib/LinearMath.lib"
+        )
+        message(WARNING "Bullet Physics not found. Using manual path specification.")
+    endif()
 endif()
 
 # Add subdirectories

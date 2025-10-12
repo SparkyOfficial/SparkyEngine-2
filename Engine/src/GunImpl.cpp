@@ -1,17 +1,18 @@
 #include "GunImpl.h"
-#include "../../Engine/include/InputManager.h"
-#include "../../Engine/include/Logger.h"
-#include "../../Engine/include/PhysicsWorld.h"
-#include "../../Engine/include/RigidBodyComponent.h"
-#include "../../Engine/include/RenderComponent.h"
-#include "../../Engine/include/Mesh.h"
-#include "../../Engine/include/ParticleComponent.h"
-#include "../../Engine/include/ParticleSystem.h"
-#include "../../Engine/include/Camera.h"
+#include "../include/BallisticsSystem.h"
+#include "../include/InputManager.h"
+#include "../include/Logger.h"
+#include "../include/PhysicsWorld.h"
+#include "../include/RigidBodyComponent.h"
+#include "../include/RenderComponent.h"
+#include "../include/Mesh.h"
+#include "../include/ParticleComponent.h"
+#include "../include/ParticleSystem.h"
+#include "../include/Camera.h"
 
 #ifdef ENABLE_AUDIO
-#include "../../Engine/include/AudioEngine.h"
-#include "../../Engine/include/AudioComponent.h"
+#include "../include/AudioEngine.h"
+#include "../include/AudioComponent.h"
 #endif
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
@@ -38,6 +39,8 @@ namespace Sparky {
         firingMode(FiringMode::SEMI_AUTO), ammoType(AmmoType::REGULAR),
         burstCount(3), currentBurstShot(0), burstDelay(0.1f), lastBurstShotTime(0.0f),
         camera(nullptr) {
+        // Initialize ammo properties with default values
+        ammoProperties = AmmoProperties();
     }
     
     GunImpl::~GunImpl() {
@@ -177,7 +180,7 @@ namespace Sparky {
 #endif
         
         float timeSinceLastShot = currentTime - lastShotTime;
-        float fireInterval = 1.0f / fireRate;
+        float fireInterval = 1.0f / (fireRate * ammoProperties.fireRateModifier);
         
         // For burst mode, also check burst delay
         if (firingMode == FiringMode::BURST) {
@@ -189,7 +192,8 @@ namespace Sparky {
     }
     
     void GunImpl::applyRecoil() {
-        currentRecoil += recoil;
+        float effectiveRecoil = recoil * ammoProperties.recoilModifier;
+        currentRecoil += effectiveRecoil;
         
         // Apply recoil to camera
         if (camera) {
@@ -276,12 +280,32 @@ namespace Sparky {
     }
     
     void GunImpl::createBullet(const float* direction) {
-        // Create a bullet object
-        // Note: In a real implementation, this would be handled by the game world
-        SPARKY_LOG_DEBUG("Bullet created with direction: " + 
-                        std::to_string(direction[0]) + ", " + 
-                        std::to_string(direction[1]) + ", " + 
-                        std::to_string(direction[2]));
+        // Get the ballistics system instance
+        BallisticsSystem& ballistics = BallisticsSystem::getInstance();
+        
+        // Calculate bullet velocity based on muzzle velocity and direction
+        glm::vec3 velocity(direction[0], direction[1], direction[2]);
+        velocity *= ammoProperties.muzzleVelocity;
+        
+        // Get the camera position as the starting position
+        glm::vec3 startPosition(0.0f);
+        if (camera) {
+            startPosition = camera->Position;
+            // Offset the start position slightly forward to avoid collision with the player
+            startPosition += camera->Front * 0.5f;
+        }
+        
+        // Create the bullet in the ballistics system
+        int bulletId = ballistics.createBullet(
+            startPosition,
+            velocity,
+            ammoProperties.mass,
+            ammoProperties.damage,
+            0, // Owner ID (0 for player)
+            10.0f // Lifetime
+        );
+        
+        SPARKY_LOG_DEBUG("Bullet created with ID: " + std::to_string(bulletId));
     }
     
     void GunImpl::createMuzzleFlash(const float* direction) {

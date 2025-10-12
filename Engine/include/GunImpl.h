@@ -7,6 +7,10 @@
 
 namespace Sparky {
     
+    // Forward declarations
+    class BallisticsSystem;
+    struct Bullet;
+    
     // Structure for weapon attachments
     struct WeaponAttachment {
         std::string name;
@@ -47,6 +51,21 @@ namespace Sparky {
         ARMOR_PIERCING = 1,
         EXPLOSIVE = 2,
         INCENDIARY = 3
+    };
+    
+    // Ammo properties
+    struct AmmoProperties {
+        float mass;              // Mass of the bullet (kg)
+        float muzzleVelocity;    // Muzzle velocity (m/s)
+        float damage;            // Base damage
+        float penetration;       // Armor penetration factor
+        float explosiveRadius;   // Radius for explosive ammo
+        float fireRateModifier;  // Modifier to fire rate
+        float recoilModifier;    // Modifier to recoil
+        
+        AmmoProperties() : mass(0.01f), muzzleVelocity(500.0f), damage(10.0f),
+                          penetration(1.0f), explosiveRadius(0.0f),
+                          fireRateModifier(1.0f), recoilModifier(1.0f) {}
     };
     
     class Camera;
@@ -105,6 +124,9 @@ namespace Sparky {
         
         // Camera reference
         Camera* camera;
+        
+        // Ammo properties
+        AmmoProperties ammoProperties;
         
         // Methods
         void update(float deltaTime);
@@ -172,6 +194,10 @@ namespace Sparky {
         
         const char* getWeaponType() const { return weaponType.c_str(); }
         void setWeaponType(const char* type) { weaponType = type; }
+        
+        // Ammo properties
+        const AmmoProperties& getAmmoProperties() const { return ammoProperties; }
+        void setAmmoProperties(const AmmoProperties& props) { ammoProperties = props; }
         
         // Recoil pattern system
         void getRecoilPattern(float* pattern) const;

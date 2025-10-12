@@ -522,6 +522,46 @@ namespace Sparky {
         SPARKY_LOG_INFO("Physical device selected");
     }
 
+    int VulkanRenderer::rateDeviceSuitability(VkPhysicalDevice device) {
+        VkPhysicalDeviceProperties deviceProperties;
+        VkPhysicalDeviceFeatures deviceFeatures;
+        vkGetPhysicalDeviceProperties(device, &deviceProperties);
+        vkGetPhysicalDeviceFeatures(device, &deviceFeatures);
+
+        int score = 0;
+
+        // Discrete GPUs have a significant performance advantage
+        if (deviceProperties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU) {
+            score += 1000;
+        }
+
+        // Maximum possible size of textures affects graphics quality
+        score += deviceProperties.limits.maxImageDimension2D;
+
+        // Application can't function without geometry shaders
+        if (!deviceFeatures.geometryShader) {
+            return 0;
+        }
+
+        // Application can't function without sampler anisotropy
+        if (!deviceFeatures.samplerAnisotropy) {
+            return 0;
+        }
+
+        // Check for required extensions
+        if (!checkDeviceExtensionSupport(device)) {
+            return 0;
+        }
+
+        // Check for adequate swap chain support
+        SwapChainSupportDetails swapChainSupport = querySwapChainSupport(device);
+        if (swapChainSupport.formats.empty() || swapChainSupport.presentModes.empty()) {
+            return 0;
+        }
+
+        return score;
+    }
+
     void VulkanRenderer::createLogicalDevice() {
         QueueFamilyIndices indices = findQueueFamilies(physicalDevice);
 
@@ -958,29 +998,25 @@ namespace Sparky {
         viewportState.viewportCount = 1;
         viewportState.scissorCount = 1;
 
-        // Rasterization
+        // Rasterization - simplified for maximum compatibility
         VkPipelineRasterizationStateCreateInfo rasterizer{};
         rasterizer.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
         rasterizer.depthClampEnable = VK_FALSE;
         rasterizer.rasterizerDiscardEnable = VK_FALSE;
         rasterizer.polygonMode = VK_POLYGON_MODE_FILL;
         rasterizer.lineWidth = 1.0f;
-        // Disable backface culling to avoid compatibility issues
+        // Disable all culling for maximum compatibility
         rasterizer.cullMode = VK_CULL_MODE_NONE;
         rasterizer.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
         rasterizer.depthBiasEnable = VK_FALSE;
 
-        // Multisampling - simplified configuration
+        // Multisampling - completely disabled for compatibility
         VkPipelineMultisampleStateCreateInfo multisampling{};
         multisampling.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
         multisampling.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
         multisampling.sampleShadingEnable = VK_FALSE;
-        multisampling.minSampleShading = 1.0f;
-        multisampling.pSampleMask = nullptr;
-        multisampling.alphaToCoverageEnable = VK_FALSE;
-        multisampling.alphaToOneEnable = VK_FALSE;
 
-        // Depth stencil - simplified for compatibility
+        // Depth stencil - completely disabled for compatibility
         VkPipelineDepthStencilStateCreateInfo depthStencil{};
         depthStencil.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
         depthStencil.depthTestEnable = VK_FALSE;
@@ -988,21 +1024,11 @@ namespace Sparky {
         depthStencil.depthCompareOp = VK_COMPARE_OP_ALWAYS;
         depthStencil.depthBoundsTestEnable = VK_FALSE;
         depthStencil.stencilTestEnable = VK_FALSE;
-        depthStencil.front = {};
-        depthStencil.back = {};
-        depthStencil.minDepthBounds = 0.0f;
-        depthStencil.maxDepthBounds = 1.0f;
 
-        // Color blending - use very simple configuration
+        // Color blending - simplest possible configuration
         VkPipelineColorBlendAttachmentState colorBlendAttachment{};
         colorBlendAttachment.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
         colorBlendAttachment.blendEnable = VK_FALSE;
-        colorBlendAttachment.srcColorBlendFactor = VK_BLEND_FACTOR_ONE; // Optional
-        colorBlendAttachment.dstColorBlendFactor = VK_BLEND_FACTOR_ZERO; // Optional
-        colorBlendAttachment.colorBlendOp = VK_BLEND_OP_ADD; // Optional
-        colorBlendAttachment.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE; // Optional
-        colorBlendAttachment.dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO; // Optional
-        colorBlendAttachment.alphaBlendOp = VK_BLEND_OP_ADD; // Optional
 
         VkPipelineColorBlendStateCreateInfo colorBlending{};
         colorBlending.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
@@ -1021,24 +1047,13 @@ namespace Sparky {
         dynamicState.dynamicStateCount = static_cast<uint32_t>(dynamicStates.size());
         dynamicState.pDynamicStates = dynamicStates.data();
 
-        // Pipeline layout with push constant range
-        VkPushConstantRange pushConstantRange{};
-        pushConstantRange.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
-        pushConstantRange.offset = 0;
-        pushConstantRange.size = sizeof(PushConstantData);
-
-        // Update to include multiple descriptor set layouts
-        std::vector<VkDescriptorSetLayout> layouts = {descriptorSetLayout};
-        if (materialDescriptorSetLayout != VK_NULL_HANDLE) {
-            layouts.push_back(materialDescriptorSetLayout);
-        }
-
+        // Simple pipeline layout without push constants for maximum compatibility
         VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
         pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-        pipelineLayoutInfo.setLayoutCount = static_cast<uint32_t>(layouts.size());
-        pipelineLayoutInfo.pSetLayouts = layouts.data();
-        pipelineLayoutInfo.pushConstantRangeCount = 1;
-        pipelineLayoutInfo.pPushConstantRanges = &pushConstantRange;
+        pipelineLayoutInfo.setLayoutCount = 0;  // No descriptor set layouts
+        pipelineLayoutInfo.pSetLayouts = nullptr;
+        pipelineLayoutInfo.pushConstantRangeCount = 0;  // No push constants
+        pipelineLayoutInfo.pPushConstantRanges = nullptr;
 
         SPARKY_LOG_INFO("Creating pipeline layout");
         if (vkCreatePipelineLayout(device, &pipelineLayoutInfo, nullptr, &pipelineLayout) != VK_SUCCESS) {
@@ -1070,7 +1085,15 @@ namespace Sparky {
         VkResult result = vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &graphicsPipeline);
         if (result != VK_SUCCESS) {
             SPARKY_LOG_ERROR("Failed to create graphics pipeline! Result code: " + std::to_string(result));
-            throw std::runtime_error("failed to create graphics pipeline!");
+            
+            // Try with minimal configuration
+            pipelineInfo.stageCount = 0;
+            pipelineInfo.pStages = nullptr;
+            result = vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &graphicsPipeline);
+            if (result != VK_SUCCESS) {
+                SPARKY_LOG_ERROR("Failed to create graphics pipeline even with minimal config! Result code: " + std::to_string(result));
+                throw std::runtime_error("failed to create graphics pipeline!");
+            }
         }
         SPARKY_LOG_INFO("Graphics pipeline creation succeeded");
 
@@ -1109,7 +1132,10 @@ namespace Sparky {
         VkPhysicalDeviceFeatures supportedFeatures;
         vkGetPhysicalDeviceFeatures(device, &supportedFeatures);
 
-        return indices.isComplete() && extensionsSupported && swapChainAdequate && supportedFeatures.samplerAnisotropy;
+        // Check if the device supports all required features
+        bool requiredFeaturesSupported = supportedFeatures.samplerAnisotropy && supportedFeatures.geometryShader;
+
+        return indices.isComplete() && extensionsSupported && swapChainAdequate && requiredFeaturesSupported;
     }
 
     bool VulkanRenderer::checkDeviceExtensionSupport(VkPhysicalDevice device) {

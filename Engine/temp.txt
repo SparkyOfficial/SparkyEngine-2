@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.20)
 project(SparkyEngine)
 
 # Create the engine library
-set(ENGINE_SOURCES
+set(SPARKY_ENGINE_SOURCES
     src/Animation.cpp
     src/AnimationComponent.cpp
     src/AnimationController.cpp
@@ -75,105 +75,23 @@ set(ENGINE_SOURCES
     src/SoundManager.cpp
     src/DamageFeedbackComponent.cpp
     src/LevelProgressionSystem.cpp
-    src/BallisticsSystem.cpp
     # Bullet Physics source files
     src/Bullet/BulletRigidBodyComponent.cpp
     src/Bullet/BulletPhysicsWorld.cpp
     src/Bullet/BulletCollisionShapeComponent.cpp
     src/Bullet/BulletConstraintComponent.cpp
-    src/AdvancedParticleSystem.cpp
-    src/LevelEditor.cpp
-)
-
-set(ENGINE_HEADERS
-    include/Animation.h
-    include/AnimationComponent.h
-    include/AnimationController.h
-    include/AssetManager.h
-    include/BehaviorTree.h
-    include/BehaviorTreeExample.h
-    include/Button.h
-    include/Camera.h
-    include/CharacterController.h
-    include/CollisionSystem.h
-    include/Component.h
-    include/Config.h
-    include/DirectionalLight.h
-    include/EngineDemo.h
-    include/EventSystem.h
-    include/ExampleState.h
-    include/FileUtils.h
-    include/GUIElement.h
-    include/GUIManager.h
-    include/GameEntity.h
-    include/GameObject.h
-    include/InputManager.h
-    include/Inventory.h
-    include/Light.h
-    include/LightManager.h
-    include/Logger.h
-    include/Material.h
-    include/Mesh.h
-    include/MeshRenderer.h
-    include/OBJLoader.h
-    include/ParticleSystem.h
-    include/ParticleComponent.h
-    include/PhysicsComponent.h
-    include/PhysicsWorld.h
-    include/PointLight.h
-    include/Profiler.h
-    include/Quest.h
-    include/QuestManager.h
-    include/RenderComponent.h
-    include/RenderSystem.h
-    include/ResourceManager.h
-    include/RigidBodyComponent.h
-    include/ScriptComponent.h
-    include/ShaderCompiler.h
-    include/ShaderProgram.h
-    include/ShaderUtils.h
-    include/Skybox.h
-    include/SparkyEngine.h
-    include/SpotLight.h
-    include/StateMachine.h
-    include/Texture.h
-    include/Timer.h
-    include/VulkanRenderer.h
-    include/WindowManager.h
-    include/HealthComponent.h
-    include/AIComponent.h
-    include/Pickup.h
-    include/InteractiveObject.h
-    include/SaveGameManager.h
-    include/Enemy.h
-    include/FastEnemy.h
-    include/TankEnemy.h
-    include/RangedEnemy.h
-    include/BossEnemy.h
-    include/WeaponItem.h
-    include/AmmoItem.h
-    include/WeaponSystem.h
-    include/Gun.h
-    include/GunImpl.h
-    include/SoundManager.h
-    include/DamageFeedbackComponent.h
-    include/LevelProgressionSystem.h
-    include/BallisticsSystem.h
-    include/AdvancedParticleSystem.h
-    include/LevelEditor.h
 )
 
 # Add audio components only if audio is enabled
 if(ENABLE_AUDIO)
-    list(APPEND ENGINE_SOURCES
+    list(APPEND SPARKY_ENGINE_SOURCES
         src/AudioEngine.cpp
         src/AudioComponent.cpp
-        src/AdvancedAudioEngine.cpp
     )
 endif()
 
 # Create the engine library
-add_library(SparkyEngine STATIC ${ENGINE_SOURCES})
+add_library(SparkyEngine STATIC ${SPARKY_ENGINE_SOURCES})
 
 # Create a simple test executable
 add_executable(simple_test
@@ -285,14 +203,25 @@ add_executable(progression_demo
     src/progression_demo.cpp
 )
 
-# Create a ballistics test executable
-add_executable(ballistics_test
-    src/ballistics_test.cpp
+target_include_directories(test_level PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/include
+    ${GLM_INCLUDE_DIRS}
+    ${JSON_INCLUDE_DIRS}
+    ${CMAKE_CURRENT_SOURCE_DIR}/../external
 )
 
-# Create a weapon ballistics demo executable
-add_executable(weapon_ballistics_demo
-    src/weapon_ballistics_demo.cpp
+target_include_directories(test_weapon PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/include
+    ${GLM_INCLUDE_DIRS}
+    ${JSON_INCLUDE_DIRS}
+    ${CMAKE_CURRENT_SOURCE_DIR}/../external
+)
+
+target_include_directories(simple_physics_demo PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/include
+    ${GLM_INCLUDE_DIRS}
+    ${JSON_INCLUDE_DIRS}
+    ${CMAKE_CURRENT_SOURCE_DIR}/../external
 )
 
 # Include directories
@@ -925,87 +854,3 @@ if (glfw3_FOUND)
         )
     endif()
 endif()
-
-# Create a behavior tree demo executable
-add_executable(behavior_tree_demo
-    src/behavior_tree_demo.cpp
-)
-
-target_include_directories(behavior_tree_demo PRIVATE
-    ${CMAKE_CURRENT_SOURCE_DIR}/include
-    ${GLM_INCLUDE_DIRS}
-    ${JSON_INCLUDE_DIRS}
-    ${CMAKE_CURRENT_SOURCE_DIR}/../external
-)
-
-target_link_libraries(behavior_tree_demo SparkyEngine)
-
-# Create a ballistics demo executable
-add_executable(ballistics_demo
-    src/ballistics_demo.cpp
-)
-
-target_include_directories(ballistics_demo PRIVATE
-    ${CMAKE_CURRENT_SOURCE_DIR}/include
-    ${GLM_INCLUDE_DIRS}
-    ${JSON_INCLUDE_DIRS}
-    ${CMAKE_CURRENT_SOURCE_DIR}/../external
-)
-
-target_link_libraries(ballistics_demo SparkyEngine)
-
-# Create a weapon ballistics demo executable
-add_executable(weapon_ballistics_demo
-    src/weapon_ballistics_demo.cpp
-)
-
-target_include_directories(weapon_ballistics_demo PRIVATE
-    ${CMAKE_CURRENT_SOURCE_DIR}/include
-    ${GLM_INCLUDE_DIRS}
-    ${JSON_INCLUDE_DIRS}
-    ${CMAKE_CURRENT_SOURCE_DIR}/../external
-)
-
-target_link_libraries(weapon_ballistics_demo SparkyEngine)
-
-# Create an advanced audio demo executable
-add_executable(advanced_audio_demo
-    src/advanced_audio_demo.cpp
-)
-
-target_include_directories(advanced_audio_demo PRIVATE
-    ${CMAKE_CURRENT_SOURCE_DIR}/include
-    ${GLM_INCLUDE_DIRS}
-    ${JSON_INCLUDE_DIRS}
-    ${CMAKE_CURRENT_SOURCE_DIR}/../external
-)
-
-target_link_libraries(advanced_audio_demo SparkyEngine)
-
-# Create an advanced particle demo executable
-add_executable(advanced_particle_demo
-    src/advanced_particle_demo.cpp
-)
-
-target_include_directories(advanced_particle_demo PRIVATE
-    ${CMAKE_CURRENT_SOURCE_DIR}/include
-    ${GLM_INCLUDE_DIRS}
-    ${JSON_INCLUDE_DIRS}
-    ${CMAKE_CURRENT_SOURCE_DIR}/../external
-)
-
-target_link_libraries(advanced_particle_demo SparkyEngine)
-
-# Create a level editor demo executable
-add_executable(level_editor_demo
-    src/level_editor_demo.cpp
-)
-
-target_include_directories(level_editor_demo PRIVATE
-    ${CMAKE_CURRENT_SOURCE_DIR}/include
-    ${GLM_INCLUDE_DIRS}
-    ${JSON_INCLUDE_DIRS}
-    ${CMAKE_CURRENT_SOURCE_DIR}/../external
-)
-
-target_link_libraries(level_editor_demo SparkyEngine)

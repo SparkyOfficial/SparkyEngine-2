@@ -1,0 +1,10 @@
+^C:\USERS\БОГДАН\DESKTOP\SPARKYENGINE2\CMAKEFILES\E96D1292CED5B13FBCEDDAE788E22A79\GENERATE.STAMP.RULE
+setlocal
+"C:\Program Files\CMake\bin\cmake.exe" -SC:/Users/Богдан/Desktop/SparkyEngine2 -BC:/Users/Богдан/Desktop/SparkyEngine2 --check-stamp-list CMakeFiles/generate.stamp.list --vs-solution-file C:/Users/Богдан/Desktop/SparkyEngine2/SparkyEngineProject.sln
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal & call :cmErrorLevel %errorlevel% & goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd

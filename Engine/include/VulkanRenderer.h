@@ -210,6 +210,7 @@ namespace Sparky {
         void setupDebugMessenger();
         void createSurface();
         void pickPhysicalDevice();
+        int rateDeviceSuitability(VkPhysicalDevice device);  // Add this line
         void createLogicalDevice();
         void createSwapChain();
         void createImageViews();

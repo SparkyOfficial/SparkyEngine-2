@@ -81,8 +81,8 @@ namespace Sparky {
         ParticleSystem();
         ~ParticleSystem();
         
-        void update(float deltaTime);
-        void render();
+        virtual void update(float deltaTime);
+        virtual void render();
         
         // Configuration methods
         void setMaxParticles(int max) { maxParticles = max; particles.resize(max); }
@@ -115,6 +115,13 @@ namespace Sparky {
         void createExplosionWithSmoke(float x, float y, float z, float intensity = 1.0f);
         void createFireWithSmoke(float x, float y, float z, float intensity = 1.0f);
 
+    protected:
+        // Protected helper methods that can be accessed by derived classes
+        virtual void updateParticle(ParticleProperties& particle, float deltaTime);
+        virtual void applyPhysics(ParticleProperties& particle, float deltaTime);
+        void interpolateColor(float* result, const float* start, const float* end, float ratio);
+        float interpolateFloat(float start, float end, float ratio);
+
     private:
         std::vector<ParticleProperties> particles;
         int maxParticles;
@@ -128,11 +135,5 @@ namespace Sparky {
         std::shared_ptr<ParticleTexture> texture;
         
         bool systemActive;
-        
-        // Private helper methods
-        void updateParticle(ParticleProperties& particle, float deltaTime);
-        void interpolateColor(float* result, const float* start, const float* end, float ratio);
-        float interpolateFloat(float start, float end, float ratio);
-        void applyPhysics(ParticleProperties& particle, float deltaTime);
     };
 }

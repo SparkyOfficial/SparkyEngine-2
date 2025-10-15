@@ -5,10 +5,15 @@
 
 namespace Sparky {
 
-    MeshRenderer::MeshRenderer() : physicalDevice(nullptr), device(nullptr), commandPool(nullptr), 
-                                   graphicsQueue(nullptr) {
+    MeshRenderer::MeshRenderer() 
+#ifdef HAS_VULKAN
+        : physicalDevice(nullptr), device(nullptr), commandPool(nullptr), 
+                                   graphicsQueue(nullptr)
+#endif
+    {
     }
 
+#ifdef HAS_VULKAN
     MeshRenderer::~MeshRenderer() {
         cleanup();
     }
@@ -251,4 +256,5 @@ namespace Sparky {
 
         throw std::runtime_error("failed to find suitable memory type!");
     }
+#endif
 }

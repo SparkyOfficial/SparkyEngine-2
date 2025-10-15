@@ -1,6 +1,8 @@
 #pragma once
 
+#ifdef HAS_VULKAN
 #include <vulkan/vulkan.h>
+#endif
 #include <stdexcept>
 #include <vector>
 #include <unordered_map>
@@ -12,6 +14,7 @@ namespace Sparky {
         MeshRenderer();
         ~MeshRenderer();
 
+#ifdef HAS_VULKAN
         void initialize(VkPhysicalDevice physicalDevice, VkDevice device, VkCommandPool commandPool, VkQueue graphicsQueue);
         void cleanup();
 
@@ -23,8 +26,15 @@ namespace Sparky {
         // Getter methods for buffer access by mesh
         VkBuffer getVertexBuffer(const Mesh& mesh) const;
         VkBuffer getIndexBuffer(const Mesh& mesh) const;
+#else
+        // Empty implementations when Vulkan is not available
+        void initialize() {}
+        void cleanup() {}
+        void renderMeshes() {}
+#endif
 
     private:
+#ifdef HAS_VULKAN
         VkPhysicalDevice physicalDevice;
         VkDevice device;
         VkCommandPool commandPool;
@@ -39,5 +49,6 @@ namespace Sparky {
         void createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer& buffer, VkDeviceMemory& bufferMemory);
         void copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size);
         uint32_t findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties);
+#endif
     };
 }

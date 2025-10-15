@@ -290,10 +290,70 @@ add_executable(ballistics_test
     src/ballistics_test.cpp
 )
 
+target_include_directories(ballistics_test PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/include
+    ${GLM_INCLUDE_DIRS}
+    ${JSON_INCLUDE_DIRS}
+    ${CMAKE_CURRENT_SOURCE_DIR}/../external
+)
+
+target_link_libraries(ballistics_test SparkyEngine)
+
 # Create a weapon ballistics demo executable
 add_executable(weapon_ballistics_demo
     src/weapon_ballistics_demo.cpp
 )
+
+target_include_directories(weapon_ballistics_demo PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/include
+    ${GLM_INCLUDE_DIRS}
+    ${JSON_INCLUDE_DIRS}
+    ${CMAKE_CURRENT_SOURCE_DIR}/../external
+)
+
+target_link_libraries(weapon_ballistics_demo SparkyEngine)
+
+# Create an advanced audio demo executable
+add_executable(advanced_audio_demo
+    src/advanced_audio_demo.cpp
+)
+
+target_include_directories(advanced_audio_demo PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/include
+    ${GLM_INCLUDE_DIRS}
+    ${JSON_INCLUDE_DIRS}
+    ${CMAKE_CURRENT_SOURCE_DIR}/../external
+)
+
+target_link_libraries(advanced_audio_demo SparkyEngine)
+
+# Create an advanced particle demo executable
+add_executable(advanced_particle_demo
+    src/advanced_particle_demo.cpp
+)
+
+target_include_directories(advanced_particle_demo PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/include
+    ${GLM_INCLUDE_DIRS}
+    ${JSON_INCLUDE_DIRS}
+    ${CMAKE_CURRENT_SOURCE_DIR}/../external
+)
+
+target_link_libraries(advanced_particle_demo SparkyEngine)
+
+# Create a level editor demo executable
+add_executable(level_editor_demo
+    src/level_editor_demo.cpp
+)
+
+target_include_directories(level_editor_demo PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/include
+    ${GLM_INCLUDE_DIRS}
+    ${JSON_INCLUDE_DIRS}
+    ${CMAKE_CURRENT_SOURCE_DIR}/../external
+)
+
+target_link_libraries(level_editor_demo SparkyEngine)
 
 # Include directories
 target_include_directories(SparkyEngine PUBLIC 
@@ -941,71 +1001,61 @@ target_include_directories(behavior_tree_demo PRIVATE
 target_link_libraries(behavior_tree_demo SparkyEngine)
 
 # Create a ballistics demo executable
-add_executable(ballistics_demo
-    src/ballistics_demo.cpp
-)
+# Commenting out the ballistics_demo target since src/ballistics_demo.cpp doesn't exist
+# add_executable(ballistics_demo
+#     src/ballistics_demo.cpp
+# )
 
-target_include_directories(ballistics_demo PRIVATE
-    ${CMAKE_CURRENT_SOURCE_DIR}/include
-    ${GLM_INCLUDE_DIRS}
-    ${JSON_INCLUDE_DIRS}
-    ${CMAKE_CURRENT_SOURCE_DIR}/../external
-)
+# target_include_directories(ballistics_demo PRIVATE
+#     ${CMAKE_CURRENT_SOURCE_DIR}/include
+#     ${GLM_INCLUDE_DIRS}
+#     ${JSON_INCLUDE_DIRS}
+#     ${CMAKE_CURRENT_SOURCE_DIR}/../external
+# )
 
-target_link_libraries(ballistics_demo SparkyEngine)
-
-# Create a weapon ballistics demo executable
-add_executable(weapon_ballistics_demo
-    src/weapon_ballistics_demo.cpp
-)
-
-target_include_directories(weapon_ballistics_demo PRIVATE
-    ${CMAKE_CURRENT_SOURCE_DIR}/include
-    ${GLM_INCLUDE_DIRS}
-    ${JSON_INCLUDE_DIRS}
-    ${CMAKE_CURRENT_SOURCE_DIR}/../external
-)
-
-target_link_libraries(weapon_ballistics_demo SparkyEngine)
+# target_link_libraries(ballistics_demo SparkyEngine)
 
 # Create an advanced audio demo executable
-add_executable(advanced_audio_demo
-    src/advanced_audio_demo.cpp
-)
+# Commenting out duplicate target
+# add_executable(advanced_audio_demo
+#     src/advanced_audio_demo.cpp
+# )
 
-target_include_directories(advanced_audio_demo PRIVATE
-    ${CMAKE_CURRENT_SOURCE_DIR}/include
-    ${GLM_INCLUDE_DIRS}
-    ${JSON_INCLUDE_DIRS}
-    ${CMAKE_CURRENT_SOURCE_DIR}/../external
-)
+# target_include_directories(advanced_audio_demo PRIVATE
+#     ${CMAKE_CURRENT_SOURCE_DIR}/include
+#     ${GLM_INCLUDE_DIRS}
+#     ${JSON_INCLUDE_DIRS}
+#     ${CMAKE_CURRENT_SOURCE_DIR}/../external
+# )
 
-target_link_libraries(advanced_audio_demo SparkyEngine)
+# target_link_libraries(advanced_audio_demo SparkyEngine)
 
 # Create an advanced particle demo executable
-add_executable(advanced_particle_demo
-    src/advanced_particle_demo.cpp
-)
+# Commenting out duplicate target
+# add_executable(advanced_particle_demo
+#     src/advanced_particle_demo.cpp
+# )
 
-target_include_directories(advanced_particle_demo PRIVATE
-    ${CMAKE_CURRENT_SOURCE_DIR}/include
-    ${GLM_INCLUDE_DIRS}
-    ${JSON_INCLUDE_DIRS}
-    ${CMAKE_CURRENT_SOURCE_DIR}/../external
-)
+# target_include_directories(advanced_particle_demo PRIVATE
+#     ${CMAKE_CURRENT_SOURCE_DIR}/include
+#     ${GLM_INCLUDE_DIRS}
+#     ${JSON_INCLUDE_DIRS}
+#     ${CMAKE_CURRENT_SOURCE_DIR}/../external
+# )
 
-target_link_libraries(advanced_particle_demo SparkyEngine)
+# target_link_libraries(advanced_particle_demo SparkyEngine)
 
 # Create a level editor demo executable
-add_executable(level_editor_demo
-    src/level_editor_demo.cpp
-)
+# Commenting out duplicate target
+# add_executable(level_editor_demo
+#     src/level_editor_demo.cpp
+# )
 
-target_include_directories(level_editor_demo PRIVATE
-    ${CMAKE_CURRENT_SOURCE_DIR}/include
-    ${GLM_INCLUDE_DIRS}
-    ${JSON_INCLUDE_DIRS}
-    ${CMAKE_CURRENT_SOURCE_DIR}/../external
-)
+# target_include_directories(level_editor_demo PRIVATE
+#     ${CMAKE_CURRENT_SOURCE_DIR}/include
+#     ${GLM_INCLUDE_DIRS}
+#     ${JSON_INCLUDE_DIRS}
+#     ${CMAKE_CURRENT_SOURCE_DIR}/../external
+# )
 
-target_link_libraries(level_editor_demo SparkyEngine)
+# target_link_libraries(level_editor_demo SparkyEngine)

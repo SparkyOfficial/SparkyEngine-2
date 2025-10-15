@@ -3,7 +3,9 @@
 #include <vector>
 #include <memory>
 #include <glm/glm.hpp>
+#ifdef HAS_VULKAN
 #include <vulkan/vulkan.h>
+#endif
 
 namespace Sparky {
 
@@ -14,8 +16,10 @@ namespace Sparky {
         glm::vec3 tangent;
         glm::vec3 bitangent;
 
+#ifdef HAS_VULKAN
         static VkVertexInputBindingDescription getBindingDescription();
         static std::vector<VkVertexInputAttributeDescription> getAttributeDescriptions();
+#endif
         
         bool operator==(const Vertex& other) const;
     };
@@ -24,16 +28,20 @@ namespace Sparky {
         std::vector<Vertex> vertices;
         std::vector<uint32_t> indices;
         
+#ifdef HAS_VULKAN
         // Vulkan resources
         VkBuffer vertexBuffer;
         VkDeviceMemory vertexBufferMemory;
         VkBuffer indexBuffer;
         VkDeviceMemory indexBufferMemory;
+#endif
         
         Mesh();
         ~Mesh();
         
+#ifdef HAS_VULKAN
         void cleanup(VkDevice device);
+#endif
         
         // Factory methods for creating basic shapes
         static std::unique_ptr<Mesh> createCube(float size);

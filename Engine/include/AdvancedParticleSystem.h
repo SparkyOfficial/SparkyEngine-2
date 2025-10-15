@@ -12,6 +12,7 @@
 #include <vector>
 #include <memory>
 #include <unordered_map>
+#include <glm/glm.hpp>
 
 namespace Sparky {
     
@@ -57,6 +58,8 @@ namespace Sparky {
         float gravityScale;          // Gravity scale factor
         bool inheritEmitterVelocity; // Whether particles inherit emitter velocity
         float velocityInheritance;   // How much velocity to inherit (0.0 to 1.0)
+        bool affectedByWind;         // Whether particles are affected by wind
+        float buoyancy;              // Buoyancy factor
         
         AdvancedEmitterProperties();
     };

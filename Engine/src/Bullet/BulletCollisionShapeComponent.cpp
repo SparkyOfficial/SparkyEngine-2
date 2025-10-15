@@ -8,8 +8,10 @@
 
 #include "../../include/Bullet/BulletCollisionShapeComponent.h"
 #include <iostream>
-#include <glm/glm.hpp>
 #include <vector>
+
+// Include glm in the implementation file
+#include <glm/glm.hpp>
 
 #ifdef HAS_BULLET
 // Bullet Physics includes

@@ -1047,13 +1047,28 @@ namespace Sparky {
         dynamicState.dynamicStateCount = static_cast<uint32_t>(dynamicStates.size());
         dynamicState.pDynamicStates = dynamicStates.data();
 
-        // Simple pipeline layout without push constants for maximum compatibility
+        // Pipeline layout with descriptor set layouts
         VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
         pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-        pipelineLayoutInfo.setLayoutCount = 0;  // No descriptor set layouts
-        pipelineLayoutInfo.pSetLayouts = nullptr;
-        pipelineLayoutInfo.pushConstantRangeCount = 0;  // No push constants
-        pipelineLayoutInfo.pPushConstantRanges = nullptr;
+        
+        // For the material shaders, we only need the main descriptor set layout
+        // The material descriptor set layout is used separately for materials
+        std::vector<VkDescriptorSetLayout> setLayouts;
+        if (descriptorSetLayout) {
+            setLayouts.push_back(descriptorSetLayout);
+        }
+        
+        pipelineLayoutInfo.setLayoutCount = static_cast<uint32_t>(setLayouts.size());
+        pipelineLayoutInfo.pSetLayouts = setLayouts.empty() ? nullptr : setLayouts.data();
+        pipelineLayoutInfo.pushConstantRangeCount = 1;  // Enable push constants for model matrix
+        
+        // Add push constant range for model matrix (4x4 matrix = 64 bytes)
+        VkPushConstantRange pushConstantRange{};
+        pushConstantRange.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+        pushConstantRange.offset = 0;
+        pushConstantRange.size = sizeof(glm::mat4);
+        
+        pipelineLayoutInfo.pPushConstantRanges = &pushConstantRange;
 
         SPARKY_LOG_INFO("Creating pipeline layout");
         if (vkCreatePipelineLayout(device, &pipelineLayoutInfo, nullptr, &pipelineLayout) != VK_SUCCESS) {

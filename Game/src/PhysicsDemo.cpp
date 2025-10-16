@@ -100,7 +100,6 @@ namespace Sparky {
         
         // Add character controller
         CharacterController* characterController = player->addComponent<CharacterController>();
-        characterController->setRigidBody(playerRigidBody);
         
         // Register with render system
         engine->getRenderSystem().registerGameObject(player.get());

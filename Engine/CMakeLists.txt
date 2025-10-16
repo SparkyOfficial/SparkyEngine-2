@@ -76,12 +76,17 @@ set(ENGINE_SOURCES
     src/DamageFeedbackComponent.cpp
     src/LevelProgressionSystem.cpp
     src/BallisticsSystem.cpp
+    src/ShadowMap.cpp
+    src/PostProcessPipeline.cpp
     # Bullet Physics source files
     src/Bullet/BulletRigidBodyComponent.cpp
     src/Bullet/BulletPhysicsWorld.cpp
     src/Bullet/BulletCollisionShapeComponent.cpp
     src/Bullet/BulletConstraintComponent.cpp
     src/AdvancedParticleSystem.cpp
+    src/AdvancedAI.cpp
+    src/AdvancedWeaponSystem.cpp
+    src/AdvancedAnimationSystem.cpp
     src/LevelEditor.cpp
 )
 
@@ -159,7 +164,12 @@ set(ENGINE_HEADERS
     include/DamageFeedbackComponent.h
     include/LevelProgressionSystem.h
     include/BallisticsSystem.h
+    include/ShadowMap.h
+    include/PostProcessPipeline.h
     include/AdvancedParticleSystem.h
+    include/AdvancedAI.h
+    include/AdvancedWeaponSystem.h
+    include/AdvancedAnimationSystem.h
     include/LevelEditor.h
 )
 
@@ -354,6 +364,34 @@ target_include_directories(level_editor_demo PRIVATE
 )
 
 target_link_libraries(level_editor_demo SparkyEngine)
+
+# Create an advanced engine demo executable
+add_executable(advanced_engine_demo
+    src/advanced_engine_demo.cpp
+)
+
+target_include_directories(advanced_engine_demo PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/include
+    ${GLM_INCLUDE_DIRS}
+    ${JSON_INCLUDE_DIRS}
+    ${CMAKE_CURRENT_SOURCE_DIR}/../external
+)
+
+target_link_libraries(advanced_engine_demo SparkyEngine)
+
+# Create a PBR demo executable
+add_executable(pbr_demo
+    src/pbr_demo.cpp
+)
+
+target_include_directories(pbr_demo PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/include
+    ${GLM_INCLUDE_DIRS}
+    ${JSON_INCLUDE_DIRS}
+    ${CMAKE_CURRENT_SOURCE_DIR}/../external
+)
+
+target_link_libraries(pbr_demo SparkyEngine)
 
 # Include directories
 target_include_directories(SparkyEngine PUBLIC 
@@ -991,6 +1029,21 @@ add_executable(behavior_tree_demo
     src/behavior_tree_demo.cpp
 )
 
+# Create a shadow mapping demo executable
+add_executable(shadow_demo
+    src/shadow_demo.cpp
+)
+
+# Create a post-processing demo executable
+add_executable(postprocess_demo
+    src/postprocess_demo.cpp
+)
+
+# Create a Vulkan compatibility test executable
+add_executable(vulkan_test
+    src/vulkan_test.cpp
+)
+
 target_include_directories(behavior_tree_demo PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/include
     ${GLM_INCLUDE_DIRS}
@@ -999,6 +1052,36 @@ target_include_directories(behavior_tree_demo PRIVATE
 )
 
 target_link_libraries(behavior_tree_demo SparkyEngine)
+
+# Shadow demo configuration
+target_include_directories(shadow_demo PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/include
+    ${GLM_INCLUDE_DIRS}
+    ${JSON_INCLUDE_DIRS}
+    ${CMAKE_CURRENT_SOURCE_DIR}/../external
+)
+
+target_link_libraries(shadow_demo SparkyEngine)
+
+# Post-process demo configuration
+target_include_directories(postprocess_demo PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/include
+    ${GLM_INCLUDE_DIRS}
+    ${JSON_INCLUDE_DIRS}
+    ${CMAKE_CURRENT_SOURCE_DIR}/../external
+)
+
+target_link_libraries(postprocess_demo SparkyEngine)
+
+# Vulkan test configuration
+target_include_directories(vulkan_test PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/include
+    ${GLM_INCLUDE_DIRS}
+    ${JSON_INCLUDE_DIRS}
+    ${CMAKE_CURRENT_SOURCE_DIR}/../external
+)
+
+target_link_libraries(vulkan_test SparkyEngine)
 
 # Create a ballistics demo executable
 # Commenting out the ballistics_demo target since src/ballistics_demo.cpp doesn't exist

@@ -8,7 +8,7 @@ namespace Sparky {
     Material::Material() : name("DefaultMaterial"), ambient(0.2f, 0.2f, 0.2f), 
                           diffuse(0.8f, 0.8f, 0.8f), specular(1.0f, 1.0f, 1.0f), 
                           shininess(32.0f), emissive(0.0f, 0.0f, 0.0f),
-                          roughness(0.5f), metalness(0.0f),
+                          roughness(0.5f), metalness(0.0f), useIBL(true),
                           texture(nullptr), normalMap(nullptr),
                           roughnessMap(nullptr), metalnessMap(nullptr),
                           shaderProgram(nullptr) {
@@ -17,7 +17,7 @@ namespace Sparky {
     Material::Material(const std::string& name) : name(name), ambient(0.2f, 0.2f, 0.2f), 
                                                  diffuse(0.8f, 0.8f, 0.8f), specular(1.0f, 1.0f, 1.0f), 
                                                  shininess(32.0f), emissive(0.0f, 0.0f, 0.0f),
-                                                 roughness(0.5f), metalness(0.0f),
+                                                 roughness(0.5f), metalness(0.0f), useIBL(true),
                                                  texture(nullptr), normalMap(nullptr),
                                                  roughnessMap(nullptr), metalnessMap(nullptr),
                                                  shaderProgram(nullptr) {
@@ -65,6 +65,10 @@ namespace Sparky {
     void Material::setMetalnessMap(Texture* metalnessMap) {
         this->metalnessMap = metalnessMap;
     }
+    
+    void Material::setUseIBL(bool useIBL) {
+        this->useIBL = useIBL;
+    }
 
     void Material::setTexture(Texture* texture) {
         this->texture = texture;
@@ -85,6 +89,13 @@ namespace Sparky {
             shaderProgram->setVec3("material.specular", specular);
             shaderProgram->setFloat("material.shininess", shininess);
             shaderProgram->setVec3("material.emissive", emissive);
+            shaderProgram->setFloat("material.roughness", roughness);
+            shaderProgram->setFloat("material.metalness", metalness);
+            shaderProgram->setInt("material.hasTexture", texture ? 1 : 0);
+            shaderProgram->setInt("material.hasNormalMap", normalMap ? 1 : 0);
+            shaderProgram->setInt("material.hasRoughnessMap", roughnessMap ? 1 : 0);
+            shaderProgram->setInt("material.hasMetalnessMap", metalnessMap ? 1 : 0);
+            shaderProgram->setInt("material.useIBL", useIBL ? 1 : 0);
             
             // Bind textures to the appropriate texture units
             // Activate the texture unit and bind the texture

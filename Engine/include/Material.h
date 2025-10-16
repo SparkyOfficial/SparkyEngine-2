@@ -31,6 +31,10 @@ namespace Sparky {
         void setNormalMap(Texture* normalMap);
         void setRoughnessMap(Texture* roughnessMap);
         void setMetalnessMap(Texture* metalnessMap);
+        
+        // IBL properties
+        void setUseIBL(bool useIBL);
+        bool getUseIBL() const { return useIBL; }
 
         const glm::vec3& getAmbient() const { return ambient; }
         const glm::vec3& getDiffuse() const { return diffuse; }
@@ -79,6 +83,7 @@ namespace Sparky {
         Texture* normalMap;
         Texture* roughnessMap;
         Texture* metalnessMap;
+        bool useIBL;
 
         // Texture
         Texture* texture;

@@ -1261,7 +1261,7 @@ namespace Sparky {
         }
     }
 
-    VkFormat VulkanRenderer::findSupportedFormat(const std::vector<VkFormat>& candidates, VkImageTiling tiling, VkFormatFeatureFlags features) {
+    VkFormat VulkanRenderer::findSupportedFormat(const std::vector<VkFormat>& candidates, VkImageTiling tiling, VkFormatFeatureFlags features) const {
         for (VkFormat format : candidates) {
             VkFormatProperties props;
             vkGetPhysicalDeviceFormatProperties(physicalDevice, format, &props);
@@ -1276,7 +1276,7 @@ namespace Sparky {
         throw std::runtime_error("failed to find supported format!");
     }
 
-    VkFormat VulkanRenderer::findDepthFormat() {
+    VkFormat VulkanRenderer::findDepthFormat() const {
         return findSupportedFormat(
             {VK_FORMAT_D32_SFLOAT, VK_FORMAT_D32_SFLOAT_S8_UINT, VK_FORMAT_D24_UNORM_S8_UINT},
             VK_IMAGE_TILING_OPTIMAL,

@@ -1040,9 +1040,9 @@ add_executable(postprocess_demo
 )
 
 # Create a Vulkan compatibility test executable
-add_executable(vulkan_test
-    src/vulkan_test.cpp
-)
+# add_executable(vulkan_test
+#     src/vulkan_test.cpp
+# )
 
 target_include_directories(behavior_tree_demo PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/include
@@ -1074,14 +1074,14 @@ target_include_directories(postprocess_demo PRIVATE
 target_link_libraries(postprocess_demo SparkyEngine)
 
 # Vulkan test configuration
-target_include_directories(vulkan_test PRIVATE
-    ${CMAKE_CURRENT_SOURCE_DIR}/include
-    ${GLM_INCLUDE_DIRS}
-    ${JSON_INCLUDE_DIRS}
-    ${CMAKE_CURRENT_SOURCE_DIR}/../external
-)
-
-target_link_libraries(vulkan_test SparkyEngine)
+# target_include_directories(vulkan_test PRIVATE
+#     ${CMAKE_CURRENT_SOURCE_DIR}/include
+#     ${GLM_INCLUDE_DIRS}
+#     ${JSON_INCLUDE_DIRS}
+#     ${CMAKE_CURRENT_SOURCE_DIR}/../external
+# )
+#
+# target_link_libraries(vulkan_test SparkyEngine)
 
 # Create a ballistics demo executable
 # Commenting out the ballistics_demo target since src/ballistics_demo.cpp doesn't exist

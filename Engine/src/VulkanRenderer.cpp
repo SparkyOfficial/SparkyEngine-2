@@ -747,21 +747,15 @@ namespace Sparky {
     }
 
     void VulkanRenderer::createDescriptorSetLayout() {
+        // Create descriptor set layout for camera uniforms (binding = 0)
         VkDescriptorSetLayoutBinding uboLayoutBinding{};
         uboLayoutBinding.binding = 0;
         uboLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
         uboLayoutBinding.descriptorCount = 1;
         uboLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
-        uboLayoutBinding.pImmutableSamplers = nullptr; // Optional
+        uboLayoutBinding.pImmutableSamplers = nullptr;
 
-        VkDescriptorSetLayoutBinding samplerLayoutBinding{};
-        samplerLayoutBinding.binding = 1;
-        samplerLayoutBinding.descriptorCount = 1;
-        samplerLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-        samplerLayoutBinding.pImmutableSamplers = nullptr;
-        samplerLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
-
-        std::array<VkDescriptorSetLayoutBinding, 2> bindings = {uboLayoutBinding, samplerLayoutBinding};
+        std::array<VkDescriptorSetLayoutBinding, 1> bindings = {uboLayoutBinding};
         VkDescriptorSetLayoutCreateInfo layoutInfo{};
         layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
         layoutInfo.bindingCount = static_cast<uint32_t>(bindings.size());
@@ -775,58 +769,25 @@ namespace Sparky {
     }
 
     void VulkanRenderer::createMaterialDescriptorSetLayout() {
-        // Create bindings for all the resources used in the fragment shader
+        // Create bindings for material resources used in the fragment shader
         
-        // Lighting buffer (binding = 1)
-        VkDescriptorSetLayoutBinding lightingBinding{};
-        lightingBinding.binding = 1;
-        lightingBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-        lightingBinding.descriptorCount = 1;
-        lightingBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
-        lightingBinding.pImmutableSamplers = nullptr;
-        
-        // Material buffer (binding = 2)
+        // Material buffer (binding = 1)
         VkDescriptorSetLayoutBinding materialBinding{};
-        materialBinding.binding = 2;
+        materialBinding.binding = 1;
         materialBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
         materialBinding.descriptorCount = 1;
         materialBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
         materialBinding.pImmutableSamplers = nullptr;
         
-        // Texture sampler (binding = 3)
+        // Texture sampler (binding = 2)
         VkDescriptorSetLayoutBinding samplerBinding{};
-        samplerBinding.binding = 3;
+        samplerBinding.binding = 2;
         samplerBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
         samplerBinding.descriptorCount = 1;
         samplerBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
         samplerBinding.pImmutableSamplers = nullptr;
-        
-        // Normal map sampler (binding = 4)
-        VkDescriptorSetLayoutBinding normalMapBinding{};
-        normalMapBinding.binding = 4;
-        normalMapBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-        normalMapBinding.descriptorCount = 1;
-        normalMapBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
-        normalMapBinding.pImmutableSamplers = nullptr;
-        
-        // Roughness map sampler (binding = 5)
-        VkDescriptorSetLayoutBinding roughnessMapBinding{};
-        roughnessMapBinding.binding = 5;
-        roughnessMapBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-        roughnessMapBinding.descriptorCount = 1;
-        roughnessMapBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
-        roughnessMapBinding.pImmutableSamplers = nullptr;
-        
-        // Metalness map sampler (binding = 6)
-        VkDescriptorSetLayoutBinding metalnessMapBinding{};
-        metalnessMapBinding.binding = 6;
-        metalnessMapBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-        metalnessMapBinding.descriptorCount = 1;
-        metalnessMapBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
-        metalnessMapBinding.pImmutableSamplers = nullptr;
 
-        std::array<VkDescriptorSetLayoutBinding, 6> bindings = {lightingBinding, materialBinding, samplerBinding, 
-                                                                normalMapBinding, roughnessMapBinding, metalnessMapBinding};
+        std::array<VkDescriptorSetLayoutBinding, 2> bindings = {materialBinding, samplerBinding};
         VkDescriptorSetLayoutCreateInfo layoutInfo{};
         layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
         layoutInfo.bindingCount = static_cast<uint32_t>(bindings.size());
@@ -1051,11 +1012,13 @@ namespace Sparky {
         VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
         pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
         
-        // For the material shaders, we only need the main descriptor set layout
-        // The material descriptor set layout is used separately for materials
+        // Include both descriptor set layouts for camera and material uniforms
         std::vector<VkDescriptorSetLayout> setLayouts;
         if (descriptorSetLayout) {
             setLayouts.push_back(descriptorSetLayout);
+        }
+        if (materialDescriptorSetLayout) {
+            setLayouts.push_back(materialDescriptorSetLayout);
         }
         
         pipelineLayoutInfo.setLayoutCount = static_cast<uint32_t>(setLayouts.size());
@@ -2098,7 +2061,27 @@ namespace Sparky {
         return false;
     }
 
-    // Add other fallback methods as needed
+    void VulkanRenderer::cleanup() {
+        // Fallback implementation
+        SPARKY_LOG_INFO("Vulkan renderer cleanup not available (GLFW not found)");
+    }
+
+    void VulkanRenderer::render() {
+        // Fallback implementation
+        SPARKY_LOG_INFO("Vulkan renderer render not available (GLFW not found)");
+    }
+
+    void VulkanRenderer::renderMeshes() {
+        // Fallback implementation
+        SPARKY_LOG_INFO("Vulkan renderer renderMeshes not available (GLFW not found)");
+    }
+
+    MeshRenderer& VulkanRenderer::getMeshRenderer() {
+        // Fallback implementation
+        static MeshRenderer fallbackRenderer;
+        SPARKY_LOG_INFO("Vulkan renderer getMeshRenderer not available (GLFW not found)");
+        return fallbackRenderer;
+    }
 
 } // namespace Sparky
 

@@ -1,6 +1,10 @@
 #include "../include/RenderComponent.h"
 #include "../include/Logger.h"
 
+#ifdef HAS_GLFW
+#include <vulkan/vulkan.h>
+#endif
+
 namespace Sparky {
 
     RenderComponent::RenderComponent() : Component(), visible(true) {
@@ -31,6 +35,7 @@ namespace Sparky {
         SPARKY_LOG_DEBUG("Material set for RenderComponent");
     }
 
+#ifdef HAS_GLFW
     void RenderComponent::createVertexBuffer(VkPhysicalDevice physicalDevice, VkDevice device, VkCommandPool commandPool, VkQueue graphicsQueue) {
         if (!mesh) {
             SPARKY_LOG_WARNING("Cannot create vertex buffer: no mesh assigned");
@@ -58,4 +63,5 @@ namespace Sparky {
             mesh->cleanup(device);
         }
     }
+#endif
 }

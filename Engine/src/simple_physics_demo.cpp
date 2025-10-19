@@ -50,8 +50,7 @@ public:
 
         // Create a collision shape for the box
         auto* boxCollisionShape = boxObject->addComponent<Bullet::BulletCollisionShapeComponent>();
-        float halfExtents[3] = {1.0f, 1.0f, 1.0f};
-        boxCollisionShape->createBoxShape(halfExtents);
+        boxCollisionShape->createBoxShape(glm::vec3(1.0f, 1.0f, 1.0f));
 
         // Create a rigid body for the box
         boxRigidBody = boxObject->addComponent<Bullet::BulletRigidBodyComponent>();
@@ -68,8 +67,7 @@ public:
 
         // Create a collision shape for the ground (static plane)
         auto* groundCollisionShape = groundObject->addComponent<Bullet::BulletCollisionShapeComponent>();
-        float normal[3] = {0.0f, 1.0f, 0.0f};
-        groundCollisionShape->createStaticPlaneShape(normal, 0.0f);
+        groundCollisionShape->createStaticPlaneShape(glm::vec3(0.0f, 1.0f, 0.0f), 0.0f);
 
         // Create a rigid body for the ground
         groundRigidBody = groundObject->addComponent<Bullet::BulletRigidBodyComponent>();

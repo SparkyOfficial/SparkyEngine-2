@@ -265,4 +265,32 @@ namespace Sparky {
     }
 }
 
+#else // HAS_BULLET
+
+// Fallback implementations when Bullet Physics is not available
+#include "../../include/Bullet/BulletPhysicsWorld.h"
+#include "../../include/Bullet/BulletRigidBodyComponent.h"
+
+namespace Sparky {
+    namespace Bullet {
+        static BulletPhysicsWorld* instance = nullptr;
+        
+        BulletPhysicsWorld::BulletPhysicsWorld() {}
+        BulletPhysicsWorld::~BulletPhysicsWorld() {}
+        
+        BulletPhysicsWorld& BulletPhysicsWorld::getInstance() {
+            if (!instance) {
+                instance = new BulletPhysicsWorld();
+            }
+            return *instance;
+        }
+        
+        void BulletPhysicsWorld::initialize() {}
+        void BulletPhysicsWorld::cleanup() {}
+        void BulletPhysicsWorld::addRigidBody(BulletRigidBodyComponent* rigidBody) {}
+        void BulletPhysicsWorld::removeRigidBody(BulletRigidBodyComponent* rigidBody) {}
+        void BulletPhysicsWorld::update(float deltaTime) {}
+    }
+}
+
 #endif // HAS_BULLET

@@ -5,6 +5,10 @@
 #include "Material.h"
 #include <memory>
 
+#ifdef HAS_GLFW
+#include <vulkan/vulkan.h>
+#endif
+
 namespace Sparky {
     class RenderComponent : public Component {
     public:
@@ -27,9 +31,11 @@ namespace Sparky {
         void setVisible(bool vis) { visible = vis; }
         
         // Vulkan-specific methods
+#ifdef HAS_GLFW
         void createVertexBuffer(VkPhysicalDevice physicalDevice, VkDevice device, VkCommandPool commandPool, VkQueue graphicsQueue);
         void createIndexBuffer(VkPhysicalDevice physicalDevice, VkDevice device, VkCommandPool commandPool, VkQueue graphicsQueue);
         void cleanup(VkDevice device);
+#endif
 
     private:
         std::unique_ptr<Mesh> mesh;

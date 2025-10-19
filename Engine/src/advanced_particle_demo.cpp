@@ -11,6 +11,8 @@
 #include "../include/Logger.h"
 #include <iostream>
 #include <memory>
+#include <glm/glm.hpp>
+#include <glm/gtc/constants.hpp>
 
 using namespace Sparky;
 
@@ -30,82 +32,36 @@ public:
         SPARKY_LOG_INFO("Initializing Advanced Particle Demo...");
 
         // Configure the particle system
-        AdvancedEmitterProperties advancedProps;
+        particleSystem->setMaxParticles(2000);
+        particleSystem->setDuration(5.0f);
+        particleSystem->setLooping(true);
+        particleSystem->setPlayOnAwake(true);
         
-        // Set up an advanced explosion effect
-        advancedProps.position[0] = 0.0f; advancedProps.position[1] = 0.0f; advancedProps.position[2] = 0.0f;
-        advancedProps.direction[0] = 0.0f; advancedProps.direction[1] = 1.0f; advancedProps.direction[2] = 0.0f;
-        advancedProps.spread = 1.0f; // Full spherical spread
-        advancedProps.minSpeed = 5.0f; advancedProps.maxSpeed = 20.0f;
-        advancedProps.speed = 15.0f;
-        advancedProps.speedVariation = 10.0f;
-        advancedProps.emissionRate = 0.0f; // No continuous emission for burst effect
-        advancedProps.minLifetime = 0.5f; advancedProps.maxLifetime = 2.0f;
-        advancedProps.lifetime = 1.5f;
-        advancedProps.lifetimeVariation = 0.5f;
-        advancedProps.startColor[0] = 1.0f; advancedProps.startColor[1] = 0.5f; advancedProps.startColor[2] = 0.0f; advancedProps.startColor[3] = 1.0f; // Orange
-        advancedProps.endColor[0] = 0.5f; advancedProps.endColor[1] = 0.0f; advancedProps.endColor[2] = 0.0f; advancedProps.endColor[3] = 0.0f;   // Dark red fading to transparent
-        advancedProps.minStartSize = 0.1f; advancedProps.maxStartSize = 0.3f;
-        advancedProps.startSize = 0.2f;
-        advancedProps.minEndSize = 0.0f; advancedProps.maxEndSize = 0.1f;
-        advancedProps.endSize = 0.05f;
-        advancedProps.sizeVariation = 0.1f;
-        advancedProps.gravity[0] = 0.0f; advancedProps.gravity[1] = -5.0f; advancedProps.gravity[2] = 0.0f; // Some gravity to pull particles down
-        advancedProps.acceleration[0] = advancedProps.acceleration[1] = advancedProps.acceleration[2] = 0.0f;
-        advancedProps.minRotationSpeed = 0.0f; advancedProps.maxRotationSpeed = 5.0f;
-        advancedProps.rotationSpeed = 2.0f;
-        advancedProps.rotationSpeedVariation = 2.0f;
-        advancedProps.minMass = 0.5f; advancedProps.maxMass = 2.0f;
-        advancedProps.mass = 1.0f;
-        advancedProps.massVariation = 0.5f;
-        advancedProps.type = ParticleType::EXPLOSION;
-        advancedProps.emissionArea[0] = 5.0f; advancedProps.emissionArea[1] = 5.0f; advancedProps.emissionArea[2] = 5.0f;
-        advancedProps.useVolumeEmission = true;
-        advancedProps.windInfluence = 0.1f;
-        advancedProps.turbulence = 0.2f;
-        advancedProps.turbulenceScale = 0.5f;
-        advancedProps.turbulenceSpeed = 2.0f;
-        advancedProps.useTurbulence = true;
-        advancedProps.airDensity = 1.225f; // Standard air density
-        advancedProps.gravityScale = 1.0f;
-        advancedProps.inheritEmitterVelocity = false;
-        advancedProps.velocityInheritance = 0.0f;
-        advancedProps.affectedByWind = true;
+        // Add an emitter
+        auto emitter = std::make_unique<ParticleEmitter>(EmitterType::SPHERE);
+        emitter->setEmissionRate(100.0f);
+        emitter->setMinLifetime(0.5f);
+        emitter->setMaxLifetime(2.0f);
+        emitter->setMinSpeed(5.0f);
+        emitter->setMaxSpeed(20.0f);
+        emitter->setMinSize(glm::vec2(0.1f, 0.1f));
+        emitter->setMaxSize(glm::vec2(0.3f, 0.3f));
+        emitter->setMinColor(glm::vec4(1.0f, 0.5f, 0.0f, 1.0f)); // Orange
+        emitter->setMaxColor(glm::vec4(0.5f, 0.0f, 0.0f, 0.0f));   // Dark red fading to transparent
+        particleSystem->addEmitter(std::move(emitter));
         
-        particleSystem->setAdvancedEmitterProperties(advancedProps);
+        // Add some forces
+        auto gravityForce = std::make_unique<GravityForce>(glm::vec3(0.0f, -5.0f, 0.0f));
+        particleSystem->addForce(std::move(gravityForce));
         
-        // Add some force fields
-        ForceField repulsionField;
-        repulsionField.position = glm::vec3(2.0f, 2.0f, 2.0f);
-        repulsionField.radius = 3.0f;
-        repulsionField.force = glm::vec3(0.0f, 5.0f, 0.0f); // Upward force
-        repulsionField.strength = 10.0f;
-        repulsionField.falloff = 0.5f;
-        repulsionField.enabled = true;
-        particleSystem->addForceField(repulsionField);
+        // Add some modifiers
+        auto sizeModifier = std::make_unique<SizeOverLifetimeModifier>();
+        sizeModifier->setSizeRange(glm::vec2(0.2f, 0.2f), glm::vec2(0.05f, 0.05f));
+        particleSystem->addModifier(std::move(sizeModifier));
         
-        // Add some attractors
-        ParticleAttractor attractor;
-        attractor.position = glm::vec3(-2.0f, 1.0f, -2.0f);
-        attractor.radius = 4.0f;
-        attractor.strength = 5.0f;
-        attractor.falloff = 0.3f;
-        attractor.enabled = true;
-        particleSystem->addAttractor(attractor);
-        
-        // Add wind zones
-        WindZone windZone;
-        windZone.position = glm::vec3(0.0f, 3.0f, 0.0f);
-        windZone.direction = glm::vec3(1.0f, 0.0f, 0.0f); // Wind blowing in positive X direction
-        windZone.radius = 5.0f;
-        windZone.speed = 3.0f;
-        windZone.turbulence = 0.5f;
-        windZone.enabled = true;
-        particleSystem->addWindZone(windZone);
-        
-        // Enable collision detection
-        particleSystem->setCollisionEnabled(true);
-        particleSystem->setCollisionBounds(glm::vec3(-10.0f, 0.0f, -10.0f), glm::vec3(10.0f, 20.0f, 10.0f));
+        // Set rendering properties
+        particleSystem->setBlendMode(ParticleBlendMode::ADDITIVE);
+        particleSystem->setUseWorldSpace(true);
 
         SPARKY_LOG_INFO("Advanced Particle Demo initialized successfully!");
         return true;
@@ -116,7 +72,7 @@ public:
         particleSystem->update(deltaTime);
         
         // Print particle count
-        int particleCount = particleSystem->getParticleCount();
+        size_t particleCount = particleSystem->getActiveParticleCount();
         SPARKY_LOG_INFO("Active particles: " + std::to_string(particleCount));
     }
 
@@ -126,14 +82,11 @@ public:
             return;
         }
 
-        // Create an explosion effect
-        particleSystem->createAdvancedExplosion(0.0f, 0.0f, 0.0f, 1.0f, 5.0f);
+        // Play the particle system
+        particleSystem->play();
         
-        // Create some smoke
-        particleSystem->createAdvancedSmoke(0.0f, 2.0f, 0.0f, 0.8f, 3.0f);
-        
-        // Create some sparks
-        particleSystem->createAdvancedSparks(1.0f, 1.0f, 1.0f, 20, 1.0f);
+        // Emit some particles
+        particleSystem->emit(100);
 
         // Simulate for 5 seconds
         float totalTime = 0.0f;
@@ -145,41 +98,14 @@ public:
             update(deltaTime);
             totalTime += deltaTime;
             
-            // Every second, create some additional effects
+            // Every second, emit some additional particles
             if (static_cast<int>(totalTime) > static_cast<int>(totalTime - deltaTime)) {
                 static int effectCounter = 0;
                 effectCounter++;
                 
-                switch (effectCounter % 3) {
-                    case 0:
-                        particleSystem->createAdvancedExplosion(
-                            (effectCounter % 5) - 2.0f,
-                            0.0f,
-                            (effectCounter % 3) - 1.0f,
-                            0.5f, 3.0f);
-                        SPARKY_LOG_INFO("Creating explosion effect");
-                        break;
-                    case 1:
-                        particleSystem->createAdvancedSmoke(
-                            (effectCounter % 5) - 2.0f,
-                            2.0f,
-                            (effectCounter % 3) - 1.0f,
-                            0.5f, 2.0f);
-                        SPARKY_LOG_INFO("Creating smoke effect");
-                        break;
-                    case 2:
-                        particleSystem->createAdvancedSparks(
-                            (effectCounter % 5) - 2.0f,
-                            1.0f,
-                            (effectCounter % 3) - 1.0f,
-                            10, 0.5f);
-                        SPARKY_LOG_INFO("Creating sparks effect");
-                        break;
-                }
+                particleSystem->emit(50);
+                SPARKY_LOG_INFO("Emitting additional particles");
             }
-            
-            // Sleep to simulate frame time (in a real application, this would be handled by the engine)
-            // std::this_thread::sleep_for(std::chrono::milliseconds(16));
         }
         
         SPARKY_LOG_INFO("Advanced particle simulation completed!");

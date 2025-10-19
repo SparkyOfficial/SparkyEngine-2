@@ -1,3 +1,5 @@
+#ifdef ENABLE_AUDIO
+
 #include "../include/AudioEngine.h"
 #include "../include/Logger.h"
 #include <AL/al.h>
@@ -372,3 +374,58 @@ namespace Sparky {
         return std::max(0.0f, std::min(1.0f, attenuation));
     }
 }
+
+#else // ENABLE_AUDIO
+
+// Fallback implementations when audio is not available
+#include "../include/AudioEngine.h"
+
+namespace Sparky {
+    
+    AudioEngine& AudioEngine::getInstance() {
+        static AudioEngine instance;
+        return instance;
+    }
+    
+    AudioEngine::AudioEngine() : device(nullptr), context(nullptr), listenerPosition(0.0f), listenerOrientation(0.0f), listenerVelocity(0.0f) {}
+    AudioEngine::~AudioEngine() {}
+    
+    bool AudioEngine::initialize() { return false; }
+    void AudioEngine::cleanup() {}
+    
+    bool AudioEngine::loadSound(const std::string& name, const std::string& filepath) { return false; }
+    unsigned int AudioEngine::playSound(const std::string& name, bool loop) { return 0; }
+    void AudioEngine::stopSound(unsigned int source) {}
+    
+    void AudioEngine::setListenerPosition(const glm::vec3& position) {}
+    void AudioEngine::setListenerOrientation(const glm::vec3& forward, const glm::vec3& up) {}
+    void AudioEngine::setListenerVelocity(const glm::vec3& velocity) {}
+    
+    void AudioEngine::setSoundPosition(unsigned int source, const glm::vec3& position) {}
+    void AudioEngine::setSoundVelocity(unsigned int source, const glm::vec3& velocity) {}
+    void AudioEngine::setSoundVolume(unsigned int source, float volume) {}
+    void AudioEngine::setSoundPitch(unsigned int source, float pitch) {}
+    bool AudioEngine::isSoundPlaying(unsigned int source) { return false; }
+    
+    void AudioEngine::setSoundProperties(unsigned int source, const AudioSourceProperties& properties) {}
+    void AudioEngine::setSoundDistanceModel(unsigned int source, int model) {}
+    void AudioEngine::setSoundAttenuation(unsigned int source, float minDistance, float maxDistance, float rolloffFactor) {}
+    void AudioEngine::setSoundCone(unsigned int source, float innerAngle, float outerAngle, float outerGain) {}
+    void AudioEngine::setSoundDoppler(unsigned int source, bool enable, float factor) {}
+    
+    bool AudioEngine::createAudioEffect(AudioEffectType type, const std::string& name) { return false; }
+    void AudioEngine::applyAudioEffect(unsigned int source, const std::string& effectName) {}
+    void AudioEngine::removeAudioEffect(unsigned int source, const std::string& effectName) {}
+    
+    void AudioEngine::playGunshotSound(const glm::vec3& position) {}
+    void AudioEngine::playExplosionSound(const glm::vec3& position) {}
+    void AudioEngine::playFootstepSound(const glm::vec3& position) {}
+    void AudioEngine::playBackgroundMusic(const std::string& filepath) {}
+    
+    float AudioEngine::calculateDistanceAttenuation(const glm::vec3& sourcePos, const glm::vec3& listenerPos, 
+                                                float minDistance, float maxDistance, float rolloffFactor) {
+        return 0.0f;
+    }
+}
+
+#endif // ENABLE_AUDIO

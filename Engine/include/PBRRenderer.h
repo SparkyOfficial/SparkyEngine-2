@@ -120,7 +120,7 @@ namespace Sparky {
         bool m_shadowsEnabled;
         
         // Camera and lighting
-        Camera m_camera;
+        const Camera* m_camera;
         Light m_directionalLight;
         std::vector<Light> m_pointLights;
         
@@ -135,24 +135,6 @@ namespace Sparky {
         float m_gamma;
         
         // IBL resources
-        unsigned int m_environmentMap;
-        
-        // Scene objects
-        std::vector<RenderObject> m_renderObjects;
-        
-        // Vulkan-specific resources (implementation details would be in the .cpp file)
-#ifdef HAS_GLFW
-        // Vulkan pipeline and descriptor sets would be defined here
-        void* m_pbrPipeline;  // Placeholder for actual Vulkan pipeline
-        void* m_postProcessPipelineInternal;  // Placeholder for post-processing pipeline
-        void* m_shadowPipeline;  // Placeholder for shadow mapping pipeline
-#else
-        void* m_pbrPipeline;
-        void* m_postProcessPipelineInternal;
-        void* m_shadowPipeline;
-#endif
-    };
-}        // IBL resources
         unsigned int m_environmentMap;
         
         // Scene objects

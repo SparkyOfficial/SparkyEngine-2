@@ -4,6 +4,8 @@
 #include "BallisticsSystem.h"
 #include "GameObject.h"
 #include "Component.h"
+#include "Player.h"
+#include "Inventory.h"
 #include <glm/glm.hpp>
 #include <vector>
 #include <memory>
@@ -313,23 +315,41 @@ namespace Sparky {
     };
     
     // Advanced weapon system
-    class AdvancedWeaponSystem : public WeaponSystem {
+    class AdvancedWeaponSystem : public WeaponSystem, public Component {
     public:
+        AdvancedWeaponSystem();
         AdvancedWeaponSystem(Player* player);
         virtual ~AdvancedWeaponSystem() = default;
         
-        // WeaponSystem interface
+        // Component interface
         virtual void initialize();
-        virtual void update(float deltaTime);
+        virtual void update(float deltaTime) override;
         virtual void destroy();
+        virtual void render() override;
+        
+        // WeaponSystem interface
+        virtual bool equipWeapon(int inventorySlot);
+        virtual bool equipWeapon(const std::string& weaponName);
+        virtual bool unequipWeapon();
+        virtual bool switchToNextWeapon();
+        virtual bool switchToPreviousWeapon();
+        virtual bool switchToWeapon(int index);
+        virtual void shoot();
+        virtual void reload();
+        virtual void aim();
+        virtual void unaim();
+        virtual int getTotalAmmo() const;
+        virtual int getMagazineAmmo() const;
+        virtual bool canShoot() const;
+        virtual bool isReloading() const;
         
         // Weapon management
         void addWeapon(std::unique_ptr<AdvancedWeapon> weapon);
         AdvancedWeapon* getWeapon(const std::string& name) const;
         AdvancedWeapon* getCurrentWeapon() const { return m_currentWeapon; }
         void setCurrentWeapon(const std::string& name);
-        void switchToNextWeapon();
-        void switchToPreviousWeapon();
+        void switchToNextAdvancedWeapon();
+        void switchToPreviousAdvancedWeapon();
         
         // Weapon actions
         bool fireCurrentWeapon(const glm::vec3& direction);
@@ -351,4 +371,5 @@ namespace Sparky {
         // Internal methods
         void updateWeaponStates(float deltaTime);
     };
+
 }

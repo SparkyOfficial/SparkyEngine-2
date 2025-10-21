@@ -12,7 +12,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED True)
 set(VULKAN_SDK_PATH "E:/VulkanSDK/1.4.321.1")
 
 # Set the path to GLFW installation
-set(GLFW_PATH "C:/glfw-install")
+set(GLFW_PATH "${CMAKE_CURRENT_SOURCE_DIR}/glfw-3.4")
 
 # Set the path to glslang installation
 set(GLSLANG_PATH "E:/VulkanSDK/1.4.321.1")
@@ -76,7 +76,20 @@ if (glfw3_FOUND)
         set(GLFW_LIBRARIES "${GLFW_PATH}/lib/glfw3.lib")
     endif()
 else()
-    message(WARNING "GLFW not found. Building without window support.")
+    # Check if GLFW is in the root directory
+    if (EXISTS "${GLFW_PATH}/CMakeLists.txt")
+        set(GLFW_INCLUDE_DIRS "${GLFW_PATH}/include")
+        # We'll need to build GLFW as part of the project
+        message(STATUS "Using GLFW from ${GLFW_PATH}")
+        # Add GLFW as a subdirectory
+        add_subdirectory(glfw-3.4)
+        set(GLFW_LIBRARIES glfw)
+    else()
+        # Fallback to manual path specification
+        set(GLFW_INCLUDE_DIRS "${GLFW_PATH}/include")
+        set(GLFW_LIBRARIES "${GLFW_PATH}/lib/glfw3.lib")
+        message(WARNING "GLFW not found. Building without window support.")
+    endif()
 endif()
 
 # Set Bullet Physics libraries based on how it was found

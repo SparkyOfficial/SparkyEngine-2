@@ -493,6 +493,18 @@ namespace Sparky {
     }
     
     // AdvancedWeaponSystem implementation
+    AdvancedWeaponSystem::AdvancedWeaponSystem()
+        : WeaponSystem(nullptr)
+        , m_currentWeapon(nullptr) {
+        // Initialize ammo reserves
+        m_ammoReserves.insert({WeaponType::PISTOL, 120});
+        m_ammoReserves.insert({WeaponType::RIFLE, 180});
+        m_ammoReserves.insert({WeaponType::SHOTGUN, 60});
+        m_ammoReserves.insert({WeaponType::SNIPER, 30});
+        m_ammoReserves.insert({WeaponType::SMG, 240});
+        m_ammoReserves.insert({WeaponType::HEAVY, 50});
+    }
+    
     AdvancedWeaponSystem::AdvancedWeaponSystem(Player* player)
         : WeaponSystem(player)
         , m_currentWeapon(nullptr) {
@@ -526,6 +538,13 @@ namespace Sparky {
         // Cleanup weapon system
         for (auto& weapon : m_weapons) {
             weapon->destroy();
+        }
+    }
+    
+    void AdvancedWeaponSystem::render() {
+        // Render all weapons
+        for (auto& weapon : m_weapons) {
+            weapon->render();
         }
     }
     
@@ -567,7 +586,7 @@ namespace Sparky {
         }
     }
     
-    void AdvancedWeaponSystem::switchToNextWeapon() {
+    void AdvancedWeaponSystem::switchToNextAdvancedWeapon() {
         if (m_weapons.size() <= 1) return;
         
         // Find current weapon index
@@ -582,7 +601,7 @@ namespace Sparky {
         }
     }
     
-    void AdvancedWeaponSystem::switchToPreviousWeapon() {
+    void AdvancedWeaponSystem::switchToPreviousAdvancedWeapon() {
         if (m_weapons.size() <= 1) return;
         
         // Find current weapon index
@@ -637,5 +656,83 @@ namespace Sparky {
         for (auto& weapon : m_weapons) {
             // This is already handled in weapon->update()
         }
+    }
+    
+    // WeaponSystem interface implementation
+    bool AdvancedWeaponSystem::equipWeapon(int inventorySlot) {
+        // Not implemented for advanced weapon system
+        return false;
+    }
+    
+    bool AdvancedWeaponSystem::equipWeapon(const std::string& weaponName) {
+        // Not implemented for advanced weapon system
+        return false;
+    }
+    
+    bool AdvancedWeaponSystem::unequipWeapon() {
+        // Not implemented for advanced weapon system
+        return false;
+    }
+    
+    bool AdvancedWeaponSystem::switchToNextWeapon() {
+        switchToNextAdvancedWeapon();
+        return true;
+    }
+    
+    bool AdvancedWeaponSystem::switchToPreviousWeapon() {
+        switchToPreviousAdvancedWeapon();
+        return true;
+    }
+    
+    bool AdvancedWeaponSystem::switchToWeapon(int index) {
+        if (index >= 0 && index < static_cast<int>(m_weapons.size())) {
+            m_currentWeapon = m_weapons[index].get();
+            return true;
+        }
+        return false;
+    }
+    
+    void AdvancedWeaponSystem::shoot() {
+        // Not implemented for advanced weapon system
+    }
+    
+    void AdvancedWeaponSystem::reload() {
+        reloadCurrentWeapon();
+    }
+    
+    void AdvancedWeaponSystem::aim() {
+        // Not implemented for advanced weapon system
+    }
+    
+    void AdvancedWeaponSystem::unaim() {
+        // Not implemented for advanced weapon system
+    }
+    
+    int AdvancedWeaponSystem::getTotalAmmo() const {
+        if (m_currentWeapon) {
+            return m_currentWeapon->getMaxAmmo();
+        }
+        return 0;
+    }
+    
+    int AdvancedWeaponSystem::getMagazineAmmo() const {
+        if (m_currentWeapon) {
+            return m_currentWeapon->getAmmoCount();
+        }
+        return 0;
+    }
+    
+    bool AdvancedWeaponSystem::canShoot() const {
+        if (m_currentWeapon) {
+            return m_currentWeapon->hasAmmo() && !m_currentWeapon->isReloading();
+        }
+        return false;
+    }
+    
+    bool AdvancedWeaponSystem::isReloading() const {
+        if (m_currentWeapon) {
+            return m_currentWeapon->isReloading();
+        }
+        return false;
     }
 }

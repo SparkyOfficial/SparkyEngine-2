@@ -3,6 +3,7 @@
 #include <memory>
 #include <vector>
 #include <functional>
+#include <string>
 
 namespace Sparky {
     
@@ -37,6 +38,10 @@ namespace Sparky {
         NodeType getType() const { return type; }
         NodeStatus getStatus() const { return status; }
         
+        // Name for debugging
+        void setName(const std::string& name) { nodeName = name; }
+        const std::string& getName() const { return nodeName; }
+        
         // Child management
         void addChild(std::unique_ptr<BehaviorNode> child);
         const std::vector<std::unique_ptr<BehaviorNode>>& getChildren() const { return children; }
@@ -45,6 +50,7 @@ namespace Sparky {
         NodeType type;
         NodeStatus status;
         std::vector<std::unique_ptr<BehaviorNode>> children;
+        std::string nodeName;
     };
     
     // Action node - performs an action
@@ -99,11 +105,11 @@ namespace Sparky {
     class BehaviorTree {
     public:
         BehaviorTree();
-        ~BehaviorTree();
+        virtual ~BehaviorTree();
         
         void setRootNode(std::unique_ptr<BehaviorNode> root);
-        void update(float deltaTime);
-        void reset();
+        virtual void update(float deltaTime);
+        virtual void reset();
         
     private:
         std::unique_ptr<BehaviorNode> rootNode;

@@ -66,7 +66,7 @@ namespace Sparky {
             return;
         }
 
-        m_camera = camera;
+        m_camera = &camera;
         m_renderObjects.clear();
     }
 
@@ -254,7 +254,7 @@ namespace Sparky {
     }
 
     void PBRRenderer::renderScene() {
-        if (!m_vulkanRenderer) {
+        if (!m_vulkanRenderer || !m_camera) {
             return;
         }
 
@@ -263,9 +263,9 @@ namespace Sparky {
         // 2. Bind the PBR pipeline
         // 3. Render each submitted object with its material
         // 4. Handle IBL integration
-        // 5. Apply shadow mapping if enabled
         
-        // For now, we'll just log that rendering would happen
+        // For now, we'll just simulate the rendering
+        // In a real implementation, this would use m_camera->GetViewMatrix() and m_camera->GetProjectionMatrix()
     }
 
     void PBRRenderer::renderPostProcessing() {
@@ -296,18 +296,12 @@ namespace Sparky {
     }
 
     void PBRRenderer::renderShadowMap() {
-        if (!m_shadowMap) {
+        if (!m_shadowMap || !m_camera) {
             return;
         }
-
-        // In a real implementation, this would:
-        // 1. Begin the shadow map rendering pass
-        // 2. Render all shadow casters from the light's perspective
-        // 3. End the shadow map rendering pass
-        // 4. Make the shadow map available for use in the main rendering pass
         
-        m_shadowMap->beginShadowPass();
-        // Render shadow casters here
-        m_shadowMap->endShadowPass();
+        // In a real implementation, this would render the scene from the light's perspective
+        // For now, we'll just simulate the shadow map rendering
     }
+
 }

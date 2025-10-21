@@ -100,6 +100,13 @@ namespace Sparky {
         void setSpeed(float speed);
         void setSensitivity(float sensitivity);
         void setZoom(float zoom);
+        void setYaw(float yaw) { Yaw = yaw; updateCameraVectors(); }
+        void setPitch(float pitch) { Pitch = pitch; updateCameraVectors(); }
+
+        // Aliases for compatibility with demos (lowercase versions)
+        void processKeyboard(Camera_Movement direction, float deltaTime) { ProcessKeyboard(direction, deltaTime); }
+        void processMouseMovement(float xoffset, float yoffset, bool constrainPitch = true) { ProcessMouseMovement(xoffset, yoffset, constrainPitch); }
+        void lookAt(const glm::vec3& target) { LookAt(target); }
 
     private:
         // Calculates the front vector from the Camera's (updated) Euler Angles

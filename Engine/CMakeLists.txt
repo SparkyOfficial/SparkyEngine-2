@@ -78,6 +78,7 @@ set(ENGINE_SOURCES
     src/BallisticsSystem.cpp
     src/ShadowMap.cpp
     src/PostProcessPipeline.cpp
+    src/PBRRenderer.cpp
     # Bullet Physics source files
     src/Bullet/BulletRigidBodyComponent.cpp
     src/Bullet/BulletPhysicsWorld.cpp
@@ -88,6 +89,7 @@ set(ENGINE_SOURCES
     src/AdvancedWeaponSystem.cpp
     src/AdvancedAnimationSystem.cpp
     src/LevelEditor.cpp
+    src/PBRMaterial.cpp
 )
 
 set(ENGINE_HEADERS
@@ -166,6 +168,7 @@ set(ENGINE_HEADERS
     include/BallisticsSystem.h
     include/ShadowMap.h
     include/PostProcessPipeline.h
+    include/PBRRenderer.h
     include/AdvancedParticleSystem.h
     include/AdvancedAI.h
     include/AdvancedWeaponSystem.h
@@ -378,6 +381,39 @@ target_include_directories(advanced_engine_demo PRIVATE
 )
 
 target_link_libraries(advanced_engine_demo SparkyEngine)
+
+# Only link Vulkan libraries if Vulkan was found
+if (Vulkan_FOUND)
+    target_link_libraries(advanced_engine_demo
+        ${VULKAN_LIBRARIES}
+    )
+endif()
+
+# Only link Bullet Physics libraries if Bullet was found
+if (Bullet_FOUND)
+    target_link_libraries(advanced_engine_demo
+        ${BULLET_LIBRARIES}
+    )
+endif()
+
+# Only link GLFW libraries if GLFW was found
+if (glfw3_FOUND)
+    if (TARGET glfw)
+        # GLFW found as target
+        target_link_libraries(advanced_engine_demo glfw)
+    else()
+        # GLFW found via manual configuration
+        target_include_directories(advanced_engine_demo PRIVATE
+            ${GLFW_INCLUDE_DIRS}
+        )
+        target_link_libraries(advanced_engine_demo
+            ${GLFW_LIBRARIES}
+        )
+    endif()
+    
+    # Add definition for HAS_GLFW
+    target_compile_definitions(advanced_engine_demo PRIVATE HAS_GLFW)
+endif()
 
 # Create a PBR demo executable
 add_executable(pbr_demo

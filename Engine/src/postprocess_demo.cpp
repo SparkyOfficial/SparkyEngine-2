@@ -19,7 +19,8 @@ class PostProcessDemo {
 public:
     PostProcessDemo() 
         : m_engine(nullptr)
-        , m_window(nullptr)
+        , m_renderer(nullptr)
+        , m_pbrRenderer(nullptr)
         , m_running(false) {
     }
 
@@ -41,10 +42,10 @@ public:
         }
 
         // Create engine
-        m_engine = std::make_unique<SparkyEngine>();
+        m_engine = std::make_unique<Engine>();
         
-        // Initialize engine with window handle
-        if (!m_engine->initialize(glfwGetWin32Window(m_window))) {
+        // Initialize engine with window dimensions
+        if (!m_engine->initialize(1280, 720, "Post-Processing Demo")) {
             std::cerr << "Failed to initialize engine" << std::endl;
             return false;
         }
@@ -186,7 +187,7 @@ private:
     }
 
 private:
-    std::unique_ptr<SparkyEngine> m_engine;
+    std::unique_ptr<Engine> m_engine;
     VulkanRenderer* m_renderer;
     std::unique_ptr<PBRRenderer> m_pbrRenderer;
     Camera m_camera;

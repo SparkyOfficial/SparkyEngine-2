@@ -224,15 +224,15 @@ namespace Sparky {
         std::vector<NodeStatus> childStatuses;
     };
     
-    // Advanced behavior tree class
+    // Behavior tree class
     class AdvancedBehaviorTree : public BehaviorTree {
     public:
         AdvancedBehaviorTree();
         ~AdvancedBehaviorTree();
         
         void setRootNode(std::unique_ptr<AdvancedBehaviorNode> root);
-        void update(float deltaTime) override;
-        void reset() override;
+        void update(float deltaTime);
+        void reset();
         
         // Blackboard access
         Blackboard* getBlackboard() { return &blackboard; }

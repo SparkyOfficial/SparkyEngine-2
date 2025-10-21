@@ -19,7 +19,9 @@ class ShadowDemo {
 public:
     ShadowDemo() 
         : m_engine(nullptr)
-        , m_window(nullptr)
+        , m_renderer(nullptr)
+        , m_pbrRenderer(nullptr)
+        , m_shadowMap(nullptr)
         , m_running(false) {
     }
 
@@ -41,10 +43,10 @@ public:
         }
 
         // Create engine
-        m_engine = std::make_unique<SparkyEngine>();
+        m_engine = std::make_unique<Sparky::Engine>();
         
         // Initialize engine with window handle
-        if (!m_engine->initialize(glfwGetWin32Window(m_window))) {
+        if (!m_engine->initialize(1280, 720, "Shadow Mapping Demo")) {
             std::cerr << "Failed to initialize engine" << std::endl;
             return false;
         }
@@ -162,7 +164,7 @@ private:
     }
 
 private:
-    std::unique_ptr<SparkyEngine> m_engine;
+    std::unique_ptr<Sparky::Engine> m_engine;
     VulkanRenderer* m_renderer;
     std::unique_ptr<PBRRenderer> m_pbrRenderer;
     std::unique_ptr<ShadowMap> m_shadowMap;

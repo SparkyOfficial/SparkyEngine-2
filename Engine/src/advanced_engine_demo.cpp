@@ -169,7 +169,7 @@ namespace Sparky {
             
             // Add render component
             RenderComponent* renderComponent = m_player->addComponent<RenderComponent>();
-            std::unique_ptr<Mesh> playerMesh = Mesh::createCapsule(0.5f, 1.8f);
+            std::unique_ptr<Mesh> playerMesh = Mesh::createSphere(0.5f, 16, 16);
             renderComponent->setMesh(std::move(playerMesh));
             
             // Add PBR material
@@ -221,9 +221,9 @@ namespace Sparky {
             
             // Add render component
             RenderComponent* renderComponent = m_enemy->addComponent<RenderComponent>();
-            std::unique_ptr<Mesh> enemyMesh = Mesh::createCapsule(0.5f, 1.8f);
+            std::unique_ptr<Mesh> enemyMesh = Mesh::createSphere(0.5f, 16, 16);
             renderComponent->setMesh(std::move(enemyMesh));
-            
+
             // Add PBR material
             std::unique_ptr<PBRMaterial> enemyMaterial = std::make_unique<PBRMaterial>("EnemyMaterial");
             enemyMaterial->setAlbedo(glm::vec3(1.0f, 0.2f, 0.2f));
@@ -418,6 +418,7 @@ namespace Sparky {
                 }
                 
                 // Handle weapon firing
+#ifdef HAS_GLFW
                 if (inputManager.isMouseButtonPressed(GLFW_MOUSE_BUTTON_LEFT)) {
                     AdvancedWeaponSystem* weaponSystem = m_player->getComponent<AdvancedWeaponSystem>();
                     if (weaponSystem) {
@@ -425,7 +426,8 @@ namespace Sparky {
                         weaponSystem->fireCurrentWeapon(camera.getFront());
                     }
                 }
-                
+#endif
+
                 // Handle weapon reloading
                 if (inputManager.isKeyJustPressed(GLFW_KEY_R)) {
                     AdvancedWeaponSystem* weaponSystem = m_player->getComponent<AdvancedWeaponSystem>();
@@ -440,25 +442,27 @@ namespace Sparky {
             float cameraSpeed = 5.0f * deltaTime;
             
             if (inputManager.isKeyPressed(GLFW_KEY_UP)) {
-                camera.processKeyboard(Camera::Movement::FORWARD, cameraSpeed);
+                camera.processKeyboard(Camera::FORWARD, cameraSpeed);
             }
             if (inputManager.isKeyPressed(GLFW_KEY_DOWN)) {
-                camera.processKeyboard(Camera::Movement::BACKWARD, cameraSpeed);
+                camera.processKeyboard(Camera::BACKWARD, cameraSpeed);
             }
             if (inputManager.isKeyPressed(GLFW_KEY_LEFT)) {
-                camera.processKeyboard(Camera::Movement::LEFT, cameraSpeed);
+                camera.processKeyboard(Camera::LEFT, cameraSpeed);
             }
             if (inputManager.isKeyPressed(GLFW_KEY_RIGHT)) {
-                camera.processKeyboard(Camera::Movement::RIGHT, cameraSpeed);
+                camera.processKeyboard(Camera::RIGHT, cameraSpeed);
             }
-            
+
             // Handle mouse look
+#ifdef HAS_GLFW
             if (inputManager.isMouseButtonPressed(GLFW_MOUSE_BUTTON_RIGHT)) {
                 double xpos, ypos;
                 glfwGetCursorPos(static_cast<GLFWwindow*>(m_engine.getWindowManager().getWindowHandle()), &xpos, &ypos);
                 camera.processMouseMovement(static_cast<float>(xpos), static_cast<float>(ypos));
             }
-            
+#endif
+
             // Handle exit
             if (inputManager.isKeyJustPressed(GLFW_KEY_ESCAPE)) {
                 m_running = false;

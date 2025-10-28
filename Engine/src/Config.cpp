@@ -3,18 +3,33 @@
 #include "../include/Logger.h"
 #include <fstream>
 #include <sstream>
+#include <memory>
 
 namespace Sparky {
 
-    Config::Config() {
+    // Default constructor
+    Config::Config() : configFile("") {
+    }
+
+    // Constructor for dependency injection
+    Config::Config(const std::string& configFile) : configFile(configFile) {
+        if (!configFile.empty()) {
+            loadFromFile(configFile);
+        }
     }
 
     Config::~Config() {
     }
 
+    // Singleton instance accessor (backward compatibility)
     Config& Config::getInstance() {
         static Config instance;
         return instance;
+    }
+
+    // Factory method for dependency injection
+    std::unique_ptr<Config> Config::create(const std::string& configFile) {
+        return std::make_unique<Config>(configFile);
     }
 
     void Config::setInt(const std::string& key, int value) {

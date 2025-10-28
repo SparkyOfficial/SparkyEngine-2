@@ -572,6 +572,100 @@ if (glfw3_FOUND)
     target_compile_definitions(scene_demo PRIVATE HAS_GLFW)
 endif()
 
+# Create a PhysicsWorld DI demo executable
+add_executable(physicsworld_di_demo
+    src/physicsworld_di_demo.cpp
+)
+
+target_include_directories(physicsworld_di_demo PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/include
+    ${GLM_INCLUDE_DIRS}
+    ${JSON_INCLUDE_DIRS}
+    ${CMAKE_CURRENT_SOURCE_DIR}/../external
+)
+
+target_link_libraries(physicsworld_di_demo SparkyEngine)
+
+# Only link Vulkan libraries if Vulkan was found
+if (Vulkan_FOUND)
+    target_link_libraries(physicsworld_di_demo
+        ${VULKAN_LIBRARIES}
+    )
+endif()
+
+# Only link Bullet Physics libraries if Bullet was found
+if (Bullet_FOUND)
+    target_link_libraries(physicsworld_di_demo
+        ${BULLET_LIBRARIES}
+    )
+endif()
+
+# Only link GLFW libraries if GLFW was found
+if (glfw3_FOUND)
+    if (TARGET glfw)
+        # GLFW found as target
+        target_link_libraries(physicsworld_di_demo glfw)
+    else()
+        # GLFW found via manual configuration
+        target_include_directories(physicsworld_di_demo PRIVATE
+            ${GLFW_INCLUDE_DIRS}
+        )
+        target_link_libraries(physicsworld_di_demo
+            ${GLFW_LIBRARIES}
+        )
+    endif()
+    
+    # Add definition for HAS_GLFW
+    target_compile_definitions(physicsworld_di_demo PRIVATE HAS_GLFW)
+endif()
+
+# Create a Config DI demo executable
+add_executable(config_di_demo
+    src/config_di_demo.cpp
+)
+
+target_include_directories(config_di_demo PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/include
+    ${GLM_INCLUDE_DIRS}
+    ${JSON_INCLUDE_DIRS}
+    ${CMAKE_CURRENT_SOURCE_DIR}/../external
+)
+
+target_link_libraries(config_di_demo SparkyEngine)
+
+# Only link Vulkan libraries if Vulkan was found
+if (Vulkan_FOUND)
+    target_link_libraries(config_di_demo
+        ${VULKAN_LIBRARIES}
+    )
+endif()
+
+# Only link Bullet Physics libraries if Bullet was found
+if (Bullet_FOUND)
+    target_link_libraries(config_di_demo
+        ${BULLET_LIBRARIES}
+    )
+endif()
+
+# Only link GLFW libraries if GLFW was found
+if (glfw3_FOUND)
+    if (TARGET glfw)
+        # GLFW found as target
+        target_link_libraries(config_di_demo glfw)
+    else()
+        # GLFW found via manual configuration
+        target_include_directories(config_di_demo PRIVATE
+            ${GLFW_INCLUDE_DIRS}
+        )
+        target_link_libraries(config_di_demo
+            ${GLFW_LIBRARIES}
+        )
+    endif()
+    
+    # Add definition for HAS_GLFW
+    target_compile_definitions(config_di_demo PRIVATE HAS_GLFW)
+endif()
+
 # Include directories
 target_include_directories(SparkyEngine PUBLIC 
     ${CMAKE_CURRENT_SOURCE_DIR}/include
@@ -882,7 +976,7 @@ if (glfw3_FOUND)
         target_link_libraries(test_simple_engine SparkyEngine glfw)
     else()
         # GLFW found via manual configuration
-        target_include_directories(SparkyEngine PUBLIC 
+        target_include_directories(SparkdEngine PUBLIC 
             ${GLFW_INCLUDE_DIRS}
         )
         target_link_libraries(SparkyEngine PRIVATE ${GLFW_LIBRARIES})
@@ -1322,6 +1416,53 @@ target_link_libraries(postprocess_demo SparkyEngine)
 
 # target_link_libraries(level_editor_demo SparkyEngine)
 
+# Create a scene enhanced test executable
+add_executable(scene_enhanced_test
+    src/scene_enhanced_test.cpp
+)
+
+target_include_directories(scene_enhanced_test PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/include
+    ${GLM_INCLUDE_DIRS}
+    ${JSON_INCLUDE_DIRS}
+    ${CMAKE_CURRENT_SOURCE_DIR}/../external
+)
+
+target_link_libraries(scene_enhanced_test SparkyEngine)
+
+# Only link Vulkan libraries if Vulkan was found
+if (Vulkan_FOUND)
+    target_link_libraries(scene_enhanced_test
+        ${VULKAN_LIBRARIES}
+    )
+endif()
+
+# Only link Bullet Physics libraries if Bullet was found
+if (Bullet_FOUND)
+    target_link_libraries(scene_enhanced_test
+        ${BULLET_LIBRARIES}
+    )
+endif()
+
+# Only link GLFW libraries if GLFW was found
+if (glfw3_FOUND)
+    if (TARGET glfw)
+        # GLFW found as target
+        target_link_libraries(scene_enhanced_test glfw)
+    else()
+        # GLFW found via manual configuration
+        target_include_directories(scene_enhanced_test PRIVATE
+            ${GLFW_INCLUDE_DIRS}
+        )
+        target_link_libraries(scene_enhanced_test
+            ${GLFW_LIBRARIES}
+        )
+    endif()
+    
+    # Add definition for HAS_GLFW
+    target_compile_definitions(scene_enhanced_test PRIVATE HAS_GLFW)
+endif()
+
 # Create an abstraction demo executable
 add_executable(abstraction_demo
     src/abstraction_demo.cpp
@@ -1508,4 +1649,98 @@ if (glfw3_FOUND)
     
     # Add definition for HAS_GLFW
     target_compile_definitions(improvements_summary PRIVATE HAS_GLFW)
+endif()
+
+# Create a Phase 2 comprehensive demo executable
+add_executable(phase2_comprehensive_demo
+    src/phase2_comprehensive_demo.cpp
+)
+
+target_include_directories(phase2_comprehensive_demo PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/include
+    ${GLM_INCLUDE_DIRS}
+    ${JSON_INCLUDE_DIRS}
+    ${CMAKE_CURRENT_SOURCE_DIR}/../external
+)
+
+target_link_libraries(phase2_comprehensive_demo SparkyEngine)
+
+# Only link Vulkan libraries if Vulkan was found
+if (Vulkan_FOUND)
+    target_link_libraries(phase2_comprehensive_demo
+        ${VULKAN_LIBRARIES}
+    )
+endif()
+
+# Only link Bullet Physics libraries if Bullet was found
+if (Bullet_FOUND)
+    target_link_libraries(phase2_comprehensive_demo
+        ${BULLET_LIBRARIES}
+    )
+endif()
+
+# Only link GLFW libraries if GLFW was found
+if (glfw3_FOUND)
+    if (TARGET glfw)
+        # GLFW found as target
+        target_link_libraries(phase2_comprehensive_demo glfw)
+    else()
+        # GLFW found via manual configuration
+        target_include_directories(phase2_comprehensive_demo PRIVATE
+            ${GLFW_INCLUDE_DIRS}
+        )
+        target_link_libraries(phase2_comprehensive_demo
+            ${GLFW_LIBRARIES}
+        )
+    endif()
+    
+    # Add definition for HAS_GLFW
+    target_compile_definitions(phase2_comprehensive_demo PRIVATE HAS_GLFW)
+endif()
+
+# Create a Phase 2 improvements summary executable
+add_executable(phase2_improvements_summary
+    src/phase2_improvements_summary.cpp
+)
+
+target_include_directories(phase2_improvements_summary PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/include
+    ${GLM_INCLUDE_DIRS}
+    ${JSON_INCLUDE_DIRS}
+    ${CMAKE_CURRENT_SOURCE_DIR}/../external
+)
+
+target_link_libraries(phase2_improvements_summary SparkyEngine)
+
+# Only link Vulkan libraries if Vulkan was found
+if (Vulkan_FOUND)
+    target_link_libraries(phase2_improvements_summary
+        ${VULKAN_LIBRARIES}
+    )
+endif()
+
+# Only link Bullet Physics libraries if Bullet was found
+if (Bullet_FOUND)
+    target_link_libraries(phase2_improvements_summary
+        ${BULLET_LIBRARIES}
+    )
+endif()
+
+# Only link GLFW libraries if GLFW was found
+if (glfw3_FOUND)
+    if (TARGET glfw)
+        # GLFW found as target
+        target_link_libraries(phase2_improvements_summary glfw)
+    else()
+        # GLFW found via manual configuration
+        target_include_directories(phase2_improvements_summary PRIVATE
+            ${GLFW_INCLUDE_DIRS}
+        )
+        target_link_libraries(phase2_improvements_summary
+            ${GLFW_LIBRARIES}
+        )
+    endif()
+    
+    # Add definition for HAS_GLFW
+    target_compile_definitions(phase2_improvements_summary PRIVATE HAS_GLFW)
 endif()

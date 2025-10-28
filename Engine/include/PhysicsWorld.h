@@ -49,7 +49,15 @@ namespace Sparky {
 
     class PhysicsWorld {
     public:
+        // Constructor for dependency injection
+        PhysicsWorld();
+        PhysicsWorld(const glm::vec3& gravity);
+        ~PhysicsWorld();
+
         static PhysicsWorld& getInstance();
+
+        // Method to create a new PhysicsWorld instance for dependency injection
+        static std::unique_ptr<PhysicsWorld> create(const glm::vec3& gravity = glm::vec3(0.0f, -9.81f, 0.0f));
 
         void addPhysicsComponent(PhysicsComponent* component);
         void removePhysicsComponent(PhysicsComponent* component);
@@ -73,10 +81,10 @@ namespace Sparky {
         void resolveCollisionRB(CollisionDataRB& collision);
         void resolveCollisionCR(CollisionDataCR& collision);
 
-    private:
-        PhysicsWorld();
-        ~PhysicsWorld();
+        // Getters
+        const glm::vec3& getGravity() const { return gravity; }
 
+    private:
         std::vector<PhysicsComponent*> components;
         std::vector<RigidBodyComponent*> rigidBodies;
         glm::vec3 gravity;

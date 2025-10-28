@@ -8,6 +8,7 @@
 #include "InputManager.h"
 #include "Camera.h"
 #include "RenderSystem.h"
+#include "Logger.h"
 
 // Core engine namespace
 namespace Sparky {
@@ -27,6 +28,7 @@ namespace Sparky {
         InputManager& getInputManager() { return inputManager; }
         Camera& getCamera() { return camera; }
         RenderSystem& getRenderSystem() { return renderSystem; }
+        Logger& getLogger() { return logger; }
 
     private:
         VulkanRenderer renderer;
@@ -34,6 +36,7 @@ namespace Sparky {
         InputManager inputManager;
         Camera camera;
         RenderSystem renderSystem;
+        Logger logger;
 
         bool isRunning;
     };

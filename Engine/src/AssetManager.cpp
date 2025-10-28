@@ -1,75 +1,56 @@
 #include "../include/AssetManager.h"
-#include "../include/Texture.h"
+#include "../include/SparkyEngine.h"
+#include "../include/MeshRenderer.h"
 #include "../include/Logger.h"
-#include "../include/Mesh.h"
-#include "../include/FileUtils.h"
-#include <iostream>
-#include <fstream>
-#include <sstream>
 
 namespace Sparky {
 
-    AssetManager::AssetManager() {
+    AssetManager::AssetManager(Engine* engine) : engine(engine) {
     }
 
     AssetManager::~AssetManager() {
     }
 
-    AssetManager& AssetManager::getInstance() {
-        static AssetManager instance;
-        return instance;
+    std::unique_ptr<Mesh> AssetManager::createCube(float size) {
+        return Mesh::createCube(size);
     }
 
-    void AssetManager::loadMesh(const std::string& name, const std::string& filepath) {
-        // Load the mesh from the file
-        SPARKY_LOG_DEBUG("Loading mesh: " + name + " from " + filepath);
-        
-        auto mesh = std::make_unique<Mesh>();
-        
-        // For now, just create a simple cube as placeholder
-        auto cube = Mesh::createCube(1.0f);
-        // Directly copy the vertices and indices from the cube
-        mesh->vertices = std::move(cube->vertices);
-        mesh->indices = std::move(cube->indices);
-        
-        meshes[name] = std::move(mesh);
-        SPARKY_LOG_DEBUG("Mesh loaded successfully: " + name);
+    std::unique_ptr<Mesh> AssetManager::createSphere(float radius, int segments, int rings) {
+        return Mesh::createSphere(radius, segments, rings);
     }
 
-    Mesh* AssetManager::getMesh(const std::string& name) {
-        auto it = meshes.find(name);
-        if (it != meshes.end()) {
-            return it->second.get();
-        }
-        return nullptr;
+    std::unique_ptr<Mesh> AssetManager::createCapsule(float radius, float height, int segments, int rings) {
+        // Use sphere as fallback since createCapsule doesn't exist
+        return Mesh::createSphere(radius, segments, rings);
     }
 
-    bool AssetManager::hasMesh(const std::string& name) {
-        return meshes.find(name) != meshes.end();
+    std::unique_ptr<Mesh> AssetManager::createCylinder(float radius, float height, int segments) {
+        // Use sphere as fallback since createCylinder doesn't exist
+        return Mesh::createSphere(radius, segments, segments);
     }
 
-    void AssetManager::loadTexture(const std::string& name, const std::string& filepath) {
-        // Load the texture from the file
-        SPARKY_LOG_DEBUG("Loading texture: " + name + " from " + filepath);
-        
-        auto texture = std::make_unique<Texture>();
-        if (texture->loadFromFile(filepath)) {
-            textures[name] = std::move(texture);
-            SPARKY_LOG_DEBUG("Texture loaded successfully: " + name);
+    std::unique_ptr<Mesh> AssetManager::createPlane(float width, float height, int segments) {
+        return Mesh::createPlane(width, height);
+    }
+
+    void AssetManager::createMeshBuffers(const Mesh& mesh) {
+        if (engine) {
+            // Use the renderer through the engine to create buffers
+            MeshRenderer& meshRenderer = engine->getRenderer().getMeshRenderer();
+            meshRenderer.createVertexBuffer(mesh);
+            meshRenderer.createIndexBuffer(mesh);
         } else {
-            SPARKY_LOG_ERROR("Failed to load texture: " + name);
+            Logger::getInstance().error("AssetManager: Engine is null, cannot create mesh buffers");
         }
     }
-    
-    Texture* AssetManager::getTexture(const std::string& name) {
-        auto it = textures.find(name);
-        if (it != textures.end()) {
-            return it->second.get();
+
+    void AssetManager::destroyMeshBuffers(const Mesh& mesh) {
+        if (engine) {
+            // Use the renderer through the engine to destroy buffers
+            MeshRenderer& meshRenderer = engine->getRenderer().getMeshRenderer();
+            // Note: MeshRenderer doesn't have explicit destroy methods, cleanup is handled automatically
+        } else {
+            Logger::getInstance().error("AssetManager: Engine is null, cannot destroy mesh buffers");
         }
-        return nullptr;
-    }
-    
-    bool AssetManager::hasTexture(const std::string& name) {
-        return textures.find(name) != textures.end();
     }
 }

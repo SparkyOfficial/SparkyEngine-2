@@ -7,7 +7,7 @@
 
 namespace Sparky {
 
-    Engine::Engine() : isRunning(false) {
+    Engine::Engine() : logger(), isRunning(false) {
     }
 
     Engine::~Engine() {

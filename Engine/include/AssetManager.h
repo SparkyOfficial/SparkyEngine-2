@@ -1,33 +1,29 @@
 #pragma once
 
-#include <string>
-#include <unordered_map>
-#include <memory>
 #include "Mesh.h"
+#include <memory>
 
 namespace Sparky {
-    // Forward declaration for Texture class
-    class Texture;
-
+    class Engine;
+    class RenderSystem;
+    
     class AssetManager {
     public:
-        static AssetManager& getInstance();
-
-        // Mesh management
-        void loadMesh(const std::string& name, const std::string& filepath);
-        Mesh* getMesh(const std::string& name);
-        bool hasMesh(const std::string& name);
-
-        // Texture management
-        void loadTexture(const std::string& name, const std::string& filepath);
-        Texture* getTexture(const std::string& name);
-        bool hasTexture(const std::string& name);
-
-    private:
-        AssetManager();
+        AssetManager(Engine* engine);
         ~AssetManager();
 
-        std::unordered_map<std::string, std::unique_ptr<Mesh>> meshes;
-        std::unordered_map<std::string, std::unique_ptr<Texture>> textures;
+        // Mesh creation
+        std::unique_ptr<Mesh> createCube(float size);
+        std::unique_ptr<Mesh> createSphere(float radius, int segments, int rings);
+        std::unique_ptr<Mesh> createCapsule(float radius, float height, int segments, int rings);
+        std::unique_ptr<Mesh> createCylinder(float radius, float height, int segments);
+        std::unique_ptr<Mesh> createPlane(float width, float height, int segments);
+        
+        // Buffer management (abstracted from direct renderer access)
+        void createMeshBuffers(const Mesh& mesh);
+        void destroyMeshBuffers(const Mesh& mesh);
+
+    private:
+        Engine* engine;
     };
 }

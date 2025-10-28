@@ -1,10 +1,15 @@
 #include "../include/Logger.h"
 #include <iostream>
 #include <ctime>
+#include <memory>
 
 namespace Sparky {
 
     Logger::Logger() : currentLevel(LogLevel::INFO) {
+    }
+
+    // Constructor for dependency injection
+    Logger::Logger(LogLevel level) : currentLevel(level) {
     }
 
     Logger::~Logger() {
@@ -13,6 +18,10 @@ namespace Sparky {
     Logger& Logger::getInstance() {
         static Logger instance;
         return instance;
+    }
+
+    std::unique_ptr<Logger> Logger::create(LogLevel level) {
+        return std::make_unique<Logger>(level);
     }
 
     void Logger::setLogLevel(LogLevel level) {

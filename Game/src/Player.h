@@ -1,15 +1,17 @@
 #pragma once
 
+#include "../../Engine/include/GameObject.h"
+
 namespace Sparky {
     class HealthComponent;
     
-    class Player {
+    class Player : public GameObject {
     public:
         Player();
         ~Player();
 
-        void update(float deltaTime);
-        void render();
+        void update(float deltaTime) override;
+        void render() override;
 
         // Health system
         HealthComponent* getHealthComponent() { return healthComponent; }

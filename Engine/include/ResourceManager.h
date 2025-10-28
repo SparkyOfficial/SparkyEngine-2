@@ -23,7 +23,16 @@ namespace Sparky {
 
     class ResourceManager {
     public:
+        ResourceManager();
+        ~ResourceManager();
+
+        // Constructor for dependency injection
+        ResourceManager(const std::string& resourcePath);
+
         static ResourceManager& getInstance();
+
+        // Method to create a new ResourceManager instance for dependency injection
+        static std::unique_ptr<ResourceManager> create(const std::string& resourcePath = "");
 
         template<typename T>
         void loadResource(const std::string& name, const std::string& filepath);
@@ -37,10 +46,10 @@ namespace Sparky {
         void unloadResource(const std::string& name);
         void unloadAllResources();
 
-    private:
-        ResourceManager();
-        ~ResourceManager();
+        // Getters
+        const std::string& getResourcePath() const { return resourcePath; }
 
+    private:
         struct ResourceBase {
             virtual ~ResourceBase() = default;
         };
@@ -52,6 +61,7 @@ namespace Sparky {
         };
 
         std::unordered_map<std::string, std::unique_ptr<ResourceBase>> resources;
+        std::string resourcePath;
     };
 
     // Template implementations need to be in header

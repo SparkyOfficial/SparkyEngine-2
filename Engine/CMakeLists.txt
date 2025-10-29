@@ -485,6 +485,13 @@ if (Vulkan_FOUND)
     )
 endif()
 
+# Copy shaders to build directory after building advanced_engine_demo
+add_custom_command(TARGET advanced_engine_demo POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+    ${CMAKE_CURRENT_SOURCE_DIR}/shaders
+    ${CMAKE_CURRENT_BINARY_DIR}/shaders
+)
+
 # Only link Bullet Physics libraries if Bullet was found
 if (Bullet_FOUND)
     target_link_libraries(advanced_engine_demo
@@ -1129,6 +1136,124 @@ add_custom_command(TARGET SparkyEngine POST_BUILD
     ${CMAKE_CURRENT_SOURCE_DIR}/shaders
     ${CMAKE_CURRENT_BINARY_DIR}/shaders
 )
+
+# Also copy shaders to the build directory root for easier access
+add_custom_command(TARGET SparkyEngine POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+    ${CMAKE_CURRENT_SOURCE_DIR}/shaders
+    ${CMAKE_BINARY_DIR}/shaders
+)
+
+# Create a simple 3D demo executable
+add_executable(simple_3d_demo
+    src/simple_3d_demo.cpp
+)
+
+target_include_directories(simple_3d_demo PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/include
+    ${GLM_INCLUDE_DIRS}
+    ${JSON_INCLUDE_DIRS}
+    ${CMAKE_CURRENT_SOURCE_DIR}/../external
+)
+
+target_link_libraries(simple_3d_demo SparkyEngine)
+
+# Only link Vulkan libraries if Vulkan was found
+if (Vulkan_FOUND)
+    target_link_libraries(simple_3d_demo
+        ${VULKAN_LIBRARIES}
+    )
+endif()
+
+# Only link Bullet Physics libraries if Bullet was found
+if (Bullet_FOUND)
+    target_link_libraries(simple_3d_demo
+        ${BULLET_LIBRARIES}
+    )
+endif()
+
+# Only link GLFW libraries if GLFW was found
+if (glfw3_FOUND)
+    if (TARGET glfw)
+        # GLFW found as target
+        target_link_libraries(simple_3d_demo glfw)
+    else()
+        # GLFW found via manual configuration
+        target_include_directories(simple_3d_demo PRIVATE
+            ${GLFW_INCLUDE_DIRS}
+        )
+        target_link_libraries(simple_3d_demo
+            ${GLFW_LIBRARIES}
+        )
+    endif()
+    
+    # Add definition for HAS_GLFW
+    target_compile_definitions(simple_3d_demo PRIVATE HAS_GLFW)
+endif()
+
+# Link OpenGL libraries
+if (WIN32)
+    target_link_libraries(simple_3d_demo opengl32)
+endif()
+
+# Create a minimal Vulkan demo executable
+add_executable(vulkan_minimal_demo
+    src/vulkan_minimal_demo.cpp
+)
+
+target_include_directories(vulkan_minimal_demo PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/include
+    ${GLM_INCLUDE_DIRS}
+    ${JSON_INCLUDE_DIRS}
+    ${CMAKE_CURRENT_SOURCE_DIR}/../external
+)
+
+target_link_libraries(vulkan_minimal_demo SparkyEngine)
+
+# Only link Vulkan libraries if Vulkan was found
+if (Vulkan_FOUND)
+    target_link_libraries(vulkan_minimal_demo
+        ${VULKAN_LIBRARIES}
+    )
+endif()
+
+# Copy shaders to build directory after building vulkan_minimal_demo
+add_custom_command(TARGET vulkan_minimal_demo POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+    ${CMAKE_CURRENT_SOURCE_DIR}/shaders
+    ${CMAKE_CURRENT_BINARY_DIR}/shaders
+)
+
+# Only link Bullet Physics libraries if Bullet was found
+if (Bullet_FOUND)
+    target_link_libraries(vulkan_minimal_demo
+        ${BULLET_LIBRARIES}
+    )
+endif()
+
+# Only link GLFW libraries if GLFW was found
+if (glfw3_FOUND)
+    if (TARGET glfw)
+        # GLFW found as target
+        target_link_libraries(vulkan_minimal_demo glfw)
+    else()
+        # GLFW found via manual configuration
+        target_include_directories(vulkan_minimal_demo PRIVATE
+            ${GLFW_INCLUDE_DIRS}
+        )
+        target_link_libraries(vulkan_minimal_demo
+            ${GLFW_LIBRARIES}
+        )
+    endif()
+    
+    # Add definition for HAS_GLFW
+    target_compile_definitions(vulkan_minimal_demo PRIVATE HAS_GLFW)
+endif()
+
+# Link OpenGL libraries
+if (WIN32)
+    target_link_libraries(vulkan_minimal_demo opengl32)
+endif()
 
 target_link_libraries(test_save_load SparkyEngine)
 

@@ -98,6 +98,7 @@ namespace Sparky {
             
             float lastTime = 0.0f;
             
+            int frameCount = 0;
             while (m_running && !m_engine.getWindowManager().shouldClose()) {
                 // Calculate delta time
 #ifdef HAS_GLFW
@@ -126,6 +127,17 @@ namespace Sparky {
                 
                 // Update shouldClose flag
                 m_running = !m_engine.getWindowManager().shouldClose();
+                
+                // Debug: Log frame count to see if we're actually running
+                frameCount++;
+                if (frameCount % 60 == 0) {
+                    Logger::getInstance().debug("Frame count: " + std::to_string(frameCount));
+                }
+                
+                // Debug: Check window status
+                if (frameCount % 300 == 0) {
+                    Logger::getInstance().debug("Window should close: " + std::to_string(m_engine.getWindowManager().shouldClose()));
+                }
             }
             
             Logger::getInstance().info("Exiting main game loop");

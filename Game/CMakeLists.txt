@@ -38,6 +38,59 @@ add_executable(HalfLifeCastleWolfensteinDemo
     src/half_life_castle_wolfenstein_demo.cpp
 )
 
+# Create a level 3D demo executable
+add_executable(level_3d_demo
+    src/level_3d_demo.cpp
+)
+
+target_include_directories(level_3d_demo PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Engine/include
+    ${GLM_INCLUDE_DIRS}
+    ${CMAKE_CURRENT_SOURCE_DIR}/../external
+    ${CMAKE_CURRENT_SOURCE_DIR}/../external/glm
+)
+
+target_link_libraries(level_3d_demo 
+    SparkyEngine
+)
+
+# Only link Vulkan libraries if Vulkan was found
+if (Vulkan_FOUND)
+    target_link_libraries(level_3d_demo
+        ${VULKAN_LIBRARIES}
+    )
+endif()
+
+# Only link Bullet Physics libraries if Bullet was found
+if (Bullet_FOUND)
+    target_link_libraries(level_3d_demo
+        ${BULLET_LIBRARIES}
+    )
+endif()
+
+# Only link GLFW libraries if GLFW was found
+if (glfw3_FOUND)
+    if (TARGET glfw)
+        # GLFW found as target
+        target_link_libraries(level_3d_demo glfw)
+    else()
+        # GLFW found via manual configuration
+        target_include_directories(level_3d_demo PRIVATE
+            ${GLFW_INCLUDE_DIRS}
+        )
+        target_link_libraries(level_3d_demo
+            ${GLFW_LIBRARIES}
+        )
+    endif()
+endif()
+
+# Copy assets to build directory
+add_custom_command(TARGET level_3d_demo POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+    ${CMAKE_CURRENT_SOURCE_DIR}/assets
+    ${CMAKE_CURRENT_BINARY_DIR}/assets
+)
+
 # Include directories
 target_include_directories(SparkyGame PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/src

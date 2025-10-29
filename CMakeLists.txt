@@ -84,6 +84,8 @@ else()
         # Add GLFW as a subdirectory
         add_subdirectory(glfw-3.4)
         set(GLFW_LIBRARIES glfw)
+        # Set glfw3_FOUND to TRUE since we're building GLFW as subdirectory
+        set(glfw3_FOUND TRUE)
     else()
         # Fallback to manual path specification
         set(GLFW_INCLUDE_DIRS "${GLFW_PATH}/include")
@@ -121,6 +123,19 @@ endif()
 # Add subdirectories
 add_subdirectory(Engine)
 add_subdirectory(Game)
+
+# Create a Vulkan extension test executable
+add_executable(vulkan_extension_test vulkan_extension_test.cpp)
+
+# Only link Vulkan libraries if Vulkan was found
+if (Vulkan_FOUND)
+    target_include_directories(vulkan_extension_test PRIVATE 
+        ${VULKAN_INCLUDE_DIRS}
+    )
+    target_link_libraries(vulkan_extension_test
+        ${VULKAN_LIBRARIES}
+    )
+endif()
 
 # Option to enable/disable audio support
 option(ENABLE_AUDIO "Enable audio support" OFF)
